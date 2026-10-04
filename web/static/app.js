@@ -6959,11 +6959,15 @@ function buildBaziResult(j) {
       /* R3457：守护图腾——喜用→灵兽原型可晒件（soul-animal
        * 同构，海外验证公式）。与方位同门同闸。 */
       '<button class="ghost fav-btn" type="button" id="shareGuardian" ' +
-      'title="看看哪只灵兽守你">🐉 守护图腾</button>';
+      'title="看看哪只灵兽守你">🐉 守护图腾</button>' +
+      /* R3461：守护水晶——喜用→晶石可晒件，同门同闸第三件。 */
+      '<button class="ghost fav-btn" type="button" id="shareCrystal" ' +
+      'title="看看哪颗晶石旺你">🔮 守护水晶</button>';
   }
   html += '</div>' +
     '<div id="fdCard"></div>' +
-    '<div id="gdCard"></div>';
+    '<div id="gdCard"></div>' +
+    '<div id="crCard"></div>';
   /* R3309（probe_first_screen 判据 1）：共情+一句话结论提到结果卡顶——
    * 排在命盘图/人设卡之前时，提交后无需滚动第一眼就是它。
    * renderVoice 传 skipLead 不再渲染这两块，DOM 里只此一份。 */
@@ -7568,6 +7572,7 @@ async function submitBazi(event) {
         return downloadPoster(j, 'bazi-kline'); });
       on('shareFortuneDir', function () { _fdOpen(j); });
       on('shareGuardian', function () { _gdOpen(j); });
+      on('shareCrystal', function () { _crOpen(j); });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
     revealResult('result');            // 005 判据 1：提交后无需滚动即见结论
@@ -8737,6 +8742,8 @@ var _POSTER_TITLES = {
   fortune_dir: '旺你的方位',
   /* R3457：守护图腾海报弹层标题/下载文件名。 */
   guardian: '守护图腾',
+  /* R3461：守护水晶海报弹层标题/下载文件名。 */
+  crystal: '守护水晶',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
@@ -8765,6 +8772,8 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   fortune_dir: 'celadon',
   /* R3457：守护图腾归紫云梦底——灵兽的夜行神秘感。 */
   guardian: 'dream',
+  /* R3461：守护水晶归紫云梦底——晶石的通透夜光感。 */
+  crystal: 'dream',
   /* R3379：周记信归暖底——一封信的温度感。 */
   weekletter: 'warm',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
@@ -8820,6 +8829,8 @@ var _SHARE_TEXT = {
   fortune_dir: '我的旺方测出来了，看看哪个方向旺你 →',
   /* R3457：守护图腾——「哪只灵兽守我」接力晒。 */
   guardian: '我的守护兽测出来了，看看哪只灵兽守你 →',
+  /* R3461：守护水晶——「哪颗晶石旺我」接力晒。 */
+  crystal: '我的守护晶测出来了，看看哪颗晶石旺你 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
@@ -8836,7 +8847,7 @@ var _SHARE_TEXT = {
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
-  guardian: 'bazi',
+  guardian: 'bazi', crystal: 'bazi',
   /* R3432-P0（审）：合拍卡「晒今天」复制链 ?view=cpdaily
    * 是死链——卡住在合婚页，归一到 hehun。 */
   cpdaily: 'hehun' };
@@ -17046,6 +17057,92 @@ function _gdOpen(j) {
     return downloadPoster(Object.assign({}, j, _o), 'guardian');
   });
   _gdBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* R3461 守护水晶：喜用→晶石原型+佩戴贴士+可晒海报（水晶手串
+ * 是小红书玄学穿搭大品类，与方位/图腾同公式第三件）。取晶
+ * 口径同源：缺行→补晶；无缺取最弱；均势取日主本行本命石。 */
+var _CR_GEM = {
+  '木': { glyph: '💚', name: '绿幽灵',
+    vibe: '生发木气——像把一小片森林戴在身上',
+    wear: '戴左手或当胸针，招「长出来」的劲儿',
+    tip: '书桌摆一盆绿植当平替，木气一个意思' },
+  '火': { glyph: '❤️', name: '红玛瑙',
+    vibe: '暖阳火气——提亮气色也提胆量',
+    wear: '手串戴右手，要说话要露脸的场合带上',
+    tip: '一件正红的小物同效，围巾口红都算' },
+  '土': { glyph: '💛', name: '黄水晶',
+    vibe: '厚实地气——把飘着的劲儿摁回脚跟',
+    wear: '贴身戴着，心浮的时候捏一捏',
+    tip: '吃顿踏实饭比戴啥都补土，别本末倒置' },
+  '金': { glyph: '🤍', name: '白水晶',
+    vibe: '清朗金气——利落、聚焦、不拖泥带水',
+    wear: '工作台上摆一颗或戴细链，求个清爽',
+    tip: '桌面收拾干净，白水晶的效果就到了大半' },
+  '水': { glyph: '💙', name: '海蓝宝',
+    vibe: '深水静气——急的时候往深处沉一沉',
+    wear: '睡前摘下来放床头，安神用',
+    tip: '泡澡或河边坐坐，水气直接补到身上' },
+};
+function _crPick(j) {
+  var fe = (j && j.calc && j.calc.five_elements) || {};
+  var counts = fe.counts || {};
+  var miss = fe.missing || [];
+  var wx = '', why = '';
+  if (miss.length) {
+    wx = miss[0];
+    why = '你八字缺' + wx + '，这颗晶专门替你补这一味';
+  } else {
+    var _ks = ['木', '火', '土', '金', '水'], _min = 99, _sec = 99;
+    _ks.forEach(function (e) {
+      var v = +(counts[e] || 0);
+      if (v < _min) { _sec = _min; _min = v; }
+      else if (v < _sec) { _sec = v; }
+    });
+    var _w0 = '';
+    _ks.forEach(function (e) {
+      if (!_w0 && Math.abs(+(counts[e] || 0) - _min) < 0.001) _w0 = e;
+    });
+    if (_w0 && _sec - _min > 0.001) {
+      wx = _w0;
+      why = '你八字里' + wx + '偏弱，它补你最薄的那一处';
+    } else {
+      var _gan = String((j && j.paipan && j.paipan.day_master) || '')
+        .charAt(0);
+      wx = _SM_GAN_WX[_gan] || '木';
+      why = '你五行挺匀，本命' + wx + '的晶石跟你最合';
+    }
+  }
+  return { wx: wx, why: why, g: _CR_GEM[wx] };
+}
+function _crCard(j) {
+  var _p = _crPick(j);
+  var _h = '<div class="cr-card sm-card">' +
+    '<div class="cr-gem">' + _p.g.glyph + ' <strong>' +
+      esc(_p.g.name) + '</strong></div>' +
+    '<div class="sm-tip">🔮 ' + esc(_p.why) + '</div>' +
+    '<div class="sm-tip">✨ ' + esc(_p.g.vibe) + '</div>' +
+    '<div class="sm-tip">📿 ' + esc(_p.g.wear) + '</div>' +
+    '<div class="sm-tip">💡 ' + esc(_p.g.tip) + '</div>' +
+    '<div class="sm-note">晶石按你盘里的喜用推，图个念想——' +
+      '真想买先量好预算，别冲动消费</div>' +
+    '<button class="ghost fav-btn" type="button" id="crShare" ' +
+      'title="生成守护水晶分享图">📸 晒出我的守护晶</button>' +
+    '</div>';
+  return { html: _h, pick: _p };
+}
+function _crOpen(j) {
+  var _crBox = el('crCard');
+  if (!_crBox || !j) return;
+  var _c = _crCard(j);
+  _crBox.innerHTML = _c.html;   // esc-reviewed：_crCard 内动态字段均过 esc()
+  on('crShare', function () {
+    var _o = { _crName: _c.pick.g.name, _crGlyph: _c.pick.g.glyph,
+               _crWx: _c.pick.wx, _crWhy: _c.pick.why,
+               _crVibe: _c.pick.g.vibe, _crWear: _c.pick.g.wear };
+    return downloadPoster(Object.assign({}, j, _o), 'crystal');
+  });
+  _crBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──

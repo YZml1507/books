@@ -4819,6 +4819,13 @@ def _run_inner() -> list[str]:
         "guardian: '守护图腾'" in _appsrc2, \
         "守护图腾：按钮/卡片/灵兽表/海报/别名/标题缺一"
     ok.append("frontend.guardian_wiring")
+    # R3461 守护水晶：按钮/出卡/晶石表/海报 case/别名/标题六件套。
+    assert "shareCrystal" in _appsrc2 and "_crOpen" in _appsrc2 and \
+        "_CR_GEM" in _appsrc2 and "case 'crystal'" in _postsrc and \
+        "crystal: 'bazi'" in _appsrc2 and \
+        "crystal: '守护水晶'" in _appsrc2, \
+        "守护水晶：按钮/卡片/晶石表/海报/别名/标题缺一"
+    ok.append("frontend.crystal_wiring")
     # R3441「小满记得」：分组口径/渲染钩/锁态藏卡/两段式忘掉——
     # 缺一则卡空渲、锁态仍见个人数据或单组清除哑火。
     assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \

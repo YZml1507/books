@@ -106,6 +106,8 @@ BUTTON_CASES = [
     ("bazi.fortunedir", "bazi",   None,            "#shareFortuneDir", "#fdCard .fd-card"),
     # R3457：守护图腾——bazi 出卡后点 🐉 钮出灵兽卡。
     ("bazi.guardian",   "bazi",   None,            "#shareGuardian",   "#gdCard .gd-card"),
+    # R3461：守护水晶——bazi 出卡后点 🔮 钮出晶石卡。
+    ("bazi.crystal",    "bazi",   None,            "#shareCrystal",    "#crCard .cr-card"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
     # news.panel_removed（产品行为，离线可判）+ news.retired_marker
     # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。
@@ -455,6 +457,10 @@ def main() -> int:
         # R3457：守护兽分享钮——downloadPoster('guardian') 海报模态，
         # 同族豁免；shareGuardian 本身有真用例。
         "gdShare": "守护图腾「晒出我的守护兽」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3461：守护晶分享钮——downloadPoster('crystal') 海报模态，
+        # 同族豁免；shareCrystal 本身有真用例。
+        "crShare": "守护水晶「晒出我的守护晶」——downloadPoster 海报模态，"
                    "同 shareBazi 族豁免",
         # R3379：周记信晒图钮——downloadPoster('weekletter') 海报模态
         # 同族豁免；信卡本身是「本周首访+门槛」条件件，

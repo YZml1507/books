@@ -1720,6 +1720,31 @@ function buildShareData(view, j) {
         [{ k: '结论', v: '灵兽替你守着' }];
       return _gd;
     }
+    case 'crystal': {
+      /* R3461 守护水晶海报：晶石上主位大字，喜用依据/气质/
+       * 佩戴进 lines，小注守恒——「图个念想」免责口径。 */
+      var _cr = base('守护水晶', '');
+      var _crBig = _pStr(j && j._crName) || '守护晶';
+      var _crGl = _pStr(j && j._crGlyph);
+      _cr.big = (_crGl ? _crGl + ' ' : '') + _crBig;
+      _cr.lines = [];
+      if (_pStr(j && j._crWx)) {
+        _cr.lines.push({ k: '喜用', v: _pStr(j._crWx) + ' 的晶石' });
+      }
+      if (_pStr(j && j._crWhy)) {
+        _cr.lines.push({ k: '依据', v: _clauseCut(_pStr(j._crWhy), 20) });
+      }
+      if (_pStr(j && j._crVibe)) {
+        _cr.lines.push({ k: '气质', v: _clauseCut(_pStr(j._crVibe), 20) });
+      }
+      if (_pStr(j && j._crWear)) {
+        _cr.lines.push({ k: '小满说', v: _clauseCut(_pStr(j._crWear), 20) });
+      }
+      _cr.lines.push({ k: '口径', v: '图个念想，真买先量预算' });
+      if (!_cr.lines.length) _cr.lines =
+        [{ k: '结论', v: '晶石替你补着' }];
+      return _cr;
+    }
     case 'weekletter': {
       /* R3379 周记信海报：小记原文拆句入 lines（每行一条），
        * 周报感靠 hook 顶行。 */

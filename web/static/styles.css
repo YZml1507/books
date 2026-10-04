@@ -4145,6 +4145,9 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 /* R3457：守护图腾卡——复用 sm-card 壳，灵兽行居中大字。 */
 .gd-beast { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
   color: var(--primary-ink); }
+/* R3461：守护水晶卡——复用 sm-card 壳，晶石行居中大字。 */
+.cr-gem { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
 
 /* R3381 默契挑战（view-mochi） */
 .mc-box { display: flex; flex-direction: column; gap: 12px; }
