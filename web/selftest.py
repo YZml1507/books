@@ -4243,7 +4243,9 @@ def _run_inner() -> list[str]:
     # P1-2：叙事插话不打飞日期锚。
     _svc._CHAT_CTX.clear(); _svc._CHAT_FACTS_CACHE.clear()
     _svc.chat_huangli_facts("明天搬家好吗", now=_NW, session_id="st-p12")
-    _svc.chat_huangli_facts("我昨天去了医院", now=_NW, session_id="st-p12")
+    # R3370-P2-7 别名扩容后「医院」已映求医族——叙事插话改用不挂
+    # 黄历事项的事由（公园散步），测试意图不变：无事项句不打飞锚。
+    _svc.chat_huangli_facts("我昨天去了公园散步", now=_NW, session_id="st-p12")
     _r2 = _svc.chat_huangli_facts("那理发呢", now=_NW, session_id="st-p12")
     assert _r2 and any("2026-09-24" in f for f in _r2), _r2
     # P1-3：不存在日检出+不污锚——沿用覆写前的原始解析判定。
