@@ -1199,6 +1199,18 @@ function buildShareData(view, j) {
                       '七夕': '💘', '元宵': '🏮', '端午': '🐉' }[_dfest] ||
           (j.term && j.term.name === _dfest ? '🌾' : '🎐');
       }
+      /* R3516：逆行态上海报——金逆/火逆/水逆窗期副题点名；
+       * 节徽优先，逆徽候补（payload 镜像字段直接读）。 */
+      var _retroTag = (j && j.venus && j.venus.on) ? '金逆中'
+        : (j && j.mars && j.mars.on) ? '火逆中'
+        : (j && j.mercury && j.mercury.on) ? '水逆中' : '';
+      if (_retroTag) {
+        _ds.subtitle += ' · ' + _retroTag;
+        if (!_ds.badge) {
+          _ds.badge = { '金逆中': '💞', '火逆中': '🔥',
+                        '水逆中': '💧' }[_retroTag];
+        }
+      }
       /* R3260（N5 晒图升级）：判词档位场景横幅上海报——日签卡里
        * 已加载的 bear-scene-* 同源 <img> 直绘成卡座（与塔罗牌面/
        * 签面插画同管线）。图没加载到时静默缺省，海报照常出。 */
