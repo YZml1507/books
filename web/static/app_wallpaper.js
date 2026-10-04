@@ -98,9 +98,11 @@ function _wapNebula(j) {
   var cv = document.createElement('canvas');
   cv.width = 720; cv.height = 1280;
   var ctx = cv.getContext('2d');
+  /* R3484-P2（审）：空 bands 硬编木带会让判词印错行——回落
+   * 带不带 wx 标记，判词行借此静默缺席。 */
   var _bands = (j && j.art && Array.isArray(j.art.bands)
     && j.art.bands.length) ? j.art.bands
-    : [{ c: '#B8A5E8', frac: 0.6, wx: '木' }];
+    : [{ c: '#B8A5E8', frac: 0.6, wx: '' }];
   var _seed = (+((j && j.art && j.art.seed) || 0)) >>> 0;
   var g = ctx.createLinearGradient(0, 0, 0, 1280);
   g.addColorStop(0, '#1A1430'); g.addColorStop(1, '#0E0B1F');
@@ -137,8 +139,11 @@ function _wapNebula(j) {
   ctx.font = '400 26px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.85)';
   /* 「土气」在目标语境=老土——五行行名直拼会读成自贬，
-   * 用「土行」避开歧义。 */
-  ctx.fillText('你盘里最浓的是' + (_top ? _top.wx + '行' : ''),
+   * 用「土行」避开歧义。空 bands（回落带 wx=''）不印判词，
+   * 改中性「一人一幅」（与卡内无 top 静默缺席同口径）。 */
+  ctx.fillText(_top && _top.wx
+               ? '你盘里最浓的是' + _top.wx + '行'
+               : '一人一幅，按五行权重画',
                360, 1212);
   /* 色带图例：小圆点排排。 */
   var _lw = _bands.length * 34, _lx = 360 - _lw / 2 + 17;

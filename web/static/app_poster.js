@@ -374,7 +374,9 @@ function _paintSharePoster(s, W, H) {
                    moodweek: 5,
                    /* R3469：soulart 四元素行+最浓+口径共 6 行——
                     * 默认 cap4 把「最浓/口径」尾两行静默切没。 */
-                   soulart: 6,
+                   /* R3484-P1（审）：五行俱全=5带+最浓+口径=7行，
+                    * cap6 静默切口径免责行（同 R3477c 坑）。 */
+                   soulart: 7,
                    /* R3474：fortune_dir 加旺城行后共 6 行——默认 cap4
                     * 会把「小满说/口径」尾两行静默切没，提帽 6。 */
                    fortune_dir: 6,
@@ -1821,10 +1823,15 @@ function buildShareData(view, j) {
       _sa.big = '我的五行色谱';
       _sa.lines = [];
       var _saBd = (j && Array.isArray(j._saBands)) ? j._saBands : [];
-      _saBd.forEach(function (b) {
+      /* R3484-P2（审）：与卡内图例同口径——最大余数法合计=100。 */
+      var _saPc = (typeof _saPctList === 'function')
+        ? _saPctList(_saBd)
+        : _saBd.map(function (b) {
+            return Math.round(+(b && b.frac) * 100); });
+      _saBd.forEach(function (b, _bi) {
         if (b && _pStr(b.wx) && _pStr(b.c) && +b.frac > 0) {
           _sa.lines.push({ k: _pStr(b.wx),
-            v: Math.round(+b.frac * 100) + '%', dot: _pStr(b.c) });
+            v: _saPc[_bi] + '%', dot: _pStr(b.c) });
         }
       });
       if (_saBd.length) {

@@ -8918,7 +8918,7 @@ var _SHARE_TEXT = {
   /* R3456：旺你的方位——「哪个方向旺我」接力晒。 */
   fortune_dir: '我的旺方测出来了，看看哪个方向旺你 →',
   /* R3457：守护图腾——「哪只灵兽守我」接力晒。 */
-  guardian: '我的守护兽测出来了，看看哪只灵兽守你 →',
+  guardian: '我的守护图腾测出来了，看看哪只灵兽守你 →',
   /* R3461：守护水晶——「哪颗晶石旺我」接力晒。 */
   crystal: '我的守护晶测出来了，看看哪颗晶石旺你 →',
   /* R3462：灵魂色谱——「我的盘是什么颜色」接力晒。 */
@@ -16667,7 +16667,7 @@ if (document.readyState === 'loading') {
         if (_sv === 'bazi') {
           var _saNk = (window.__shareSa ||
             new URLSearchParams(location.search).get('sa') || '');
-          var _saNM = { F: '旺你的方位', G: '守护兽', C: '守护水晶',
+          var _saNM = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
             S: '灵魂色谱', P: '算命 prompt' };
           if (_saNM[_saNk]) {
             _relay.bazi = '朋友在晒 TA 的「' + _saNM[_saNk] +
@@ -16764,7 +16764,7 @@ if (document.readyState === 'loading') {
       if (_sv2 === 'bazi') {
         var _saK2 = (window.__shareSa ||
           new URLSearchParams(location.search).get('sa') || '');
-        var _saNM2 = { F: '旺你的方位', G: '守护兽', C: '守护水晶',
+        var _saNM2 = { F: '旺你的方位', G: '守护图腾', C: '守护水晶',
           S: '灵魂色谱', P: '算命 prompt' };
         if (_saNM2[_saK2]) {
           _relayBar.bazi = '朋友在晒 TA 的「' + _saNM2[_saK2] +
@@ -17194,7 +17194,7 @@ function _gdCard(j) {
     '<div class="sm-note">图腾按你盘里的喜用推，图个念想——' +
       '真养宠物还得看缘分跟房东</div>' +
     '<button class="ghost fav-btn" type="button" id="gdShare" ' +
-      'title="生成守护图腾分享图">📸 晒出我的守护兽</button>' +
+      'title="生成守护图腾分享图">📸 晒出我的守护图腾</button>' +
     '</div>';
   return { html: _h, pick: _p };
 }
@@ -17327,15 +17327,34 @@ function _saBands(j) {
   }
   return { bands: _band, seed: _h };
 }
+/* R3484-P2（审）：色带百分比各自 Math.round 合计可漂 99/101——
+ * 最大余数法校正：全取 floor，差值补给小数位最大的几带。
+ * app_poster.js 同函数共用（它晚于 app.js 加载）。 */
+function _saPctList(bands) {
+  var _raw = (bands || []).map(function (b) {
+    return Math.max(0, (+b.frac || 0) * 100); });
+  var _fl = _raw.map(function (v) { return Math.floor(v); });
+  var _rem = Math.round(_raw.reduce(function (a, v) {
+    return a + v; }, 0)) - _fl.reduce(function (a, v) {
+      return a + v; }, 0);
+  var _ord = _raw.map(function (v, i) { return [v - _fl[i], i]; })
+    .sort(function (a, b2) { return b2[0] - a[0]; });
+  for (var _k = 0; _k < _ord.length && _rem > 0; _k++) {
+    _fl[_ord[_k][1]]++; _rem--;
+  }
+  return _fl;
+}
 function _saCard(j) {
   var _d = _saBands(j);
+  var _pcts = _saPctList(_d.bands);
   var _strip = _d.bands.map(function (b) {
+    /* R3484-P2（审）：「木 ×3」裸义——白话成「8 字里占 3 字」。 */
     return '<span class="sa-seg" style="flex:' + b.frac.toFixed(3) +
-      ';background:' + b.c + '" title="' + esc(b.wx) + ' ×' +
-      b.n + '"></span>';
+      ';background:' + b.c + '" title="' + esc(b.wx) +
+      '：8 字里占 ' + b.n + ' 字"></span>';
   }).join('');
-  var _leg = _d.bands.map(function (b) {
-    return b.wx + ' ' + (Math.round(b.frac * 100)) + '%';
+  var _leg = _d.bands.map(function (b, i) {
+    return b.wx + ' ' + _pcts[i] + '%';
   }).join(' · ');
   var _top = _d.bands.length
     ? _d.bands.slice().sort(function (a, b2) {
@@ -17417,7 +17436,8 @@ function _promptCopy(j, body) {
   var ok = function () {
     showToast('prompt 已复制——贴给任何 AI 都能帮你算', 'ok'); };
   var bad = function () {
-    showToast('复制没成功：再点一下试试', 'warn'); };
+    /* R3484-P1（审）：失败 toast 原来不指路——点名那颗钮。 */
+    showToast('复制没成功——点折叠区『📋 算命 prompt』再试', 'warn'); };
   /* R3465-P1（审子实锤）：writeText 被拒（权限策略/非安全上下
    * 文）原来只弹 bad toast 死路——拒绝时回落 execCommand 再试
    * 一次，都不行才报。 */
@@ -17450,6 +17470,10 @@ function _openSaByKey(k) {
   var j = _r.json;
   if (k === 'F') _fdOpen(j); else if (k === 'G') _gdOpen(j);
   else if (k === 'C') _crOpen(j); else if (k === 'S') _saOpen(j);
+  /* R3484-P1（审子实锤）：无手势环境（深链/待启消费）
+   * writeText 必拒——「自动复制好」是空头支票。仍走
+   * _promptCopy：手势路径（聊天 chip 点击）照常复制，
+   * 失败时 bad toast 已点名折叠区钮指路（上修）。 */
   else if (k === 'P') _promptCopy(j, _r.body || {});
   else return false;
   return true;

@@ -19725,3 +19725,14 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 ## R3483 色谱壁纸模态标题/文案收编
 - P2：soulart-wap 缺 _POSTER_TITLES/_shareText 两项——弹层标题回落「命盘海报」、分享文案走通用兜底。补「灵魂色谱壁纸」+ 锁屏接力钩文案。
 - 顺手核：_openSaByKey 在 open 前 _z.hidden=false（sa 锚开卡无折叠区遮蔽 bug）；分享链 sa 参数过 strip 幸存，from=share 全链实测自动开同款真通。
+
+## R3484 R3480 口吻九审报告按单清（审计子苏醒后送达）
+- P1-1 soulart 行帽 6→7：五行俱全=5带+最浓+口径=7行，cap6 静默切口径免责行（R3477c 同坑残留）→ cap7。
+- P1-2 soulart-wap 模态标题——R3483 先修。
+- P1-3 sa=P「自动复制好」空头支票：services 路标语改「出盘后折叠区里那颗 📋 钮一键复制」；bad toast 点名指路；_openSaByKey 手势路径照常复制（深链无手势走指路 toast）。
+- P2-1 百分比漂移：新增 _saPctList 最大余数法，卡图例+海报行同口径合计=100。
+- P2-2 守护兽/守护图腾命名统一=守护图腾（toast/share/钮全链）。
+- P2-3 soulart-wap _shareText——R3483 先修。
+- P2-4 色条 title「木 ×3」→「木：8 字里占 3 字」。
+- P2-5 壁纸空 bands 假判词：回落带 wx=''，判词行改中性「一人一幅」。
+- P2-6 喜用行标签判保留（白话垫句在位）。
