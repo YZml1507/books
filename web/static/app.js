@@ -19070,9 +19070,15 @@ function _moodWeekData() {
 var _MS = [[7, '七日缘'], [21, '半月友'], [30, '一月知己'],
            [66, '知心人'], [100, '百日故人']];
 /* R3532/35：本周旺运三池——模块级，打卡行与周记行同源。 */
-var _WL_C = ['奶油黄', '抹茶绿', '雾霾蓝', '蜜桃粉', '燕麦色',
-  '浅紫', '橘红', '米白', '湖蓝', '樱花粉', '鹅黄', '灰绿',
-  '珊瑚橙', '淡青'];
+/* R3538：色名带真色点——行里先给一眼能见的色。 */
+var _WL_C = [
+  { n: '奶油黄', h: '#f5e6bf' }, { n: '抹茶绿', h: '#b9d3a8' },
+  { n: '雾霾蓝', h: '#a8bfd4' }, { n: '蜜桃粉', h: '#f6c9bb' },
+  { n: '燕麦色', h: '#e6d8c3' }, { n: '浅紫', h: '#cdb8e0' },
+  { n: '橘红', h: '#f0997a' }, { n: '米白', h: '#f2ede2' },
+  { n: '湖蓝', h: '#8fc6d8' }, { n: '樱花粉', h: '#f4c6d5' },
+  { n: '鹅黄', h: '#f7e08a' }, { n: '灰绿', h: '#a9bfae' },
+  { n: '珊瑚橙', h: '#f5a583' }, { n: '淡青', h: '#bcd8cf' }];
 var _WL_I = ['一颗小太阳挂件', '向日葵发圈', '透明伞', '红绳',
   '小小的铃铛', '陶瓷小猫', '干花书签', '暖色围巾', '贝壳耳钉',
   '旧硬币', '手写小卡', '布艺发带', '一小袋桂花',
@@ -19081,6 +19087,16 @@ var _WL_F = ['一口热豆浆', '芒果糯米', '红糖年糕', '糖炒栗子',
   '桂花汤圆', '烤红薯', '蜜桃乌龙', '酒酿圆子', '一碗阳春面',
   '柠檬蜂蜜水', '芋泥麻薯', '绿豆沙', '热腾腾的玉米', '银耳羹'];
 var _mwMonthOff = 0;   /* R3530：心情月历翻页偏移（0=当月） */
+/* R3538：旺运行一处产——色名带色点，打卡/周记同 call。 */
+function _wlRow(dateKey) {
+  var _m = _isoShift(dateKey,
+    -((new Date(dateKey + 'T00:00:00').getDay() + 6) % 7));
+  var _c = _dayPick(_WL_C, 'wlc|' + _m);
+  return '<div class="ck-quest ck-wl">🍀 本周旺运：' +
+    '<i class="wl-dot" style="background:' + _c.h + '"></i>' +
+    esc(_c.n) + ' · ' + esc(_dayPick(_WL_I, 'wli|' + _m)) +
+    ' · ' + esc(_dayPick(_WL_F, 'wlf|' + _m)) + '</div>';
+}
 function _renderMoodWeek() {
   /* 只在周记视图在屏时渲——storage 跨 tab 同步也走这里，早退零成本。 */
   var vw = el('view-moodweek');
@@ -19207,13 +19223,7 @@ function _renderMoodWeek() {
   html += '</div>';
   /* R3535：周记同款旺运行——聊天文案承诺「周记里也能翻到」。 */
   try {
-    var _wt0 = todayIso();
-    var _wMon = _isoShift(_wt0,
-      -((new Date(_wt0 + 'T00:00:00').getDay() + 6) % 7));
-    html += '<div class="ck-quest ck-wl">🍀 本周旺运：' +
-      esc(_dayPick(_WL_C, 'wlc|' + _wMon)) + ' · ' +
-      esc(_dayPick(_WL_I, 'wli|' + _wMon)) + ' · ' +
-      esc(_dayPick(_WL_F, 'wlf|' + _wMon)) + '</div>';
+    html += _wlRow(todayIso());
   } catch (eWL2) {}
   html += '<p class="mw-note">只在本机生成，不发任何人；图个乐呵，不当诊断。</p>';
   body.innerHTML = html;
@@ -20154,12 +20164,7 @@ function renderCheckin(dateKey) {
    * 三池各盐同周一确定性，零存储零交互纯仪式行。 */
   var _wluHtml = '';
   try {
-    var _wlMon = _isoShift(dateKey,
-      -((new Date(dateKey + 'T00:00:00').getDay() + 6) % 7));
-    _wluHtml = '<div class="ck-quest ck-wl">🍀 本周旺运：' +
-      esc(_dayPick(_WL_C, 'wlc|' + _wlMon)) + ' · ' +
-      esc(_dayPick(_WL_I, 'wli|' + _wlMon)) + ' · ' +
-      esc(_dayPick(_WL_F, 'wlf|' + _wlMon)) + '</div>';
+    _wluHtml = _wlRow(dateKey);
   } catch (eWL) {}
   /* R3509：小规律「新发现」提醒（Lunary mid-week alert 同构）——
    * 规律换内容 toast 一次；pattern:seen 记最近一条防止重复弹。 */
