@@ -284,13 +284,73 @@ function _paintSharePoster(s, W, H) {
     }
     _bgKey = 'lilac';   /* 深底→浅墨盘 */
     bgImg = null;
-  } else if (!(bgImg && bgImg.complete && bgImg.naturalWidth)) {
+  }
+  /* R3592 月相海报：深空底+星星+按盈亏画 terminator 的月亮。
+   * phase01∈[0,1)：0 朔/0.5 望——照度 f=(1-cos2πp)/2，
+   * 盈亏路径：明侧半圆 + terminator 椭圆弧（rx=r·|1-2f|，
+   * f<0.5 时弓向明侧成眉月，f>0.5 弓向暗侧成凸月）。 */
+  var _mnArt = (s && s.art && s.art.moon &&
+    isFinite(+s.art.moon.p)) ? s.art.moon : null;
+  if (_mnArt && !_saArt) {
+    var _mg = ctx.createLinearGradient(0, 0, 0, 1440);
+    _mg.addColorStop(0, '#101A38'); _mg.addColorStop(1, '#060A18');
+    ctx.fillStyle = _mg; ctx.fillRect(0, 0, 1080, 1440);
+    var _mseed = (Math.floor(+_mnArt.p * 1e6) ^ 0x5EED) >>> 0;
+    var _mrnd = function () {
+      _mseed = (_mseed * 1664525 + 1013904223) >>> 0;
+      return _mseed / 4294967296;
+    };
+    for (var _st = 0; _st < 120; _st++) {
+      ctx.fillStyle = 'rgba(255,246,232,' + (0.25 + _mrnd() * 0.6) + ')';
+      ctx.beginPath();
+      ctx.arc(_mrnd() * 1080, _mrnd() * 1440, _mrnd() * 1.7 + 0.4, 0, 6.3);
+      ctx.fill();
+    }
+    var _mcx = 540, _mcy = 620, _mr = 230;
+    var _ill = (1 - Math.cos(2 * Math.PI * _mnArt.p)) / 2;
+    var _wax = _mnArt.p < 0.5;
+    /* 月晕 */
+    var _halo = ctx.createRadialGradient(_mcx, _mcy, _mr * 0.6,
+      _mcx, _mcy, _mr * 2.6);
+    _halo.addColorStop(0, 'rgba(244,228,176,0.30)');
+    _halo.addColorStop(1, 'rgba(244,228,176,0)');
+    ctx.fillStyle = _halo; ctx.fillRect(0, 0, 1080, 1440);
+    /* 暗面盘 */
+    ctx.fillStyle = '#141C33';
+    ctx.beginPath(); ctx.arc(_mcx, _mcy, _mr, 0, 6.3); ctx.fill();
+    /* 亮面 */
+    ctx.fillStyle = '#F6E9C8';
+    ctx.beginPath();
+    var _er = _mr * Math.abs(1 - 2 * _ill);
+    if (_wax) {
+      ctx.arc(_mcx, _mcy, _mr, -Math.PI / 2, Math.PI / 2, false);
+      ctx.ellipse(_mcx, _mcy, _er, _mr, 0,
+        Math.PI / 2, -Math.PI / 2, _ill < 0.5);
+    } else {
+      ctx.arc(_mcx, _mcy, _mr, Math.PI / 2, -Math.PI / 2, false);
+      ctx.ellipse(_mcx, _mcy, _er, _mr, 0,
+        -Math.PI / 2, Math.PI / 2, _ill < 0.5);
+    }
+    ctx.fill();
+    /* 环形山散斑——跟着相位种子走，一人一晚一张。 */
+    ctx.fillStyle = 'rgba(190,168,120,0.35)';
+    for (var _cr = 0; _cr < 14; _cr++) {
+      var _ca = _mrnd() * 6.3, _cd = _mrnd() * _mr * 0.75;
+      ctx.beginPath();
+      ctx.arc(_mcx + Math.cos(_ca) * _cd, _mcy + Math.sin(_ca) * _cd,
+        3 + _mrnd() * 10, 0, 6.3);
+      ctx.fill();
+    }
+    _bgKey = 'lilac';
+    bgImg = null;
+  } else if (!_saArt && !_mnArt &&
+             !(bgImg && bgImg.complete && bgImg.naturalWidth)) {
     bgImg = POSTER_BG.warm;
     _bgKey = 'warm';
   }
   if (bgImg && bgImg.complete && bgImg.naturalWidth) {
     ctx.drawImage(bgImg, 0, 0, 1080, 1440);
-  } else if (!_saArt) {
+  } else if (!_saArt && !_mnArt) {
     var bg = ctx.createLinearGradient(0, 0, 0, 1440);
     bg.addColorStop(0, '#FDF8F0'); bg.addColorStop(1, '#F6EDE0');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
@@ -2006,6 +2066,26 @@ function buildShareData(view, j) {
       if (!_nc.lines.length) _nc.lines =
         [{ k: '结论', v: '名片收齐六件' }];
       return _nc;
+    }
+    case 'moon': {
+      /* R3592 月相海报：画家底=当晚真盈亏（s.art.moon.p），
+       * 大字=月相 label（新月许愿/满月复盘/蛾眉等），lines
+       * =日行句+日期+口径——每天每张都不一样。 */
+      var _mo = base('今晚的月亮', '');
+      var _mj = (j && j._moon) || {};
+      _mo.big = _pStr(_mj.label) || '今晚的月亮';
+      _mo.lines = [];
+      if (_pStr(_mj.line)) {
+        _mo.lines.push({ k: '小满说', v: _clauseCut(_pStr(_mj.line), 20) });
+      }
+      if (_pStr(_mj.date)) {
+        _mo.lines.push({ k: '日子',
+          v: _pStr(_mj.date).replace(/-/g, '.') });
+      }
+      _mo.lines.push({ k: '口径',
+        v: '每天的月亮都不一样，这张是你今晚的' });
+      _mo.art = { moon: { p: +_mj.phase01 || 0 } };
+      return _mo;
     }
     case 'soulart': {
       /* R3462 灵魂色谱海报：底图交给画家生成式星云（s.art 携带

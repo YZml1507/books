@@ -6377,6 +6377,9 @@ async function loadDaily() {
       if (j.moon.action === 'wish_review') {
         _mBtn += ' <button type="button" class="daily-moon-go moon-share">喊 TA 一起许愿 🤝</button>';
       }
+      /* R3592：晒今晚的月亮——日更海报件，每天都是另一张
+       * （Lunary 主屏件同构的可晒版）。 */
+      _mBtn += ' <button type="button" class="daily-moon-go moon-poster">晒今晚 🌙</button>';
       /* R3451：八相日行——glyph 随相（后端下发），无 glyph 时按
        * phase 回退老两档。 */
       var _mG = j.moon.glyph ||
@@ -6415,6 +6418,21 @@ async function loadDaily() {
                 navigator.clipboard.writeText(_wPl).then(_wOk, _wBad);
               } else { _wBad(); }
             } catch (eWS) {}
+            return;
+          }
+          /* R3592：月相海报——朔望月估算月龄出盈亏分数，
+           * 画家端按盈亏画 terminator（与小规律同套锚日）。 */
+          if (_t.classList.contains('moon-poster')) {
+            try {
+              var _mp = ((Date.now() - Date.UTC(2000, 0, 6, 18, 14)) /
+                86400000) % 29.530588853;
+              if (_mp < 0) _mp += 29.530588853;
+              var _pm = downloadPoster({ _moon: {
+                label: j.moon.label || '', line: j.moon.line || '',
+                glyph: _mG || '🌙', phase01: _mp / 29.530588853,
+                date: todayIso() } }, 'moon');
+              if (_pm && _pm.catch) _pm.catch(function () {});
+            } catch (eMP) {}
             return;
           }
           /* R3451：满月复盘先出小结卡——近 15 天打卡天数+瓶里还
@@ -8937,6 +8955,8 @@ var _POSTER_TITLES = {
   'guardian-wap': '守护图腾壁纸',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
+  /* R3592：月相海报弹层标题/下载文件名。 */
+  moon: '今晚的月亮',
   /* R3381：默契挑战海报弹层标题/下载文件名。 */
   mochi: '默契挑战',
   /* R3388：每日一签海报弹层标题/下载文件名。 */
@@ -9049,6 +9069,8 @@ var _SHARE_TEXT = {
   /* R3486：图腾壁纸——「灵兽锁屏」接力晒。 */
   'guardian-wap': '我的守护灵兽锁屏做好了，看看哪只守你 →',
   weekletter: '小满给我写了封上周小记，你的呢 →',
+  /* R3592：月相海报——「今晚的月亮一人一张」接力晒。 */
+  moon: '今晚的月亮晒给你，你那儿的月亮什么样 →',
   /* R3381：默契挑战——成绩晒图钩子。 */
   mochi: '我们的默契分出炉了，敢不敢测你们的 →',
   /* R3388：每日一签——「求来的答案」接力晒。 */
@@ -9063,6 +9085,8 @@ var _SHARE_TEXT = {
 /* R3373s：海报视图 → 落地视图别名（分享/邀请深链用）——
  * 海报 kind 有的不是页面视图（soulmate 是桃花卡的画像件）。 */
 var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
+  /* R3592：月相海报复制链归 home——view=moon 不是页面。 */
+  moon: 'home',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
   guardian: 'bazi', crystal: 'bazi', soulart: 'bazi', soulicon: 'bazi',
   soulemblem: 'bazi',
