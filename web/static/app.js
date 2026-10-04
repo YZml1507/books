@@ -18439,6 +18439,16 @@ function _ncCard(j) {
     if (_ncTitle) {
       rows.push({ ic: '🏷️', k: '称号', g: '', v: _ncTitle });
     }
+    /* R3554：功课 XP 上名片——与打卡行/海报同口径（章×10）。 */
+    var _ncXp = 0;
+    for (var _nx = 0; _nx < localStorage.length; _nx++) {
+      var _nk = localStorage.key(_nx);
+      if (_nk && /^wq:\d{4}-\d{2}-\d{2}$/.test(_nk)) _ncXp++;
+    }
+    if (_ncXp > 0) {
+      rows.push({ ic: '📜', k: '功课', g: '',
+        v: _ncXp + ' 章 · XP ' + (_ncXp * 10) });
+    }
   } catch (eNC) {}
   var _h = '<div class="nc-card sm-card">' +
     '<div class="nc-head">📇 <strong>灵魂名片</strong></div>';
