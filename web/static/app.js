@@ -2328,6 +2328,15 @@ var _CHAT_ACT_ANCHORS = {
   celeb: '#celebDrawer' };
 function _chatActChip(bubble, action) {
   if (!bubble || !action || !action.view || !action.label) return;
+  /* R3368（积压-动作chip去重）：重试/打烊/任务落地多条链路
+   * 会对同一气泡重复挂同文路标——同 label 已挂载时不再叠。 */
+  var _dup = false;
+  try {
+    bubble.querySelectorAll('.chat-act-chip').forEach(function (_c) {
+      if ((_c.textContent || '') === action.label) _dup = true;
+    });
+  } catch (eD0) {}
+  if (_dup) return;
   var b = document.createElement('button');
   b.type = 'button';
   b.className = 'chat-chip chat-act-chip';
@@ -12332,6 +12341,29 @@ function initChatSidebar() {
   });
   if (cls) cls.addEventListener('click', function () { _setRecent(false); });
   if (bd) bd.addEventListener('click', function () { _setRecent(false); });
+  /* R3368（积压-滑关）：移动端抽屉此前只能点 ✕/遮罩关——
+   * 右抽屉自然手势是向右滑走。整栏监听，横向位移 >64px 且
+   * 横向占优（不抢纵向聊天滚动）即收。 */
+  if (sb) {
+    var _sw0 = null;
+    sb.addEventListener('touchstart', function (e) {
+      if (!e.touches || e.touches.length !== 1) { _sw0 = null; return; }
+      _sw0 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: true });
+    sb.addEventListener('touchend', function (e) {
+      if (!_sw0 || !e.changedTouches || !e.changedTouches.length) {
+        _sw0 = null; return;
+      }
+      var _dx = e.changedTouches[0].clientX - _sw0.x;
+      var _dy = e.changedTouches[0].clientY - _sw0.y;
+      _sw0 = null;
+      if (_dx > 64 && Math.abs(_dx) > Math.abs(_dy) * 1.5) {
+        _setRecent(false);
+      }
+    }, { passive: true });
+    sb.addEventListener('touchcancel', function () { _sw0 = null; },
+      { passive: true });
+  }
   /* R3258（用户实测「点空白不收回」）：遮罩点击此前是唯一关栏路径，
    * 任何 z>65 的层（装到桌面提示 z180/海报层 z200/连签 z290）压在
    * 遮罩上时点击到不了它。补 document 捕获段：按下落在侧栏与悬浮钮
