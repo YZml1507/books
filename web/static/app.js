@@ -20496,6 +20496,37 @@ function _yearStats(dateKey) {
     }
     if (mb >= 0) out.moodMain = _MOOD_META[mb].t;
   } catch (eK) {}
+  /* R3783：原始键 150 天 GC——12 月生成「年报」只看得见
+   * ~5 个月。写时汇总键（ckY:/ckBest:/jrY:/mdY:）永久存活，
+   * 取大合并，与年信同口径。 */
+  try {
+    var _ckR = +(localStorage.getItem('ckY:' + yy) || 0);
+    if (_ckR > out.checkinDays) out.checkinDays = _ckR;
+    var _ckB = +(localStorage.getItem('ckBest:' + yy) || 0);
+    if (_ckB > out.streakBest) out.streakBest = _ckB;
+    var _jrR = +(localStorage.getItem('jrY:' + yy) || 0);
+    if (_jrR > out.journalCount) out.journalCount = _jrR;
+    var _mdR = JSON.parse(localStorage.getItem('mdY:' + yy) || 'null');
+    if (_mdR) {
+      var _mb2 = -1, _mn2 = 0;
+      Object.keys(_mdR).forEach(function (mi) {
+        var c = +_mdR[mi] || 0;
+        if (c > _mn2) { _mn2 = c; _mb2 = +mi; }
+      });
+      if (_mb2 >= 0 && _MOOD_META[_mb2]) {
+        var _rawCnt = 0;
+        try {
+          for (var _i2 = 0; _i2 < localStorage.length; _i2++) {
+            var _k2 = localStorage.key(_i2);
+            if (_k2 && _k2.indexOf('mood:' + yy + '-') === 0 &&
+                _MOOD_META[+localStorage.getItem(_k2)] ===
+                _MOOD_META[_mb2]) _rawCnt++;
+          }
+        } catch (eRC) {}
+        if (_mn2 > _rawCnt) out.moodMain = _MOOD_META[_mb2].t;
+      }
+    }
+  } catch (eRU) {}
   try {
     _wishEchoGet().forEach(function (w) {
       var fu = w && w.fu;
