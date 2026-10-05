@@ -23796,12 +23796,12 @@ function _wishAction(act, arg, dateKey) {
         var _wcard = document.querySelector(
           '#wishBottleBody .ck-wish-actions');
         if (_wcard && !document.getElementById('ckWishBack')) {
-          var _wb = document.createElement('button');
-          _wb.type = 'button';
-          _wb.className = 'checkin-opt';
-          _wb.id = 'ckWishBack';
-          _wb.textContent = '回递一个愿 🌙';
-          _wb.addEventListener('click', function () {
+          var _wbb = document.createElement('button');
+          _wbb.type = 'button';
+          _wbb.className = 'checkin-opt';
+          _wbb.id = 'ckWishBack';
+          _wbb.textContent = '回递一个愿 🌙';
+          _wbb.addEventListener('click', function () {
             var _wu = location.origin + location.pathname +
               '?view=home&from=share&wish=r';
             try {
@@ -23826,9 +23826,9 @@ function _wishAction(act, arg, dateKey) {
             } else { _wBad(); }
             try { sessionStorage.removeItem('wishReplyFrom'); }
             catch (eWC) {}
-            _wb.remove();
+            _wbb.remove();
           });
-          _wcard.appendChild(_wb);
+          _wcard.appendChild(_wbb);
         }
       }
     } catch (eWB) {}

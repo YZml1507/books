@@ -2607,6 +2607,15 @@ def main() -> int:
                     # 容器留着占位文案，旧判据「非空+非…中」会蒙混过关。
                     _pre_empty = bool(page.query_selector(
                         f"{res} .ph-empty"))
+                    # R3680：黄历等结果渲染分支本身会产出 .ph-empty
+                    # （「今天没什么特别适宜的」）——只数元素/对文案在
+                    # 空宜/忌日都误报（前案同日期渲染，新旧文案相同）。
+                    # 给现存占位元素打标，handler 重渲出来的新元素
+                    # 不带标——判的是「旧元素幸存」而非「类名/文案幸存」。
+                    if _pre_empty:
+                        page.eval_on_selector_all(
+                            f"{res} .ph-empty",
+                            "els => els.forEach(e => e.dataset.probePre='1')")
                     # R3457：前案卡片 scrollIntoView({behavior:'smooth'})
                     # 还在播时，本案按钮 bounding box 每帧都在变——
                     # playwright 判 not-stable 超时（真人点没这毛病）。
@@ -2640,7 +2649,7 @@ def main() -> int:
                         if waited >= 2.5 and not api_calls and errors:
                             break
                     _post_empty = bool(page.query_selector(
-                        f"{res} .ph-empty"))
+                        f"{res} .ph-empty[data-probe-pre='1']"))
                     # 失败文案只认 .no-evidence 元素内的文字（见 FAILURE_RE 注释）
                     no_ev = " ".join(
                         page.eval_on_selector_all(
