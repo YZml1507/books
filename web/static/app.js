@@ -3638,8 +3638,10 @@ function _chatFacts(facts, msg) {
     if (_me && _me.y && _me.m && _me.d) {
       var _mm = ('0' + _me.m).slice(-2), _dd = ('0' + _me.d).slice(-2);
       _f.push('生日：' + _me.y + '-' + _mm + '-' + _dd);
-      /* R4671c：时辰同步进事实——称骨要年月日时全才称得准 */
-      if (_me.h != null) _f.push('时辰：' + _me.h);
+      /* R4671c：时辰同步进事实——称骨要年月日时全才称得准。
+       * R4706b：老档可能已存越界脏值（写入闸上线前），推送再兜一层。 */
+      if (_me.h != null && +_me.h >= 0 && +_me.h <= 23)
+        _f.push('时辰：' + _me.h);
     }
     /* R3126（specs/013-P2）：partner 档案进上下文——合婚留下的
      * me:partner 此前只有合婚页自己用；聊「他/TA」时小满手里得有
@@ -3652,8 +3654,9 @@ function _chatFacts(facts, msg) {
       var _pm = ('0' + _p.m).slice(-2), _pd = ('0' + _p.d).slice(-2);
       _f.push('TA的生日：' + _p.y + '-' + _pm + '-' + _pd +
               (_p.n ? '（' + _meNickClean(_p.n) + '）' : ''));
-      /* R4671c：TA 时辰同口径 */
-      if (_p.h != null) _f.push('TA的时辰：' + _p.h);
+      /* R4671c：TA 时辰同口径（R4706b：越界脏值同兜） */
+      if (_p.h != null && +_p.h >= 0 && +_p.h <= 23)
+        _f.push('TA的时辰：' + _p.h);
     }
     /* R3352（审-高）：心情话题带近 7 天本机心情记录——此前小满手里
      * 既没数据也没周记路标，只能回「跟我说说」空话。mood:<date> 值
@@ -24608,6 +24611,11 @@ function _meSave(key, rec) {
   /* R2345（R61-P1-4）：写库时就净化昵称——脏值不落地，直写
    * localStorage 绕过本函数的极端路径另有 _chatFacts 处兜底。 */
   if ('n' in rec) rec = Object.assign({}, rec, {n: _meNickClean(rec.n)});
+  /* R4706a：时辰写入闸归一——免测直存/免测 TA 存两条路缺 0–23 校验，
+   * 「99 点」落档后被称骨当寅时硬称。归一漏斗处越界一律置 null。 */
+  if ('h' in rec && rec.h != null &&
+      (!(+rec.h >= 0) || +rec.h > 23 || +rec.h !== Math.floor(+rec.h)))
+    rec = Object.assign({}, rec, {h: null});
   var _merged = Object.assign(old, rec);
   /* R3320-P1-2：未来年生辰统一收口——所有直写 _meSave 的路径
    * （bazi 表单/dailyAsk/昵称单改等）合并后生辰在未来即整写

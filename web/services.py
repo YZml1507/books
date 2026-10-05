@@ -10447,9 +10447,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                               int(_cp5.group(3)))
                 _chm = re.match(r"^时辰：(\d{1,2})", _cfs)
                 _chp = re.match(r"^TA的时辰：(\d{1,2})", _cfs)
-                if _chm:
+                # R4706c：\d{1,2} 会放进 24–99 脏值——越界不称
+                # （「99 点」被当寅时硬称的病兜服务端）。
+                if _chm and int(_chm.group(1)) <= 23:
                     _h_me = int(_chm.group(1))
-                if _chp:
+                if _chp and int(_chp.group(1)) <= 23:
                     _h_ta = int(_chp.group(1))
             # R4701c：语境与档分离——问的是 TA 但没存 TA 生日时，
             # 不能拿「你」的骨重冒充作答，明说差哪块。
