@@ -6776,6 +6776,40 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                 f"（{_bp9n.year}年）")
             except Exception:
                 pass
+        # R4366：犯太岁属相榜——「今年/明年哪些属相犯太岁」值+冲+
+        # 刑+害+破五档（与 R4261 个人判定同一张关系表）。
+        if ("犯太岁" in _n or "太岁" in _n) and any(
+                k in _n for k in ("哪些", "什么属相", "哪些属相",
+                                  "属相犯", "名单", "有哪几个",
+                                  "几个属相", "犯太岁的属相")):
+            try:
+                _ay9t = _d.year + (1 if "明年" in _n else
+                                   2 if "后年" in _n else 0)
+                _yb9t = (bazi_compute(_ay9t, 7, 1, 12, "").year
+                         or "  ")
+                _yz9t = _yb9t[1]
+                _ZI9x = "子丑寅卯辰巳午未申酉戌亥"
+                _SX9x = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                _rows9 = [("值", _yz9t), ("冲", CHONG.get(_yz9t, "")),
+                          ("害", XIANG_HAI.get(_yz9t, "")),
+                          ("破", XIANG_PO.get(_yz9t, ""))]
+                _xing9 = [z for (a, b) in XING
+                          for z in (b if a == _yz9t else
+                                    a if b == _yz9t else "")
+                          if z]
+                # 自刑（辰午酉亥）也计入刑档。
+                if _yz9t in "辰午酉亥":
+                    _xing9.append(_yz9t)
+                _rows9.insert(2, ("刑", _xing9[0] if _xing9 else ""))
+                _parts9 = [f"{_SX9x[_ZI9x.index(z)]}（{t}）"
+                           for t, z in _rows9 if z]
+                out.append(
+                    f"{_ay9t}年犯太岁属相："
+                    + "、".join(_parts9)
+                    + "——刑冲害破从重到轻，属这几位的朋友"
+                      "那年宜稳不宜闯")
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
