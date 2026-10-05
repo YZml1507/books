@@ -10429,7 +10429,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "命里几两", "命有一斤", "命比纸轻", "骨头几两",
                                  "骨有多重", "骨头硬", "称一下命", "称称命",
                                  "称骨算命", "斤两算命", "测算骨重", "算骨重",
-                                 "称骨法", "称骨术", "给我称骨", "帮我称骨")):
+                                 "称骨法", "称骨术", "给我称骨", "帮我称骨",
+                                 # R4701b：TA 语境不带「骨重」本字的问法
+                                 "称TA", "称他", "称她", "帮TA称",
+                                 "帮他称", "帮她称", "给TA称", "给他称",
+                                 "给她称")):
             _cg_me = _cg_ta = _h_me = _h_ta = None
             for _cf in facts or []:
                 _cfs = str(_cf).strip()
@@ -10447,12 +10451,14 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     _h_me = int(_chm.group(1))
                 if _chp:
                     _h_ta = int(_chp.group(1))
-            _ta_ctx = bool(_cg_ta) and any(
+            # R4701c：语境与档分离——问的是 TA 但没存 TA 生日时，
+            # 不能拿「你」的骨重冒充作答，明说差哪块。
+            _ta_ask = any(
                 k in _n for k in ("TA", "ta", "TA的", "他", "她",
-                                  "对象", "另一半"))
-            _cg = _cg_ta if _ta_ctx else _cg_me
-            _hh = _h_ta if _ta_ctx else _h_me
-            _wn = "TA" if _ta_ctx else "你"
+                                  "对象", "另一半", "老公", "老婆"))
+            _cg = _cg_ta if _ta_ask else _cg_me
+            _hh = _h_ta if _ta_ask else _h_me
+            _wn = "TA" if _ta_ask else "你"
             if _cg and _hh is not None:
                 try:
                     _cr = chenggu_mod.chenggu_compute(*_cg, _hh)
@@ -10472,6 +10478,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 out.append(
                     f"{_wn}的生日在档但时辰没记——称骨要年月日时全才称"
                     "得准，八字页补上时辰就能看到骨重卡。")
+            elif _ta_ask:
+                out.append(
+                    "TA 的生日没记——合婚页（或档案卡的 TA 栏）存下 "
+                    "TA 的生日和时辰，就能给 TA 称。")
             else:
                 out.append(
                     "称骨要生日加时辰——八字页出盘后有「称称你的骨重」"

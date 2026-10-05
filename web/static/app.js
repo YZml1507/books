@@ -3595,7 +3595,11 @@ function _chatCardsFact() {
 /* R3313（审-P2-5）：TA 生辰注入闸——感情语境或受邀态才放行。 */
 function _taFactRelevant(msg) {
   if (window.__hhInviteMode) return true;
-  return /对象|男朋|女朋|男朋友|女朋友|感情|桃花|恋爱|暧昧|crush|CRUSH|老公|老婆|前任|现任|相亲|约会|结婚|离婚|分手|复合|喜欢|心动|合婚|配吗|缘分|伴侣|夫妻|另一半|我俩|我们俩|我们\b|TA|ta|他\b|她\b/i.test(String(msg || ''));
+  /* R4701a：他\b/她\b/我们\b 在 CJK 后永远没有 ASCII 词边界——「他几两
+   * 命」此前过不了门，TA 的题答成「你的骨重」。先削「其他/吉他」这类
+   * 复合词再裸配 他/她。 */
+  var _m0 = String(msg || '').replace(/其他|吉他|利他|排他|无他|顾他/g, '');
+  return /对象|男朋|女朋|男朋友|女朋友|感情|桃花|恋爱|暧昧|crush|CRUSH|老公|老婆|前任|现任|相亲|约会|结婚|离婚|分手|复合|喜欢|心动|合婚|配吗|缘分|伴侣|夫妻|另一半|我俩|我们俩|我们|TA|ta|他|她/i.test(_m0);
 }
 function _chatFacts(facts, msg) {
   var _f = (facts || []).slice();
