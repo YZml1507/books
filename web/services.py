@@ -2482,6 +2482,9 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "答谢宴": ["谒贵"], "升学宴": ["谒贵"], "庆功宴": ["谒贵"],
     "家宴": ["谒贵"], "办酒席": ["谒贵"], "喝喜酒": ["谒贵"],
     "喜宴": ["谒贵"],
+    # R4541k：亲走簇——回娘家/探亲/走亲戚都归谒贵（拜访辈）。
+    "回娘家": ["谒贵"], "探亲": ["谒贵"], "走亲戚": ["谒贵"],
+    "串亲戚": ["谒贵"], "看亲戚": ["谒贵"], "走亲戚串门": ["谒贵"],
     # R4486c：车辆簇——证照归立券/求名；保养维修归修造；租购
     # 归纳财；日常出行归出行。
     "上牌": ["立券", "纳财"], "验车": ["谒贵"], "年检": ["谒贵"],
@@ -3143,6 +3146,19 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
             if cand >= today:
                 return cand, tname
         return None, ""
+    # R4541：「入冬/入春」口语≡四立（立冬/立春…）——TERM 表只存
+    # 正名，季节口语别名这里先解。
+    _SEAS_IN = {"入冬": "立冬", "进冬": "立冬", "入冬了": "立冬",
+                "入夏": "立夏", "进夏": "立夏",
+                "入春": "立春", "进春": "立春",
+                "入秋": "立秋", "进秋": "立秋"}
+    _si = next((v for k, v in _SEAS_IN.items() if k in msg), "")
+    if _si:
+        for yy in (today.year, today.year + 1):
+            cand = (term_time(yy, _si) + timedelta(hours=8)).date()
+            if cand >= today:
+                return cand, _si
+        return None, ""
     if "跨年" in msg:
         cand = date(today.year, 12, 31)
         if cand < today:
@@ -3166,7 +3182,9 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
         if _c9 >= today:
             return _c9, f"{_yy9}年"
     for (mm2, dd2), fv in _FEST_SOLAR.items():
-        if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
+        # R4541c：同农历节路——削「节」裸名只认 ≥3 字名。
+        if any((p2 in msg or (len(p2) >= 3 and p2.endswith("节")
+                              and p2[:-1] in msg))
                for p2 in fv.split("·")):
             cand = date(today.year, mm2, dd2)
             if cand < today:
@@ -3305,8 +3323,17 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
             cand = _ly.lunar_to_solar(yy, 1, 1)
             if cand >= today:
                 return cand, "春节"
+    # R4541b：「鬼节/七月半」≡中元节（七月十五）。
+    if "鬼节" in msg or "七月半" in msg:
+        for yy in (today.year, today.year + 1):
+            cand = _ly.lunar_to_solar(yy, 7, 15)
+            if cand >= today:
+                return cand, "中元节"
     for (lm2, ld2), fv in _FEST_LUNAR.items():
-        if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
+        # R4541c：削「节」放裸名匹配只认 ≥3 字名——「春节」削成
+        # 「春」会把「春捂秋冻/春天吃什么」全错配到春节。
+        if any((p2 in msg or (len(p2) >= 3 and p2.endswith("节")
+                              and p2[:-1] in msg))
                for p2 in fv.split("·")):
             for yy in (today.year, today.year + 1):
                 cand = _ly.lunar_to_solar(yy, lm2, ld2)
@@ -8295,6 +8322,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         if any(k in _n for k in ("方位", "方向", "往哪", "朝哪",
                                  "喜神", "福神", "贵神", "煞哪",
                                  "煞方", "煞", "往", "朝", "向", "去",
+                                 # R4541o：「坐哪/座位」问法同收。
+                                 "坐哪", "坐哪边", "坐哪头", "座位",
                                  # R4456d：财神爷/睡哪头/办公桌朝向
                                  # 变体补键。
                                  "财神", "财神在哪", "财神方位",
@@ -8385,7 +8414,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 # 泛方向问（往哪/朝哪/去哪/什么方位）没点名→方位四件一把给。
                 if not _em9 and any(k in _n for k in
                                     ("往哪", "朝哪", "去哪", "方位",
-                                     "方向", "朝向", "哪头", "睡哪")):
+                                     "方向", "朝向", "哪头", "睡哪",
+                                     # R4541o：「坐哪/座位」问法同收。
+                                     "坐哪", "坐哪边", "坐哪头", "座位")):
                     out.append(
                         f"{_pfx}方位四件：财神{_cai9}、"
                         f"喜神{_xi9 or '—'}、"
@@ -8730,6 +8761,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                              "辰巳午未申酉戌亥，六十组一轮",
                  "干支": "天干地支的合称",
                  "甲子": "干支表第一组，六十年一轮的开头",
+                 # R4541l：奇门八门词——铺子没排奇门盘，如实说+指路。
+                 "生门": "奇门遁甲八门里的大吉门（铺子没排奇门盘，"
+                         "方位四件就是简化版）",
+                 "死门": "奇门遁甲八门里的凶门（同上简化看方位）",
                  "合婚": "两个人八字摆一起看合不合",
                  "合盘": "合婚的口语说法",
                  # R4536j：属相关系档+贵人阴阳+物候词补白话。
@@ -8850,7 +8885,14 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 "倒春寒": "开春后返冷的天", "开春": "立春后叫开春",
                 "开年": "正月开头那几天（老话讲开年大吉）",
                 "平年": "365天的年份（闰年366天）",
-                "生肖纪年": "属相轮着走的纪年法——今年马年明年羊年"}
+                "生肖纪年": "属相轮着走的纪年法——今年马年明年羊年",
+                # R4541m：秋令老话词。
+                "早立秋": "老话立秋在午前交节叫早立秋（凉得早）",
+                "晚立秋": "老话立秋在午后交节叫晚立秋（秋老虎凶）",
+                "伏包秋": "老话末伏包着立秋走（短秋老虎）",
+                "秋包伏": "老话立秋先交末伏后到（秋老虎拖长）",
+                "母秋": "老话立秋逢双日叫母秋（热得长）",
+                "公秋": "老话立秋逢单日叫公秋（凉得快）"}
         _sm9h = [k for k in _sm9 if k in _n]
         if _sm9h:
             out.append("老话时令白话："
@@ -9016,7 +9058,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                              if r[1] in ("吉", "小吉")]
                     if _gs9m:
                         out.append(
-                            f"本月吉日："
+                            "本月吉日："
                             + "、".join(
                                 f"{r[0].month}/{r[0].day}"
                                 f"（周{_WL9m[r[0].weekday()]}·{r[1]}）"
@@ -9031,6 +9073,169 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                    f"{r[0].month}/{r[0].day}"
                                    for r in _bs9m[:3])
                                if _bs9m else ""))
+            except Exception:
+                pass
+        # R4541d：梅雨——老话「芒种逢丙入梅、小暑逢未出梅」干支
+        # 定式真算；各地实际梅期以气象口径为准。
+        if any(k in _n for k in ("入梅", "出梅", "梅雨", "梅雨季")):
+            try:
+                from guji.bazi import term_time as _ttm9
+                _rm9 = _cm9 = None
+                for _yy9 in (_dd.year, _dd.year + 1):
+                    _mz9 = (_ttm9(_yy9, "芒种")
+                            + timedelta(hours=8)).date()
+                    for _i9 in range(0, 40):
+                        _cx9 = _mz9 + timedelta(days=_i9)
+                        _bx9 = bazi_compute(
+                            _cx9.year, _cx9.month, _cx9.day, 12, "男")
+                        if getattr(_bx9, "day", "")[:1] == "丙":
+                            _rm9 = _cx9
+                            break
+                    _xz9 = (_ttm9(_yy9, "小暑")
+                            + timedelta(hours=8)).date()
+                    for _i9 in range(0, 40):
+                        _cx9 = _xz9 + timedelta(days=_i9)
+                        _bx9 = bazi_compute(
+                            _cx9.year, _cx9.month, _cx9.day, 12, "男")
+                        if getattr(_bx9, "day", "")[1:2] == "未":
+                            _cm9 = _cx9
+                            break
+                    if _cm9 and _cm9 >= _dd:
+                        break
+                out.append(
+                    "老话梅雨：芒种逢丙入梅、小暑逢未出梅——"
+                    + (f"今年入梅{_rm9.month}月{_rm9.day}日、"
+                       f"出梅{_cm9.month}月{_cm9.day}日"
+                       if _rm9 and _cm9 else "")
+                    + "（各地实际梅期以气象预报为准）")
+            except Exception:
+                pass
+        # R4541e：鬼月——农历七月是鬼月，鬼门开=七月初一，
+        # 七月半=中元。按公历日扫农历日拾（7,1）。
+        if any(k in _n for k in ("鬼月", "鬼门开", "鬼门关")):
+            try:
+                _gm9 = None
+                for _i9 in range(0, 330):
+                    _cx9 = _dd + timedelta(days=_i9)
+                    try:
+                        _lx9 = lunar.solar_to_lunar(
+                            _cx9.year, _cx9.month, _cx9.day)
+                    except Exception:
+                        continue
+                    if (_lx9 and _lx9.get("month") == 7
+                            and _lx9.get("day") == 1
+                            and not _lx9.get("is_leap")):
+                        _gm9 = _cx9
+                        break
+                out.append(
+                    "老话鬼月：农历七月是鬼月——"
+                    + (f"下个七月初一{_gm9.month}月{_gm9.day}日"
+                       f"（还有{(_gm9 - _dd).days}天），"
+                       if _gm9 else "")
+                    + "七月半中元见「中元节」那条")
+            except Exception:
+                pass
+        # R4541f：冬冷问——冷暖是天气不是日历，诚实+数九锚。
+        if any(k in _n for k in ("冬天冷", "冬冷", "寒冬", "冷冬",
+                                 "暖冬", "今年冷不冷", "冬天冷不冷")):
+            try:
+                from guji.bazi import term_time as _ttc9
+                _dz9c = (_ttc9(_dd.year, "冬至")
+                         + timedelta(hours=8)).date()
+                _lc9 = _dz9c if _dz9c >= _dd else (
+                    _ttc9(_dd.year + 1, "冬至")
+                    + timedelta(hours=8)).date()
+                out.append(
+                    "冷不冷看天——老话讲数九歌「三九四九冰上走」最冷，"
+                    f"数九{_lc9.month}月{_lc9.day}日冬至起"
+                    f"（还有{(_lc9 - _dd).days}天）；穿多少看天气预报准")
+            except Exception:
+                pass
+        # R4541g：甲子序——六十甲子第几个真算（1984甲子起第1个）。
+        if any(k in _n for k in ("第几个甲子", "六十甲子第", "几甲子",
+                                 "甲子年第几")):
+            _aj9 = (_dd.year - 1984) % 60 + 1
+            out.append(
+                f"六十甲子序：今年是第{_aj9}个"
+                f"（这轮甲子 1984 年起）")
+        # R4541h：号码吉凶——数字口彩是民俗不是定数，真家伙是
+        # 每日幸运数。
+        if any(k in _n for k in ("手机号", "车牌", "门牌", "楼层",
+                                 "尾号", "靓号", "选号", "数字吉凶",
+                                 "吉利数字", "不吉利的数")):
+            out.append(
+                "号码老话：8发6顺4谐音是口彩不是定数——铺子里真家伙"
+                "是每日幸运数字（上面那行就是今天的）")
+        # R4541i：周末补班——点名周六/周日给真判定（法定表调班
+        # 字段），泛问报下个补班日。
+        if any(k in _n for k in ("周末上班", "周六上班", "周日上班",
+                                 "串休", "调班", "还班", "周末补班",
+                                 "周六补班", "周日补班")):
+            try:
+                _wdq9 = (5 if "周六" in _n
+                         else 6 if "周日" in _n else None)
+                if _wdq9 is not None:
+                    _cx9 = _d + timedelta(
+                        days=(_wdq9 - _d.weekday()) % 7)
+                    _hit9w = next((r for r in _LEGAL_SPANS
+                                   if _cx9 in r[3]), None)
+                    if _hit9w:
+                        out.append(
+                            f"{_cx9.month}月{_cx9.day}日"
+                            f"周{'六日'[_wdq9 - 5]}：是{_hit9w[0]}"
+                            f"补班日（{_hit9w[1].month}月"
+                            f"{_hit9w[1].day}日–{_hit9w[2].month}月"
+                            f"{_hit9w[2].day}日假调的）")
+                    else:
+                        out.append(
+                            f"{_cx9.month}月{_cx9.day}日"
+                            f"周{'六日'[_wdq9 - 5]}：法定表没排调班，"
+                            "正常休")
+                else:
+                    _nxw9 = sorted(
+                        {x for r in _LEGAL_SPANS for x in r[3]
+                         if x >= _d})
+                    if _nxw9:
+                        _xw9 = _nxw9[0]
+                        _rw9 = next(r for r in _LEGAL_SPANS
+                                    if _xw9 in r[3])
+                        out.append(
+                            f"下个补班日：{_xw9.month}月{_xw9.day}日"
+                            f"（{_rw9[0]}假调的，"
+                            f"还有{(_xw9 - _d).days}天）")
+            except Exception:
+                pass
+        # R4541j：祭扫节点——「上坟/扫墓日子」给下个祭扫节点
+        #（清明/中元/寒衣/冬至老话四大祭扫口）。
+        if any(k in _n for k in ("上坟", "扫墓", "烧纸", "祭扫",
+                                 "祭坟", "坟前")):
+            try:
+                from guji.bazi import term_time as _ttj9
+                _jt9 = []
+                for _yy9 in (_dd.year, _dd.year + 1):
+                    _jt9.append(
+                        ((_ttj9(_yy9, "清明") + timedelta(hours=8))
+                         .date(), "清明"))
+                    _jt9.append(
+                        ((_ttj9(_yy9, "冬至") + timedelta(hours=8))
+                         .date(), "冬至"))
+                for _yy9 in (_dd.year, _dd.year + 1):
+                    try:
+                        _jt9.append(
+                            (lunar.lunar_to_solar(_yy9, 7, 15),
+                             "中元节"))
+                        _jt9.append(
+                            (lunar.lunar_to_solar(_yy9, 10, 1),
+                             "寒衣节"))
+                    except Exception:
+                        pass
+                _nxj9 = sorted(x for x in _jt9 if x[0] >= _dd)
+                if _nxj9:
+                    _jd9, _jn9 = _nxj9[0]
+                    out.append(
+                        f"祭扫节点：下个是{_jn9} {_jd9.month}月"
+                        f"{_jd9.day}日（还有{(_jd9 - _dd).days}天）"
+                        "——清明/中元/寒衣/冬至是老话四大祭扫口")
             except Exception:
                 pass
         # R4506d：十神/格局/喜用神门——排盘术语给白话对照+指路。
@@ -9132,7 +9337,25 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                   "掉筷子": "老话讲掉筷子是有人请吃饭",
                   "灯花": "老话「灯花爆喜事到」",
                   "烛花": "老话「烛花爆喜事到」",
-                  "油灯结花": "老话「灯花爆喜事到」"}
+                  "油灯结花": "老话「灯花爆喜事到」",
+                  # R4541n：时令民谚族——谚语给白话不编判定。
+                  "正月不理发": "老话「正月剃头思旧」——谐音讲法，"
+                                "不是真忌讳",
+                  "初一不扫地": "老话初一扫地扫走财气——图个口彩",
+                  "初一十五不上坟": "老话上坟看祭扫节点（清明/中元/"
+                                    "寒衣），初一十五是寺庙香火日",
+                  "瑞雪兆丰年": "老话冬雪盖三层被，来年丰收",
+                  "朝霞不出门": "老话看天谚语——早上霞可能转雨",
+                  "晚霞行千里": "老话看天谚语——晚上霞明天晴",
+                  "节气谚语": "节气顺口溜——春雨惊春清谷天，夏满芒夏"
+                              "暑相连，秋处露秋寒霜降，冬雪雪冬小大寒",
+                  "头伏饺子": "老话头伏饺子二伏面，三伏烙饼摊鸡蛋",
+                  "二伏面": "老话头伏饺子二伏面",
+                  "三伏烙饼": "老话三伏烙饼摊鸡蛋",
+                  "冬至馄饨夏至面": "老话冬至馄饨夏至面——顺时吃食",
+                  "春捂秋冻": "老话春捂秋冻不生杂病——春天别急着脱衣",
+                  "冬令进补": "老话立冬起开补（冬令进补来年打虎）",
+                  "冬吃萝卜夏吃姜": "老话冬吃萝卜夏吃姜——顺时养身"}
         _om9h = [k for k in _omen9 if k in _n]
         if _om9h:
             out.append("老话征兆："
