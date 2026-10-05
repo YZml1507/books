@@ -6721,6 +6721,9 @@ async function loadDaily() {
           ? (_yeLeft === 0
             ? '🏮 今天是今年最后一天——把想说的留在今年'
             : '🏮 今年还剩 ' + _yeLeft + ' 天')
+          /* R4081：元旦对称行——岁末有倒数，年头有点题。 */
+          : (_yeNow.getMonth() === 0 && _yeNow.getDate() === 1)
+          ? '🏮 今天是今年第一天——去年没说完的，今年接着说'
           : '');
     } catch (eYE) { _dailyMetaItem('dailyYearEnd', ''); }
     /* R3816：签窗钩公共行——窗宣原只活在 dailyPersonal，
