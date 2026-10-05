@@ -3568,6 +3568,18 @@ function _chatFacts(facts, msg) {
         if (_af && _af.d === todayIso() && _af.t) _f.push(_af.t);
       } catch (eAf) {}
     }
+    /* R3721：今日古话进上下文——日行那句在小满手里有底，她聊
+     * 「古话/那句古文/今天那句」或相关心境时可自然引用（与日行
+     * 同池同日同句，不现编）。 */
+    if (msg && /古话|古文|名言|那句.{0,2}话|今天那句|菜根谭|论语|老子/.test(msg)) {
+      try {
+        var _dqf = _dayPick(_DAY_QUOTES, 'dq');
+        if (_dqf && _dqf.t) {
+          _f.push('今日古话：「' + _dqf.t + '」（' + _dqf.s +
+                  '）——' + _dqf.g + '——日行那句，聊起时可自然引用');
+        }
+      } catch (eDQF) {}
+    }
   } catch (e) {}
   return _f;
 }
