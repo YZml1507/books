@@ -5017,6 +5017,11 @@ function showPosterModal(canvas, view, j) {
       _SHARE_VIEW_ALIAS[view] || view || 'home') + '&from=share';
     /* R3475：小惊喜族回流钩——受邀者落地排完盘自动展开同款卡
      * （sa* 深链锚），不然链只到八字表单，钩主件沉底。 */
+    /* R3771：复盘海报族 sv 参数位——view 已被别名归 home，
+     * 落地承接要知道晒的是月记还是年记。 */
+    if (view === 'monthrec' || view === 'yearrec') {
+      url += '&sv=' + view;
+    }
     if (_SA_SHARE_KEY[view]) url += '&sa=' + _SA_SHARE_KEY[view];
     /* R2350a（R94-P1-2）：黄历分享链带卡面日——对方打开看到的是
      * 同一张那天，不是 TA 自己的今天。 */
@@ -5110,6 +5115,9 @@ function showPosterModal(canvas, view, j) {
     var url = location.origin + '/?view=' + encodeURIComponent(
       _SHARE_VIEW_ALIAS[view] || view || 'home') + '&from=share';
     if (_SA_SHARE_KEY[view]) url += '&sa=' + _SA_SHARE_KEY[view];   /* R3475 */
+    if (view === 'monthrec' || view === 'yearrec') {
+      url += '&sv=' + view;
+    }
     if (view === 'huangli') {
       try {
         var _sd1 = (el('hlResult') || {}).dataset || {};
@@ -17305,6 +17313,12 @@ function init() {
             if (_qsAll.get('sa')) {
               window.__shareSa = String(_qsAll.get('sa')).slice(0, 2);
             }
+            /* R3771：复盘海报 sv 参数位同存——view 已归 home，
+             * 剥参前先留月记/年记之分。 */
+            var _svq0 = _qsAll.get('sv');
+            if (_svq0) {
+              window.__shareSv = String(_svq0).slice(0, 12);
+            }
             /* R2349t（R88-13b）：分享者昵称随链——剥参前先存，
              * sessionStorage 备份让刷新后也能喊出名字。 */
             /* R3587：dt= 称号同存——剥参前缓存，群榜发起人
@@ -17903,7 +17917,8 @@ if (document.readyState === 'loading') {
       if (_isShare) {
         /* R2349l（R73-P1-13）：接力承接按来源视图说话——
          * 「TA 抽了塔罗，看看你的」比通用一句更有接力感。 */
-        var _sv = _qs.get('view') || window.__shareFromView || '';
+        var _sv = _qs.get('sv') || window.__shareSv ||
+          _qs.get('view') || window.__shareFromView || '';
         var _relay = {
           tarot: '朋友在晒她抽的塔罗牌：点下面抽你的 🃏',
           daily: '朋友在晒今天的签：上面第一张就是你的 ✨',
@@ -17934,6 +17949,9 @@ if (document.readyState === 'loading') {
           /* R3399：心情周记/年报是真实可晒件——补上承接。 */
           moodweek: '朋友在晒她的心情周记：你的七天也攒一份 🫙',
           'year-wrap': '朋友出炉了她的年度小满年报：你的也翻一翻 🗓️',
+          /* R3771：月/年复盘海报落地点名——不走通用「运势」兜底。 */
+          monthrec: '朋友在晒她上月的小记：你的月记也攒一份 📮',
+          yearrec: '朋友在晒这一年的小记：你的年记也攒一份 🏮',
         };
         if (_sv === 'dream') {
           var _symT = (window.__shareSym ||
@@ -18020,13 +18038,15 @@ if (document.readyState === 'loading') {
     var _sv2 = null;
     try {
       _from = new URLSearchParams(location.search).get('from');
-      _sv2 = new URLSearchParams(location.search).get('view');
+      var _qs2 = new URLSearchParams(location.search);
+      _sv2 = _qs2.get('sv') || window.__shareSv || _qs2.get('view');
       /* R2349p（R80-P1-2）：邀请链 from=invite 已被剥参——回落到
        * init 时存下的 __landingFrom。 */
       if (!_from && window.__landingFrom) _from = window.__landingFrom;
       /* R2349s（R86-P1-7）：别名 share 链同样被剥参——内存兜底。 */
       if (!_from && window.__shareFromView) {
-        _from = 'share'; _sv2 = window.__shareFromView;
+        _from = 'share';
+        _sv2 = window.__shareSv || window.__shareFromView;
       }
     } catch (e) {}
     var _txtEl = bar.querySelector('.welcome-txt');
@@ -18071,6 +18091,9 @@ if (document.readyState === 'loading') {
         /* R3399：心情周记/年报补承接。 */
         moodweek: '朋友在晒她的心情周记——攒满七天你也有一份 🫙',
         'year-wrap': '朋友出炉了年度小满年报：打卡攒天数，年底你也有一张 🗓️',
+        /* R3771：月/年复盘海报落地——sv= 参数位点名。 */
+        monthrec: '朋友在晒她上月的小记——你的月记也攒一份 📮',
+        yearrec: '朋友在晒这一年的小记——你的年记也攒一份 🏮',
       };
       if (_sv2 === 'dream') {
         var _symW = (window.__shareSym ||

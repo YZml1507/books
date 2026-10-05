@@ -20563,3 +20563,13 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 注册齐：_POSTER_TITLES/warm/钩子句/落点 home/行帽/海报 case 六钉。
 - 实测：冻结 12/28 钮出、数据行六项全、点击零报错；闸全绿。
 - 口吻三十三审+裂变域十三轮+数据面二十二轮：零修。
+
+## R3771：月/年复盘海报受邀承接 + 语法 P1 根治
+- sv= 参数链：复盘海报分享链 view 归 home 后丢 kind——受邀者落到通用句。
+  链带 &sv=monthrec|yearrec，剥参前存 __shareSv，_sv/_sv2 优先读它；
+  _relay(1 toast)/_relayBar(欢迎条) 双图补 monthrec/yearrec 文案
+  「朋友在晒这一年的小记——你的年记也攒一份 🏮」。
+- 根治真 P1：我在 sv 参数块的插入点劈开了 R3475 注释——
+  `Unexpected token '*'` 静默杀死 welcomeBar IIFE（承接全失效）。
+  修复注释边界后实测 yearrec 欢迎条/月记双态全出。
+- 闸全绿：自测457/契约810/冒烟/海报/dollar/禁词。
