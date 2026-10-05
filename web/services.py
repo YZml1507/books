@@ -4630,6 +4630,32 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 out.extend(_qw)
             except Exception:
                 pass
+        # R3873：塔罗限定窗实时态——万圣夜(10.29–11.1)/圣诞心愿
+        # (12.20–12.25) 同窗机制，问「限定/不敢问的/圣诞心愿」时
+        # 手里有开着呢/N 天后开。
+        if any(k in _n for k in ("万圣夜限定", "万圣限定", "不敢问",
+                                 "圣诞心愿", "圣诞限定", "心愿限定",
+                                 "塔罗限定")):
+            try:
+                _tw = []
+                _htd = (date(_d.year, 10, 29) - _d).days
+                if (_d.month == 10 and _d.day >= 29) or \
+                   (_d.month == 11 and _d.day <= 1):
+                    _tw.append("万圣夜限定：今天开着呢"
+                               "（10/29–11/1，翻一张不敢问的事）")
+                elif 1 <= _htd <= 5:
+                    _tw.append(f"万圣夜限定：{_htd}天后开"
+                               "（10/29–11/1）")
+                _xtd = (date(_d.year, 12, 20) - _d).days
+                if _d.month == 12 and 20 <= _d.day <= 25:
+                    _tw.append("圣诞心愿限定：今天开着呢"
+                               "（12/20–12/25，默念心愿翻一张）")
+                elif 1 <= _xtd <= 5:
+                    _tw.append(f"圣诞心愿限定：{_xtd}天后开"
+                               "（12/20–12/25）")
+                out.extend(_tw)
+            except Exception:
+                pass
     except Exception:
         pass
     return out
