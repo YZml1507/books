@@ -4858,7 +4858,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                      # R4181：日档/吉时/财神/幸运数同享迁移——
                      # 「立冬那天日子怎么样」出立冬的档。
                      "日子", "吉时", "财神", "幸运数字", "幸运数",
-                     "时辰", "贵人")):
+                     "时辰", "贵人", "五行", "干支")):
                 _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
                 if _ndn is not None:
                     _dd, _pfx = _ndn, _vn
@@ -5226,6 +5226,21 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"{_pfx}贵人：{_gra or '—'}"
                         + (f"，合拍属{_an.get(_lh9, _lh9)}"
                            if _lh9 else ""))
+            except Exception:
+                pass
+        # R4191：日干支/日干五行活事实——与黄历卡 ganzhi_day_cn 同源。
+        if any(k in _n for k in ("五行", "干支", "属什么", "纳音",
+                                 "天干地支", "什么日")):
+            try:
+                _gd9 = huangli_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day, 12))
+                _g9, _z9 = _gd9[0], _gd9[1]
+                _wx9 = {"甲": "木", "乙": "木", "丙": "火", "丁": "火",
+                        "戊": "土", "己": "土", "庚": "金", "辛": "金",
+                        "壬": "水", "癸": "水"}
+                out.append(
+                    f"{_pfx}日干支：{_g9}{_z9}日"
+                    f"（日干{_g9}属{_wx9.get(_g9, '')}）")
             except Exception:
                 pass
         # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
