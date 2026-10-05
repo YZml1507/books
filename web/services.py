@@ -4581,6 +4581,55 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                                  "口号", "许愿语")):
             out.append(f"今日咒语：{_day_mantra(_d.isoformat())}"
                        "（与日签卡同句，可直接念）")
+        # R3872：季节签窗实时态——问签窗时手里有「开着呢/N 天后开」
+        # 活事实，不让她对着静态日期自己猜今天到没到。捣蛋/桃花
+        # 窗是固定公历段；新春福签窗=除夕→元宵走 lunar 表（与
+        # 前端 _QIAN_CNY_WIN 同源核过 2027–2030 完全一致）。
+        if any(k in _n for k in ("捣蛋签", "万圣签", "桃花签", "福签",
+                                 "新春签", "新年签", "每日一签", "求签",
+                                 "抽签", "摇签", "观音签", "灵签")):
+            try:
+                _qw = []
+                _hwd = (date(_d.year, 10, 25) - _d).days
+                if (_d.month == 10 and _d.day >= 25) or \
+                   (_d.month == 11 and _d.day <= 1):
+                    _qw.append("捣蛋签窗：今天开着呢"
+                               "（10/25–11/1，只出宜动的签）")
+                elif 1 <= _hwd <= 5:
+                    _qw.append(f"捣蛋签窗：{_hwd}天后开（10/25–11/1）")
+                _tqd = (date(_d.year, 11, 6) - _d).days
+                if _d.month == 11 and 6 <= _d.day <= 11:
+                    _qw.append("桃花签窗：今天开着呢（11/6–11/11）")
+                elif 1 <= _tqd <= 5:
+                    _qw.append(f"桃花签窗：{_tqd}天后开（11/6–11/11）")
+                from guji import lunar as _lm
+                _cwin = []
+                for _yy in (_d.year, _d.year + 1):
+                    _co = _lm.lunar_to_solar(
+                        _yy - 1, 12, _lm.month_days(_yy - 1, 12))
+                    _cc = _lm.lunar_to_solar(_yy, 1, 15)
+                    _cwin.append((_co, _cc))
+                _cin = [w for w in _cwin if w[0] <= _d <= w[1]]
+                if _cin:
+                    _qw.append(
+                        f"新春福签窗：今天开着呢"
+                        f"（{_cin[0][0].month}月{_cin[0][0].day}日–"
+                        f"{_cin[0][1].month}月{_cin[0][1].day}日，"
+                        f"除夕开到元宵）")
+                else:
+                    _cnext = [w for w in _cwin if w[0] > _d]
+                    if _cnext:
+                        _cd5 = (_cnext[0][0] - _d).days
+                        if 1 <= _cd5 <= 5:
+                            _qw.append(
+                                f"新春福签窗：{_cd5}天后开"
+                                f"（{_cnext[0][0].month}月"
+                                f"{_cnext[0][0].day}日–"
+                                f"{_cnext[0][1].month}月"
+                                f"{_cnext[0][1].day}日）")
+                out.extend(_qw)
+            except Exception:
+                pass
     except Exception:
         pass
     return out
