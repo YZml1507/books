@@ -4948,7 +4948,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                      "时辰", "贵人", "五行", "干支",
                      # R4226：今日牌同享迁移——「立冬那天的牌」出立冬牌。
                      "塔罗", "日签", "今日牌", "每日一牌", "的牌",
-                     "抽什么牌")):
+                     "抽什么牌",
+                     # R4231：日课/食俗同享迁移——「立冬那天吃什么」。
+                     "吃", "建议", "日课", "干嘛")):
                 _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
                 if _ndn is not None:
                     _dd, _pfx = _ndn, _vn
@@ -5445,6 +5447,30 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"（{'正位' if _dc9['upright'] else '逆位'}）"
                         f"——{_dc9.get('keywords') or ''}；"
                         f"{_dc9.get('meaning') or ''}")
+            except Exception:
+                pass
+        # R4231：「做什么好/吃点什么/有什么建议」——日课白话行
+        #（daily.do 与卡面日课同源）+ 时令食俗（节气日 tip 或
+        # 命名日 _fest_tip，与横幅/tip 同一张）。
+        if any(k in _n for k in ("做什么", "干什么", "该干嘛", "干嘛好",
+                                 "什么建议", "有啥建议", "吃点什么",
+                                 "吃什么好", "吃什么", "喝什么",
+                                 "今晚吃什么", "饿了", "吃啥",
+                                 "想吃", "吃东西", "没胃口")):
+            try:
+                _do9 = daily(_dd.isoformat()).get("do") or ""
+                if _do9:
+                    out.append(f"{_pfx}日课：{_do9}")
+                _tb9 = _term_banner(_dd)
+                if _tb9.get("tip"):
+                    out.append(f"{_pfx}节气食俗：{_tb9['tip']}")
+                else:
+                    _ndf, _nvf = _next_named_day(
+                        _n, _d, personal=_personal)
+                    if (_ndf == _dd and _nvf):
+                        _tf9 = _fest_tip(_nvf)
+                        if _tf9:
+                            out.append(f"{_pfx}食俗：{_tf9}")
             except Exception:
                 pass
         # R4216：时令日内坐标+农历行——「今天几九/几伏/农历几号」。
