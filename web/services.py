@@ -2376,8 +2376,27 @@ _FEST_LUNAR = {
 # R4106：命名日下一发生日反查——「X什么时候」与「X那天穿什么」
 # 共用一条解析。返回 (date, 名称)，没认出来的名字给 (None, "")。
 # 顺序：节气全表 → 跨年/新年口语词 → 公历节 → 除夕 → 农历节。
-def _next_named_day(msg: str, today: date, allow_ambi: bool = False):
+def _bday_next(today: date, mo: int, d: int) -> date | None:
+    """生日的下一发生日；2/29 非闰年按 3/1 过（与档案倒数同口径）。"""
+    for _yy in (today.year, today.year + 1):
+        try:
+            _c = date(_yy, mo, d)
+        except ValueError:
+            _c = date(_yy, 3, 1)
+        if _c >= today:
+            return _c
+    return None
+
+
+def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
+                    personal: dict | None = None):
     from guji.bazi import TERM_LONGITUDE, term_time
+    # R4131：个人纪念日先判——「我生日/TA 生日那天…」比节气名
+    # 优先（生日数据来自客户端档案事实表）。
+    if personal:
+        for _pn, _pd in personal.items():
+            if _pn in msg:
+                return _pd, _pn
     # 「小满」是本应用吉祥物名、「大雪/小雪/大寒/小寒」常是天气
     # 语境——隐式调用（命名日迁移）不许它们挪日子；显式反查
     # （allow_ambi）放行后三个，但「小满」哪怕显式问也只在
@@ -4592,7 +4611,8 @@ def _day_mantra(date_str: str) -> str:
     return _MANTRA_POOL[h % len(_MANTRA_POOL)]
 
 
-def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
+def chat_daily_facts(message: str, now: datetime | None = None,
+                     facts: list[str] | None = None) -> list[str]:
     """R3331（审-中2/3/4）：当日派生事实按问句主题注入——
     水逆/穿搭色/咒语问句此前零供给，小满自由发挥出口径分裂
     （答「今天没有水逆」当日正值水逆第 3 天；咒语每次现编
@@ -4602,6 +4622,28 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
         return []
     _d = (now or _now_cn()).date()
     out: list[str] = []
+    # R4131：档案事实里挖生日→命名日 personal 档——「我生日那天
+    # 穿什么/TA 生日那天月亮」与节气名同一条解析链。
+    _personal: dict = {}
+    for _pf in facts or []:
+        _m5 = _BIRTHDAY_FACT_RE.match(str(_pf).strip())
+        _p5 = _BIRTHDAY_PARTNER_RE.match(str(_pf).strip())
+        if not _m5 and not _p5:
+            continue
+        _mm5 = _m5 or _p5
+        try:
+            _by, _bm, _bd = (int(_mm5.group(1)), int(_mm5.group(2)),
+                             int(_mm5.group(3)))
+            _nb5 = _bday_next(_d, _bm, _bd)
+        except Exception:
+            continue
+        if _m5:
+            for _k5 in ("我生日", "我的生日", "自己生日"):
+                _personal[_k5] = _nb5
+        else:
+            for _k5 in ("TA生日", "他生日", "她生日", "对象生日",
+                        "另一半生日", "伴侣生日"):
+                _personal[_k5] = _nb5
     try:
         # R3991/R3996：「明天/明日/第二天/后天」问句族——穿搭/月相/
         # 节日/星座共用一次判定，各块取 _dd/_pfx 出对应日数据。
@@ -4658,7 +4700,7 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     k in _n for k in
                     ("穿", "开运色", "运势", "运气", "星座",
                      "月亮", "满月", "新月", "月相")):
-                _ndn, _vn = _next_named_day(_n, _d)
+                _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
                 if _ndn is not None:
                     _dd, _pfx = _ndn, _vn
         if any(k in _n for k in ("水逆", "水星逆行")):
@@ -4919,7 +4961,8 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 # R4106：反查解析抽成 _next_named_day——「什么时候」
                 # 反查与「X那天穿什么」命名日偏移共用一条，顺序
                 # 节气→跨年/新年→公历节→除夕→农历节。
-                _nd, _v = _next_named_day(_n, _d, allow_ambi=True)
+                _nd, _v = _next_named_day(_n, _d, allow_ambi=True,
+                                          personal=_personal)
                 # R4101：节日/节气名都没命中时，「星期几/周几/几号/什么
                 # 日子」要的是日期本身——按日偏移链的 _dd/_pfx 回声。
                 # （「生日几号」留给 profile_facts 的生日倒数答，别抢话。）

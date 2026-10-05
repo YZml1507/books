@@ -96,7 +96,7 @@ def chat(req: ChatRequest) -> dict:
         facts += services.chat_action_facts(req.message)
         # R3331（审-中2/3/4）：水逆/穿搭/咒语问句→当日派生事实，
         # 防模型自由发挥与卡面口径分裂。
-        facts += services.chat_daily_facts(req.message)
+        facts += services.chat_daily_facts(req.message, facts=facts)
         # R3195：路标同步给前端可点跳转 chip——「去塔罗抽一把」
         # 比纯文字指路少一步寻找。
         # R3197：危机消息禁挂跳转——「不想活了给我抽张牌」走罐头
