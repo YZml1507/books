@@ -7220,6 +7220,15 @@ function _renderBirthdayBanner() {
     var _bbar = el('dailyBirthday');
     var _bbd = _bme && _bme.y
       ? _bdayInYear(_bme.m, _bme.d, _bdt.getFullYear()) : null;
+    /* R4071：生日倒计时——横幅原来只在生日当天冒头；前 7 天挂
+     * 倒数行（同位同件，不带钮），生日变成有前奏的日子。 */
+    var _bd0 = new Date(_bdt.getFullYear(), _bdt.getMonth(),
+                        _bdt.getDate());
+    /* 今年生日已过 → 看明年（12 月底倒数明年生日）。 */
+    if (_bbd && _bbd < _bd0) {
+      _bbd = _bdayInYear(_bme.m, _bme.d, _bdt.getFullYear() + 1);
+    }
+    var _bdl = _bbd ? Math.round((_bbd - _bd0) / 86400000) : -1;
     if (_bbd &&
         _bbd.getMonth() === _bdt.getMonth() &&
         _bbd.getDate() === _bdt.getDate()) {
@@ -7245,6 +7254,20 @@ function _renderBirthdayBanner() {
           if (_bd2) _bd2.open = true;
         });
       }
+    } else if (_bdl >= 1 && _bdl <= 7) {
+      if (!_bbar) {
+        _bbar = document.createElement('div');
+        _bbar.id = 'dailyBirthday';
+        _bbar.className = 'daily-birthday';
+        _bbar.setAttribute('role', 'note');
+        var _ckb2 = el('dailyCheckin');
+        if (_ckb2 && _ckb2.parentNode) {
+          _ckb2.parentNode.insertBefore(_bbar, _ckb2);
+        }
+      }
+      _bbar.innerHTML = '🎂 ' +
+        (_bme.n ? esc(_bme.n) + '，' : '') +
+        '生日还有 ' + _bdl + ' 天——想个愿望先攒着';
     } else if (_bbar) { _bbar.remove(); }
   } catch (e3) {}
 }
