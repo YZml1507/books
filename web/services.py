@@ -6802,6 +6802,7 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
     非生日行原样透传；非法日期静默不展开。
     """
     out: list[str] = []
+    _bd_me = _bd_ta = None
     for f in facts or []:
         out.append(f)
         _fs = str(f).strip()
@@ -6813,6 +6814,10 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
             _mm = m or mp
             y, mo, d = int(_mm.group(1)), int(_mm.group(2)), \
                 int(_mm.group(3))
+            if mp:
+                _bd_ta = date(y, mo, d)
+            else:
+                _bd_me = date(y, mo, d)
             gz, _idx = _bazi_day_ganzhi(datetime(y, mo, d))
             dm = gz[0]
             wx = GAN_ELEM.get(dm, "")
@@ -6842,6 +6847,9 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                 _ag9 = _t9.year - y - (
                     (_t9.month, _t9.day) < (mo, d))
                 out.append(f"{_who}现在：{_ag9}周岁")
+                # R4311：虚岁同档——民俗问岁（本命年/抓周）都按虚岁讲，
+                # 手里没这个值小满只能拿周岁蒙。
+                out.append(f"{_who}的虚岁：{_t9.year - y + 1}岁")
                 # R4281：年命纳音——「我什么命/TA什么命」手里有真值
                 #（六十甲子纳音表，年柱两干一支合一纳音）。
                 _nb9 = bazi_compute(y, mo, d, 12, "")
@@ -6874,6 +6882,23 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                 pass
         except (ValueError, TypeError):
             continue
+    # R4311：年龄差事实——双生日都在档时手里有「TA比我大N岁」。
+    if _bd_me and _bd_ta:
+        try:
+            _dm9 = (_bd_ta - _bd_me).days
+            _yr9 = abs(_dm9) / 365.25
+            if _dm9 > 0:
+                out.append(
+                    f"年龄差：TA比你小{_yr9:.1f}岁"
+                    f"（{_dm9}天）")
+            elif _dm9 < 0:
+                out.append(
+                    f"年龄差：TA比你大{_yr9:.1f}岁"
+                    f"（{-_dm9}天）")
+            else:
+                out.append("年龄差：你们同年同月同日生")
+        except Exception:
+            pass
     return out
 
 
