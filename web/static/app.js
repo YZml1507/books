@@ -6509,8 +6509,14 @@ async function loadDaily() {
             return !!(r4 && md4 >= r4[0] && md4 <= r4[1]);
           }));
           if (!_cyDk) {
-            _pc2.push('<span class="e-week-low">🧧 新春福签开着呢' +
-              '——去签页抽今天的福签</span>');
+            /* R3684：初五迎财神单日点名——窗内通用行换成
+             * 「迎财神讨头彩正日子」。 */
+            _pc2.push('<span class="e-week-low">🧧 ' +
+              ((typeof _qianCaishenDay === 'function' &&
+                _qianCaishenDay())
+                ? '初五迎财神——今天抽支福签讨头彩'
+                : '新春福签开着呢——去签页抽今天的福签') +
+              '</span>');
           } else if (_cyR0) {
             var _cyN = 0;
             try {
