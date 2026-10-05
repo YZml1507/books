@@ -6320,6 +6320,61 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                if _bs9 else "整周都是避雷日"))
             except Exception:
                 pass
+        # R4331：时辰问——「现在什么时辰/午时是几点」+ 出生日月相
+        #「我出生那天月亮」全真值（时辰=时支两小时段；月相与
+        # 首页月相行同源 _moon_for）。
+        if any(k in _n for k in ("什么时辰", "哪个时辰", "时辰是",
+                                 "时是几点", "时是什么时候", "几点到几点",
+                                 "出生那天月亮", "出生那天月相",
+                                 "出生那晚", "那天月相")):
+            try:
+                _ZHI9H = "子丑寅卯辰巳午未申酉戌亥"
+                _ZH9 = {z: ((23 + i * 2) % 24, (25 + i * 2) % 24)
+                        for i, z in enumerate(_ZHI9H)}
+                if "出生" in _n or "那天月相" in _n:
+                    _bf9 = None
+                    for _fp9 in facts or []:
+                        _mm9 = (_BIRTHDAY_PARTNER_RE.match(
+                            str(_fp9).strip())
+                                if ("TA" in _n or "ta" in _n
+                                    or "他" in _n or "她" in _n
+                                    or "对象" in _n)
+                                else _BIRTHDAY_FACT_RE.match(
+                                    str(_fp9).strip()))
+                        if _mm9:
+                            _bf9 = date(int(_mm9.group(1)),
+                                        int(_mm9.group(2)),
+                                        int(_mm9.group(3)))
+                            break
+                    if _bf9:
+                        _mp9 = _moon_for(_bf9)
+                        if _mp9:
+                            # 出生月相用白话 label；label 是动作名
+                            #（新月许愿/满月复盘）时退回相位词，
+                            #「盈凸月」术语走 label 白话（R3452 同口径）。
+                            _lb9m = _mp9.get('label', '')
+                            _ph9 = (_mp9.get('phase', '')
+                                    if _lb9m.endswith(('许愿', '复盘'))
+                                    else (_lb9m or _mp9.get('phase', '')))
+                            out.append(
+                                f"{'TA' if 'TA' in _n or '对象' in _n else '你'}"
+                                f"出生那天：{_mp9.get('glyph', '')}"
+                                f"{_ph9}"
+                                f"（{_bf9.month}月{_bf9.day}日）")
+                else:
+                    # 「现在什么时辰」归 R4256；这里只补「X时是几点」
+                    # 静态反查（它那边只在「到了吗/几点到」给倒计时）。
+                    _zq9 = re.search(
+                        r"([子丑寅卯辰巳午未申酉戌亥])时", _n)
+                    if _zq9 and any(
+                            k in _n for k in
+                            ("几点", "什么时候", "是几", "到几点")):
+                        _h9 = _ZH9[_zq9.group(1)]
+                        out.append(
+                            f"{_zq9.group(1)}时：{_h9[0]}点到"
+                            f"{_h9[1]}点（{_zq9.group(1)}时段）")
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
