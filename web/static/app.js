@@ -15113,6 +15113,10 @@ function initDivination() {
     if (_trHBtn) _trHBtn.hidden = !(_trHFest() || _trHFestCn());
     if (_trXBtn) _trXBtn.hidden = !(_trXFest() || _trXFestCn());
     _trFestTease();
+    /* R3911：功能卡窗徽过夜重判——开着页面跨零点进/出窗，
+     * 签徽与塔罗徽跟着翻面（原只在 load 判一次）。 */
+    try { if (typeof _qfBadge === 'function') _qfBadge(); } catch (eB1) {}
+    try { if (typeof _tfBadge === 'function') _tfBadge(); } catch (eB2) {}
   };
   on('trQX', function () {
     if (!_trXFest() && !_trXFestCn()) {
