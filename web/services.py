@@ -6339,6 +6339,14 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                 _ag9 = _t9.year - y - (
                     (_t9.month, _t9.day) < (mo, d))
                 out.append(f"{_who}现在：{_ag9}周岁")
+                # R4281：年命纳音——「我什么命/TA什么命」手里有真值
+                #（六十甲子纳音表，年柱两干一支合一纳音）。
+                _nb9 = bazi_compute(y, mo, d, 12, "")
+                _ny9 = (_nb9.nayin or [""])[0]
+                if _ny9:
+                    out.append(
+                        f"{_who}的年命：{_ny9}命"
+                        f"（{_nb9.year}年生）")
             except Exception:
                 pass
             # R4066：生日倒数事实——问「我生日还有几天」手里有真值；

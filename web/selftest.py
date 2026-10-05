@@ -4084,8 +4084,11 @@ def _run_inner() -> list[str]:
     #（2003 癸未）、「她生日那天：2003年5月15日 星期四」、
     # 「她现在：N周岁」（周岁按当日实算，断言只核形状）。
     assert _pf[0] == "她叫小满" and _pf[-1] == "桃花支：卯" \
-        and len(_pf) == 9, _pf
+        and len(_pf) == 10, _pf
     assert any(f == "她的生肖：属羊" for f in _pf), _pf
+    # R4281：年命纳音钉扎——2003 癸未年生 = 杨柳木命。
+    assert any(f == "她的年命：杨柳木命（癸未年生）"
+               for f in _pf), _pf
     assert any(f.startswith("她生日那天：2003年5月15日 星期")
                for f in _pf), _pf
     assert any(f.startswith("她现在：") and f.endswith("周岁")
