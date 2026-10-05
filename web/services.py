@@ -4534,11 +4534,16 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
     _d = (now or _now_cn()).date()
     out: list[str] = []
     try:
-        # R3991：「明天/明日/第二天」问句族——穿搭/月相/节日/星座
-        # 共用一次判定，各块取 _dd/_pfx 出明日数据。
+        # R3991/R3996：「明天/明日/第二天/后天」问句族——穿搭/月相/
+        # 节日/星座共用一次判定，各块取 _dd/_pfx 出对应日数据。
         _tmr = any(k in _n for k in ("明天", "明日", "第二天"))
-        _dd = _d + timedelta(days=1) if _tmr else _d
-        _pfx = "明日" if _tmr else "今日"
+        _dat3 = "大后天" in _n
+        _dat = "后天" in _n
+        _dd = _d + timedelta(days=3) if _dat3 \
+            else (_d + timedelta(days=2) if _dat
+                  else (_d + timedelta(days=1) if _tmr else _d))
+        _pfx = "大后天" if _dat3 \
+            else ("后天" if _dat else ("明日" if _tmr else "今日"))
         if any(k in _n for k in ("水逆", "水星逆行")):
             _m = _mercury_state(_d)
             if _m.get("on"):
@@ -4738,8 +4743,10 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     out.append(f"{_pfx}节日：{'、'.join(_fn)}")
                 elif any(k in _n for k in ("什么节", "啥节日", "节日",
                                            "过节")):
-                    out.append(f"{_pfx}节日："
-                               f"{'明' if _tmr else '今'}天没排上节日名")
+                    _nopf = "大后天" if _dat3 \
+                        else ("后天" if _dat else
+                              ("明天" if _tmr else "今天"))
+                    out.append(f"{_pfx}节日：{_nopf}没排上节日名")
             except Exception:
                 pass
         # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
