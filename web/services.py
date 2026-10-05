@@ -4598,13 +4598,19 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 _hwd = (date(_d.year, 10, 25) - _d).days
                 if (_d.month == 10 and _d.day >= 25) or \
                    (_d.month == 11 and _d.day <= 1):
-                    _qw.append("捣蛋签窗：今天开着呢"
+                    # R3951：开张日/末日点名——与卡面同档。
+                    _hws = "今天开张" if _d.month == 10 and _d.day == 25 \
+                        else "今晚截止" if _d.month == 11 and _d.day == 1 \
+                        else "今天开着呢"
+                    _qw.append(f"捣蛋签窗：{_hws}"
                                "（10/25–11/1，只出宜动的签）")
                 elif 1 <= _hwd <= 5:
                     _qw.append(f"捣蛋签窗：{_hwd}天后开（10/25–11/1）")
                 _tqd = (date(_d.year, 11, 6) - _d).days
                 if _d.month == 11 and 6 <= _d.day <= 11:
-                    _qw.append("桃花签窗：今天开着呢（11/6–11/11）")
+                    _tqs = "今天开张" if _d.day == 6 \
+                        else "今晚截止" if _d.day == 11 else "今天开着呢"
+                    _qw.append(f"桃花签窗：{_tqs}（11/6–11/11）")
                 elif 1 <= _tqd <= 5:
                     _qw.append(f"桃花签窗：{_tqd}天后开（11/6–11/11）")
                 from guji import lunar as _lm
