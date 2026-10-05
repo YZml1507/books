@@ -4622,8 +4622,12 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     _cwin.append((_co, _cc))
                 _cin = [w for w in _cwin if w[0] <= _d <= w[1]]
                 if _cin:
+                    # R3961：除夕开张/元宵截止单日点名。
+                    _cys = "除夕开张" if _d == _cin[0][0] \
+                        else "元宵截止" if _d == _cin[0][1] \
+                        else "今天开着呢"
                     _qw.append(
-                        f"新春福签窗：今天开着呢"
+                        f"新春福签窗：{_cys}"
                         f"（{_cin[0][0].month}月{_cin[0][0].day}日–"
                         f"{_cin[0][1].month}月{_cin[0][1].day}日，"
                         f"除夕开到元宵）")
