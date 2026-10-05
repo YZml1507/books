@@ -4688,6 +4688,32 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     out.append("今日节日：今天没排上节日名")
             except Exception:
                 pass
+        # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
+        # 有今日值宫+点名星座的那句（daily_horoscope 与星座卡
+        # 同源，不再让她对着十二星座名干想）。
+        _XZ = ("白羊", "金牛", "双子", "巨蟹", "狮子", "处女",
+               "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼")
+        if any(k in _n for k in ("星座运势", "星座日运", "今日星座",
+                                 "今天星座")) or \
+           any((s + "座") in _n or (s + "今天") in _n for s in _XZ):
+            try:
+                _b0 = bazi_compute(_d.year, _d.month, _d.day, 12, "男")
+                _hz = xingzuo_mod.daily_horoscope(_b0.day)
+                _ts = _hz.get("today_sign", "")
+                _tn = _hz.get("today_note", "")
+                if _ts and _tn:
+                    out.append(f"今日星座值宫：{_ts}座当班——{_tn}")
+                for _s in _XZ:
+                    if (_s + "座") in _n or (_s + "今天") in _n:
+                        _row = [x for x in (_hz.get("signs") or [])
+                                if x.get("sign") == _s]
+                        if _row:
+                            out.append(
+                                f"今日{_s}座：{_row[0].get('sign_note', '')}"
+                                f"（{_row[0].get('note', '')}）")
+                        break
+            except Exception:
+                pass
         # R3876：跨年封愿实时态——12/25–31 封口窗（前端
         # _wishNySealWin 同段），问「跨年许愿/封愿」时给活态。
         if any(k in _n for k in ("跨年许愿", "跨年愿", "封愿",
