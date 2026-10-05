@@ -6274,7 +6274,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 or "几月" in _n) and any(
                 k in _n for k in ("运", "怎么样", "如何", "顺",
                                   "好不好", "我", "TA", "ta",
-                                  "他", "她")):
+                                  "他", "她")) \
+                and "生日" not in _n:
             try:
                 # R4381：TA 人称同链——「TA这个月运势」取 TA 生日。
                 _ta9c = any(k in _n for k in
@@ -6756,6 +6757,13 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "他属什么", "她属什么", "我是什么命",
                                  "我什么命", "属啥", "上升星座",
                                  "月亮星座", "几岁", "多大年纪",
+                                 # R4401：TA/他/她多大·星座·农历生日补键。
+                                 "TA多大", "他多大", "她多大", "他几岁",
+                                 "她几岁", "TA星座", "他星座", "她星座",
+                                 "对象星座", "TA的太阳星座",
+                                 "他的星座", "她的星座",
+                                 "农历生日", "阴历生日",
+                                 "农历几", "阴历几",
                                  "虚岁")):
             try:
                 _ta9 = any(k in _n for k in
@@ -6778,7 +6786,16 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     _by9, _bm9, _bd9i = (int(_m9w.group(1)),
                                          int(_m9w.group(2)),
                                          int(_m9w.group(3)))
-                    if "虚岁" in _n:
+                    # R4401b：「我/TA农历生日」——存档公历转农历真值。
+                    if ("农历" in _n or "阴历" in _n) \
+                            and "生日" in _n:
+                        _lb9v = lunar.solar_to_lunar(
+                            _by9, _bm9, _bd9i)
+                        out.append(
+                            f"{_who9}的农历生日：{_lb9v.get('month_cn','')}"
+                            f"{_lb9v.get('day_cn','')}"
+                            f"（{_lb9v.get('ganzhi_year','')}年）")
+                    elif "虚岁" in _n:
                         out.append(
                             f"{_who9}的虚岁："
                             f"{_d.year - _by9 + 1}岁")
@@ -7330,7 +7347,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             except Exception:
                 pass
         # R4216：时令日内坐标+农历行——「今天几九/几伏/农历几号」。
-        if any(k in _n for k in ("农历", "阴历", "旧历")):
+        # R4401c：「我/TA 农历生日」归个人属性块，别连发今日农历行。
+        if any(k in _n for k in ("农历", "阴历", "旧历")) \
+                and "生日" not in _n:
             try:
                 out.append(f"{_pfx}{_daily_lunar_str(_dd)}")
             except Exception:
