@@ -21542,6 +21542,15 @@ function renderCheckin(dateKey) {
          * _ckPatternFind 里），仍然只是观察不是断语。 */
         var _mpf = null;
         try { _mpf = _ckPatternFind(dateKey); } catch (ePF2) {}
+        /* R3731：月锚古话——月信尾带「这个月想对你说：「X」」，
+         * 与周记归档周锚同族不同盐（mq|YYYY-MM）。 */
+        var _mql = '';
+        try {
+          var _mqq = _hashPick(_DAY_QUOTES, 'mq|' + _pmKey);
+          if (_mqq && _mqq.t) {
+            _mql = '这个月小满想对你说：「' + _mqq.t + '」';
+          }
+        } catch (eMQ) {}
         _mlHtml = '<div class="weekly-letter ml-letter" id="monthlyLetter">' +
           '<div class="wl-head">📮 ' + (_pm.getMonth() + 1) +
           ' 月的小满信' +
@@ -21551,6 +21560,7 @@ function renderCheckin(dateKey) {
           esc(_mParts.join('、')) + '，我都替你记着。' +
           esc(_MSEASON[_pm.getMonth()]) +
           (_mpf ? '还有个规律：' + esc(_mpf.txt) + '。' : '') +
+          esc(_mql) +
           '<div class="wl-foot"><button type="button" class="wl-share" id="mlShare">晒这月 📮</button></div>' +
           '</div></div>';
         /* R3596：月度复盘海报数据——与信内口径同组数字摆上行
