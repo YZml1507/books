@@ -6905,6 +6905,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     r"[鼠牛虎兔龙蛇马羊猴鸡狗猪]{2}"
                     r"(?:相冲|相合|相克|相刑|相害|相破|相配|"
                     r"合不合|不合|犯冲)", _n)
+                # R4891a2：「都属龙/也属龙/同是属龙」自相问放行。
+                or re.search(
+                    r"(?:都|也|同是|俩)属[鼠牛虎兔龙蛇马羊猴鸡狗猪]",
+                    _n)
                 or (any(k in _n for k in ("属相", "生肖"))
                     and any(k in _n for k in
                             ("合", "配", "婚配", "般配", "相冲", "相克",
@@ -6978,6 +6982,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         _pair9 = (_me9, _me9)
                 elif len(_named9) >= 2:
                     _pair9 = (_named9[0], _named9[1])
+                # R4891a：「都属龙/也属龙」自相问——两人同一属相
+                # 也出判定（辰午酉亥老话自刑）。
+                elif _named9 and ("都属" in _n or "也属" in _n
+                                  or "同是属" in _n):
+                    _pair9 = (_named9[0], _named9[0])
                 # 「我们属相合吗/属相合不合」：档案里我+TA 生日各出
                 # 一属相（前提句里没点名两个属相）。
                 if _pair9 is None and facts:
@@ -9616,6 +9625,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 "相配吗", "我们配", "配吗", "合得来", "合不合得来",
                 # R4751h：「不合/合不来」问法同指。
                 "八字不合", "合不来", "属相不合",
+                # R4891b：「属相相合吗/属相相配」问法同指。
+                "属相合", "属相配", "属相相合",
                 # R4751i：「双子配对/星座配对」问法同指。
                 "座配对", "座配", "星座配", "配什么", "配谁",
                 "和谁配", "跟谁配")) \
@@ -12374,7 +12385,12 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "时辰能改", "能改时辰", "改几点",
                                  "忘记生日", "改档案", "改名",
                                  # R4721b：「改名/昵称/名字怎么改」
-                                 "昵称", "名字怎么改")):
+                                 "昵称", "名字怎么改")) \
+                and not any(k in _n for k in
+                            # R4891c：「算命的说要改名/改名改运」
+                            # 是姓名学语境不是改档案。
+                            ("算命", "改运", "转运", "改名字改运",
+                             "先生说", "大师说")):
             out.append(
                 "首页「我的小档案」卡点「改」就开抽屉——生日/"
                 "昵称/性别/TA 档案都在那儿改")
