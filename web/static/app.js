@@ -6509,11 +6509,14 @@ async function loadDaily() {
             return !!(r4 && md4 >= r4[0] && md4 <= r4[1]);
           }));
           if (!_cyDk) {
-            /* R3684：初五迎财神单日点名——窗内通用行换成
-             * 「迎财神讨头彩正日子」。 */
+            /* R3684/R3691：窗内单日点名——元宵末日「今晚截止」
+             * ＞初五迎财神＞通用未抽行。 */
             _pc2.push('<span class="e-week-low">🧧 ' +
-              ((typeof _qianCaishenDay === 'function' &&
-                _qianCaishenDay())
+              ((typeof _qianCnyLastDay === 'function' &&
+                _qianCnyLastDay())
+                ? '元宵佳节——福签今晚截止，讨最后一支彩头'
+                : (typeof _qianCaishenDay === 'function' &&
+                   _qianCaishenDay())
                 ? '初五迎财神——今天抽支福签讨头彩'
                 : '新春福签开着呢——去签页抽今天的福签') +
               '</span>');
