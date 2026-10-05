@@ -4854,7 +4854,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                      # 「立冬那天冲什么」该出立冬的煞。
                      "值神", "冲煞", "冲什么", "煞哪", "彭祖", "百忌",
                      "建除", "黄道", "黑道", "吉神", "凶煞", "岁破",
-                     "日课")):
+                     "日课", "宜", "忌", "适合")):
                 _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
                 if _ndn is not None:
                     _dd, _pfx = _ndn, _vn
@@ -5142,6 +5142,27 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                          "四绝", "杨公", "受死", "日课")):
                     out.append(
                         f"{_pfx}日课：{'、'.join(_fl9) if _fl9 else '无大凶课'}")
+            except Exception:
+                pass
+        # R4176：宜忌活事实——与日行卡同源（do/dont 人话行）；
+        # 「今天适合搬家吗」给宜忌清单让她自己判断，比空手乱答强。
+        if any(k in _n for k in ("宜什么", "忌什么", "宜忌", "适合做什么",
+                                 "适合干啥", "适不适合", "该不该", "能不能做",
+                                 "宜出行", "宜搬", "宜领", "宜结", "宜动土",
+                                 "宜开", "宜装修", "忌出行", "忌搬",
+                                 "忌动土", "忌开", "忌装修", "忌结",
+                                 "适合搬", "适合领", "适合结婚", "适合出行",
+                                 "适合开业", "适合动土", "适合装修",
+                                 "适合表白", "适合做什么")):
+            try:
+                # 与 daily() 同源：day_query 真宜忌 + _hl_spoken 白话行。
+                _dq9 = huangli_mod.day_query(
+                    datetime(_dd.year, _dd.month, _dd.day, 12))
+                _dyi9, _dji9 = _dq9.get("yi") or [], _dq9.get("ji") or []
+                if _dyi9 or _dji9:
+                    out.append(
+                        f"{_pfx}宜忌：宜 {_hl_spoken(_dyi9) or '—'}｜"
+                        f"忌 {_hl_spoken(_dji9) or '—'}")
             except Exception:
                 pass
         # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
