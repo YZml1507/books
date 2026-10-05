@@ -2625,6 +2625,50 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
             if cand < today:
                 cand = _nth_weekday(today.year + 1, _hm3, _wd3, _nth3)
             return cand, _hn
+    # R4266：复活节——Computus 算经（春分后第一个满月后的周日），
+    # 比静态表永远准一年：2026-04-05 / 2027-03-28。
+    if "复活节" in msg:
+        def _easter(_ey: int) -> date:
+            _a = _ey % 19
+            _b, _c = divmod(_ey, 100)
+            _d0, _e = divmod(_b, 4)
+            _f = (_b + 8) // 25
+            _g = (_b - _f + 1) // 3
+            _h = (19 * _a + _b - _d0 - _g + 15) % 30
+            _i, _k = divmod(_c, 4)
+            _l = (32 + 2 * _e + 2 * _i - _h - _k) % 7
+            _mm2 = (_a + 11 * _h + 22 * _l) // 451
+            _mo2 = (_h + _l - 7 * _mm2 + 114) // 31
+            _dd2 = (_h + _l - 7 * _mm2 + 114) % 31 + 1
+            return date(_ey, _mo2, _dd2)
+        _ce9 = _easter(today.year)
+        if _ce9 < today:
+            _ce9 = _easter(today.year + 1)
+        return _ce9, "复活节"
+    # 寒食节——清明前一天（冬至后105日古制）。
+    if "寒食" in msg:
+        for _cy9 in (today.year, today.year + 1):
+            _qd9 = term_time(_cy9, "清明").date()
+            _hs9 = _qd9 - timedelta(days=1)
+            if _hs9 >= today:
+                return _hs9, "寒食节"
+    # 「大年三十/正月十五」俗语日——除夕=次年正月初一前一天，
+    # 正月十五=元宵节（lunar 表真转，不走近似日）。
+    if "大年三十" in msg or "年三十" in msg:
+        for _yy9 in (today.year, today.year + 1):
+            _cd9 = lunar.lunar_to_solar(_yy9, 1, 1) - timedelta(days=1)
+            if _cd9 >= today:
+                return _cd9, "除夕"
+    if any(k in msg for k in ("正月十五", "上元", "灯节")):
+        for _yy9 in (today.year, today.year + 1):
+            _cd9 = lunar.lunar_to_solar(_yy9, 1, 15)
+            if _cd9 >= today:
+                return _cd9, "元宵节"
+    if "618" in msg:
+        _c9 = date(today.year, 6, 18)
+        if _c9 < today:
+            _c9 = date(today.year + 1, 6, 18)
+        return _c9, "618"
     # 口语别名→正式节日名——「光棍节/520/双11」嘴上这么说。
     _FEST_ALIAS = {"光棍节": "双十一", "双11": "双十一",
                    "520": "网络情人节",
@@ -5605,13 +5649,38 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             f"你的本命年是{_nxb9}年")
             except Exception:
                 pass
-        # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值。
-        if "闰月" in _n:
+        # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
+        # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
+        # 极罕见，本世纪没有就直说，不编）。
+        if "闰月" in _n or "闰几" in _n or any(
+                k in _n for k in ("闰正", "闰腊", "闰十二")):
             try:
                 _lm9 = lunar.leap_month(_dd.year)
                 _MN9 = ["", "正", "二", "三", "四", "五", "六", "七",
                         "八", "九", "十", "冬", "腊"]
-                if _lm9:
+                if "闰正" in _n or "闰一" in _n:
+                    _hit9 = next(
+                        (_ry9 for _ry9 in range(1901, 2100)
+                         if lunar.leap_month(_ry9) == 1), None)
+                    out.append(
+                        "闰正月：" + (
+                            f"{_hit9}年有" if _hit9
+                            else "1901-2099 整两百年都没有（天文上极罕见）"))
+                elif "闰腊" in _n or "闰十二" in _n:
+                    _hit9 = next(
+                        (_ry9 for _ry9 in range(1901, 2100)
+                         if lunar.leap_month(_ry9) == 12), None)
+                    out.append(
+                        "闰腊月：" + (
+                            f"{_hit9}年有" if _hit9
+                            else "1901-2099 整两百年都没有（天文上极罕见）"))
+                elif "明年" in _n or "后年" in _n:
+                    _oy9 = _dd.year + (2 if "后年" in _n else 1)
+                    _olm9 = lunar.leap_month(_oy9)
+                    out.append(
+                        f"{'后年' if '后年' in _n else '明年'}闰月："
+                        + (f"闰{_MN9[_olm9]}月" if _olm9 else "没有"))
+                elif _lm9:
                     out.append(
                         f"今年闰月：闰{_MN9[_lm9]}月")
                 else:
