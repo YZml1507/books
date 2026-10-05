@@ -5991,6 +5991,116 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     out.append(f"{_tag9b}（{_gy9b}年）：{_lb9b}")
             except Exception:
                 pass
+        # R4306：民俗忌日问——「今天天赦日吗/杨公忌哪天/月忌日/
+        # 四离四绝/岁破月破/受死日」全与黄历卡 day_flags 同源真值。
+        if any(k in _n for k in ("天赦日", "天赦", "杨公忌", "杨公",
+                                 "月忌日", "月忌", "四离", "四绝",
+                                 "岁破", "月破", "受死日", "受死",
+                                 "诸事不宜", "大凶日", "凶日",
+                                 "凶不凶", "不凶")):
+            try:
+                def _flg9(dd9):
+                    return set((huangli_mod.day_query(datetime(
+                        dd9.year, dd9.month, dd9.day, 12))
+                        or {}).get("day_flags") or [])
+
+                def _ts9(dd9):
+                    return bool((huangli_mod.day_query(datetime(
+                        dd9.year, dd9.month, dd9.day, 12))
+                        or {}).get("shensha", {}).get("tianshe"))
+
+                def _scan9(pred9, lim9=400):
+                    _fd9 = _dd
+                    while _fd9 <= _dd + timedelta(days=lim9):
+                        if pred9(_fd9):
+                            return _fd9
+                        _fd9 += timedelta(days=1)
+                    return None
+
+                def _lv9(dd9):
+                    return f"{dd9.month}月{dd9.day}日"
+                if "天赦" in _n:
+                    _t9 = _ts9(_dd)
+                    _nx9 = _scan9(_ts9, 200)
+                    out.append(
+                        f"{_pfx}天赦日：{'是' if _t9 else '不是'}"
+                        + ("" if _t9 else
+                           f"——下一个是{_lv9(_nx9)}"
+                           if _nx9 else ""))
+                if "杨公" in _n:
+                    _t9 = "杨公忌" in _flg9(_dd)
+                    _nx9 = _scan9(
+                        lambda x: "杨公忌" in _flg9(x), 120)
+                    out.append(
+                        f"{_pfx}杨公忌：{'是' if _t9 else '不是'}"
+                        + ("" if _t9 else
+                           f"——下一个是{_lv9(_nx9)}"
+                           if _nx9 else ""))
+                if "月忌" in _n:
+                    _ld9 = lunar.solar_to_lunar(
+                        _dd.year, _dd.month, _dd.day)
+                    _t9 = _ld9.get("day") in (5, 14, 23) \
+                        and not _ld9.get("is_leap")
+                    _nx9 = _scan9(
+                        lambda x: (
+                            lunar.solar_to_lunar(
+                                x.year, x.month, x.day).get("day")
+                            in (5, 14, 23)
+                            and not lunar.solar_to_lunar(
+                                x.year, x.month, x.day).get(
+                                "is_leap")), 30)
+                    out.append(
+                        f"{_pfx}月忌日（初五/十四/廿三）："
+                        f"{'是' if _t9 else '不是'}"
+                        + ("" if _t9 else
+                           f"——下一个是{_lv9(_nx9)}"
+                           if _nx9 else ""))
+                if "四离" in _n or "四绝" in _n:
+                    _fl9 = _flg9(_dd)
+                    _t9 = bool(_fl9 & {"四离", "四绝"})
+                    _nx9 = _scan9(
+                        lambda x: bool(
+                            _flg9(x) & {"四离", "四绝"}), 120)
+                    _w9 = ("、".join(_fl9 & {"四离", "四绝"})
+                           if _t9 else "")
+                    out.append(
+                        f"{_pfx}四离四绝："
+                        + (f"是（{_w9}）" if _t9 else "不是")
+                        + ("" if _t9 else
+                           f"——下一个是{_lv9(_nx9)}"
+                           if _nx9 else ""))
+                if any(k in _n for k in ("岁破", "月破", "受死",
+                                         "诸事不宜", "大凶日",
+                                         "凶不凶", "不凶")) \
+                        or ("凶日" in _n and any(
+                            k in _n for k in ("是", "吗", "不"))):
+                    _fl9 = sorted(_flg9(_dd))
+                    out.append(
+                        f"{_pfx}凶标："
+                        + ("、".join(_fl9)
+                           if _fl9 else "无——这天不犯月破/"
+                           "岁破/四离四绝/杨公忌/受死"))
+                if "凶日" in _n and not any(
+                        k in _n for k in ("是", "吗", "不")):
+                    _HARD9 = {"月破", "四离", "四绝", "杨公忌",
+                              "岁破", "受死"}
+                    _hb9 = []
+                    _fd9 = _dd + timedelta(days=1)
+                    while len(_hb9) < 4 \
+                            and _fd9 <= _dd + timedelta(days=60):
+                        _hf9 = sorted(_flg9(_fd9) & _HARD9)
+                        if _hf9:
+                            _hb9.append(
+                                f"{_fd9.month}/{_fd9.day}"
+                                f"{'、'.join(_hf9)}")
+                        _fd9 += timedelta(days=1)
+                    if _hb9:
+                        out.append(
+                            "近60天凶日榜："
+                            + "、".join(_hb9)
+                            + "（大事勿用口径）")
+            except Exception:
+                pass
         # R4261：本命年/犯太岁个人判定——流年支 × 生年支真算
         #（同支本命年、六冲冲太岁、刑/害/破犯太岁，口径与
         # bazi_calc 流年K线同一套表），不犯就直说还给下个本命年。
