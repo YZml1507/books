@@ -6709,6 +6709,20 @@ async function loadDaily() {
           return esc(e.d + ' ' + e.t);
         }).join(' · '));
     } else { _dailyMetaItem('dailyWeekSky', ''); }
+    /* R4016：岁末倒数——12/26–31 挂「今年还剩 N 天」，31 号
+     * 点名最后一天（封愿末日同天，双不赘述只点年）。 */
+    try {
+      var _yeNow = new Date();
+      var _yeLeft = (new Date(_yeNow.getFullYear(), 11, 31)
+        - new Date(_yeNow.getFullYear(), _yeNow.getMonth(),
+                   _yeNow.getDate())) / 86400000;
+      _dailyMetaItem('dailyYearEnd',
+        (_yeNow.getMonth() === 11 && _yeNow.getDate() >= 26)
+          ? (_yeLeft === 0
+            ? '🏮 今天是今年最后一天——把想说的留在今年'
+            : '🏮 今年还剩 ' + _yeLeft + ' 天')
+          : '');
+    } catch (eYE) { _dailyMetaItem('dailyYearEnd', ''); }
     /* R3816：签窗钩公共行——窗宣原只活在 dailyPersonal，
      * 没存盘的人看不到（窗本身人人可抽）。personal 在就出
      * 那边，这份只在 personal 缺席时挂，避免双行。 */
