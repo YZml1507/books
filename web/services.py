@@ -11394,9 +11394,14 @@ def _chat_facts_inner(message: str, now: datetime,
             _flbl = "今年内"
         _gd = _hl_next_yi_days(_fdt, terms, span=_fspan)
         if _gd:
+            # R4661a：医疗事项宜日榜同样带「看病以医生为准」——此前只有
+            # 判定行分支挂免责，「哪天拔智齿」走榜窗就漏了。
+            _mmd = ("（医疗事项：回复带一句「看病以医生为准，"
+                    "黄历不作数」的口径。）"
+                    if set(terms) & _MED_SCENE_TERMS else "")
             facts.append(f"用户在问「哪天{scene}好」，{_flbl}里宜「{scene}」"
                          f"的日子：{'、'.join(_gd)}。直接给日子清单，"
-                         "别按今天答宜忌。")
+                         f"别按今天答宜忌。{_mmd}")
         else:
             # R3323-P0-1：ji-only 事项（诉讼/破土…历表只有忌没有宜）——
             # 「次优安排」是空话死路，历表的正确答案是避让榜。
