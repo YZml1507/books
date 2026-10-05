@@ -14410,9 +14410,9 @@ function initViews() {
           var _td3 = Math.round(
             (new Date(_n6.getFullYear(), 10, 6) - _d6) / 86400000);
           if (_hd3 >= 1 && _hd3 <= 5) {
-            _qf0 = '🎃 捣蛋签 ' + _hd3 + ' 天后开';
+            _qf0 = '🎃 捣蛋签 ' + _cdWhen(_hd3) + '开';
           } else if (_td3 >= 1 && _td3 <= 5) {
-            _qf0 = '🌸 桃花签 ' + _td3 + ' 天后开';
+            _qf0 = '🌸 桃花签 ' + _cdWhen(_td3) + '开';
           } else if (typeof _QIAN_CNY_WIN !== 'undefined') {
             var _cO3 = null;
             for (var _ck3 in _QIAN_CNY_WIN) {
@@ -14424,7 +14424,7 @@ function initViews() {
             }
             var _cd4 = _cO3 ? Math.round((_cO3 - _d6) / 86400000) : 99;
             if (_cd4 >= 1 && _cd4 <= 5)
-              _qf0 = '🧧 新春福签 ' + _cd4 + ' 天后开';
+              _qf0 = '🧧 新春福签 ' + _cdWhen(_cd4) + '开';
           }
         } catch (eQ3) {}
       }
@@ -14456,9 +14456,9 @@ function initViews() {
                    _d7.getDate() <= 25) {
           _tf0 = '🎄 圣诞心愿限定开着';
         } else if (_hd4 >= 1 && _hd4 <= 5) {
-          _tf0 = '🎃 万圣夜限定 ' + _hd4 + ' 天后开';
+          _tf0 = '🎃 万圣夜限定 ' + _cdWhen(_hd4) + '开';
         } else if (_xd2 >= 1 && _xd2 <= 5) {
-          _tf0 = '🎄 圣诞心愿限定 ' + _xd2 + ' 天后开';
+          _tf0 = '🎄 圣诞心愿限定 ' + _cdWhen(_xd2) + '开';
         }
       } catch (eT0) {}
       if (_tf0) _td0.textContent = '塔罗占卜 · ' + _tf0;
@@ -15112,15 +15112,15 @@ function initDivination() {
       var _hd2 = Math.round((new Date(_n5.getFullYear(), 9, 29) - _d5)
         / 86400000);
       if (_hd2 >= 1 && _hd2 <= 5)
-        _tt.push('🎃 万圣夜限定 ' + _hd2 +
-          ' 天后开张——那件不敢问的事留给它');
+        _tt.push('🎃 万圣夜限定 ' + _cdWhen(_hd2) +
+          '开张——那件不敢问的事留给它');
     }
     if (!(_trXFest() || _trXFestCn())) {
       var _xd = Math.round((new Date(_n5.getFullYear(), 11, 20) - _d5)
         / 86400000);
       if (_xd >= 1 && _xd <= 5)
-        _tt.push('🎄 圣诞心愿限定 ' + _xd +
-          ' 天后开张——心愿翻一张看它会怎么来');
+        _tt.push('🎄 圣诞心愿限定 ' + _cdWhen(_xd) +
+          '开张——心愿翻一张看它会怎么来');
     }
     _trTse.hidden = !_tt.length;
     /* 纯文案行——走 textNode+br 追加，不走 innerHTML 拼接。 */
@@ -19861,7 +19861,7 @@ function _qianWinHook() {
           / 86400000);
         if (_ddays >= 1 && _ddays <= 5) {
           _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签 ' +
-            _ddays + ' 天后开张——那几天来抽一支宜动签</span>');
+            _cdWhen(_ddays) + '开张——那几天来抽一支宜动签</span>');
         } else if (typeof _qianHwFest === 'function' &&
                    _qianHwFest()) {
           /* 与 _qianHwDraw 同锚：放行日（CST 先行时按 CST 日）
@@ -19942,7 +19942,7 @@ function _qianWinHook() {
           _tqNow.getDate())) / 86400000);
         if (_tqDays >= 1 && _tqDays <= 5) {
           _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签 ' +
-            _tqDays + ' 天后开张——想心里那个人就来抽一支</span>');
+            _cdWhen(_tqDays) + '开张——想心里那个人就来抽一支</span>');
         } else if (typeof _qianLoveFest === 'function' &&
                    _qianLoveFest()) {
           var _tqDk = _qianLoveIdxOf(_winAnchorIso(function (o3) {
@@ -20076,7 +20076,7 @@ function _qianWinHook() {
           ? Math.round((_cyOpen - _cyT0) / 86400000) : 99;
         if (_cyDays >= 1 && _cyDays <= 5) {
           _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🧧 新春福签 ' +
-            _cyDays + ' 天后开张——过年讨彩头，抽支吉签</span>');
+            _cdWhen(_cyDays) + '开张——过年讨彩头，抽支吉签</span>');
         } else if (typeof _qianCnyFest === 'function' &&
                    _qianCnyFest()) {
           var _cyR0 = null;
@@ -22453,7 +22453,7 @@ function renderCheckin(dateKey) {
         new Date(dateKey + 'T00:00:00')) / 86400000);
       if (_nyD >= 1 && _nyD <= 5) {
         _xmasHtml += '<div class="ck-quest ck-nytease">' +
-          '🧨 跨年许愿 ' + _nyD + ' 天后开——写给明年的话，' +
+          '🧨 跨年许愿 ' + _cdWhen(_nyD) + '开——写给明年的话，' +
           '封口存到元旦才启封' +
           '<button type="button" class="ck-quest-btn ck-xwish">' +
           '去许愿 →</button></div>';
@@ -24634,6 +24634,8 @@ function _inBothDates(fn) {
   try { if (fn(_locNow())) return true; } catch (eL) {}
   try { return !!fn(_cstNow()); } catch (eC) { return false; }
 }
+/* R4051：倒计时 T-1 说人话——「1 天后开」换「明天开」。 */
+function _cdWhen(n) { return n === 1 ? '明天' : n + ' 天后'; }
 /* 双锚放行时的落键锚日：本地在窗锚今天，只 CST 在窗锚 CST 日
  * （不然错位日写 today 键，明天本地进窗又抽一支）。 */
 function _winAnchorIso(fn) {
@@ -26690,12 +26692,12 @@ function _qianWinTease() {
       / 86400000);
     if (_hd >= 1 && _hd <= 5 &&
         !(typeof _qianHwFest === 'function' && _qianHwFest()))
-      _qt.push('🎃 捣蛋签 ' + _hd + ' 天后开张——那几天来抽一支宜动签');
+      _qt.push('🎃 捣蛋签 ' + _cdWhen(_hd) + '开张——那几天来抽一支宜动签');
     var _td = Math.round((new Date(_n4.getFullYear(), 10, 6) - _d4)
       / 86400000);
     if (_td >= 1 && _td <= 5 &&
         !(typeof _qianLoveFest === 'function' && _qianLoveFest()))
-      _qt.push('🌸 桃花签 ' + _td + ' 天后开张——想心里那个人就来抽一支');
+      _qt.push('🌸 桃花签 ' + _cdWhen(_td) + '开张——想心里那个人就来抽一支');
     if (typeof _QIAN_CNY_WIN !== 'undefined' &&
         !(typeof _qianCnyFest === 'function' && _qianCnyFest())) {
       var _cO = null;
@@ -26708,7 +26710,7 @@ function _qianWinTease() {
       }
       var _cd2 = _cO ? Math.round((_cO - _d4) / 86400000) : 99;
       if (_cd2 >= 1 && _cd2 <= 5)
-        _qt.push('🧧 新春福签 ' + _cd2 + ' 天后开张——过年讨彩头，抽支吉签');
+        _qt.push('🧧 新春福签 ' + _cdWhen(_cd2) + '开张——过年讨彩头，抽支吉签');
     }
   } catch (eQT) {}
   return _qt.length

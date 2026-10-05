@@ -4676,7 +4676,9 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     _qw.append(f"捣蛋签窗：{_hws}"
                                "（10/25–11/1，只出宜动的签）")
                 elif 1 <= _hwd <= 5:
-                    _qw.append(f"捣蛋签窗：{_hwd}天后开（10/25–11/1）")
+                    _qw.append(f"捣蛋签窗："
+                               f"{'明天开' if _hwd == 1 else str(_hwd) + '天后开'}"
+                               "（10/25–11/1）")
                 _tqd = (date(_d.year, 11, 6) - _d).days
                 if _d.month == 11 and 6 <= _d.day <= 11:
                     _tqs = "今天开张" if _d.day == 6 \
@@ -4684,7 +4686,9 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                         else "明天截止" if _d.day == 10 else "今天开着呢"
                     _qw.append(f"桃花签窗：{_tqs}（11/6–11/11）")
                 elif 1 <= _tqd <= 5:
-                    _qw.append(f"桃花签窗：{_tqd}天后开（11/6–11/11）")
+                    _qw.append(f"桃花签窗："
+                               f"{'明天开' if _tqd == 1 else str(_tqd) + '天后开'}"
+                               "（11/6–11/11）")
                 from guji import lunar as _lm
                 _cwin = []
                 for _yy in (_d.year, _d.year + 1):
@@ -4710,7 +4714,8 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                         _cd5 = (_cnext[0][0] - _d).days
                         if 1 <= _cd5 <= 5:
                             _qw.append(
-                                f"新春福签窗：{_cd5}天后开"
+                                f"新春福签窗："
+                                f"{'明天开' if _cd5 == 1 else str(_cd5) + '天后开'}"
                                 f"（{_cnext[0][0].month}月"
                                 f"{_cnext[0][0].day}日–"
                                 f"{_cnext[0][1].month}月"
@@ -4736,7 +4741,9 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     _tw.append(f"万圣夜限定：{_hts}"
                                "（10/29–11/1，翻一张不敢问的事）")
                 elif 1 <= _htd <= 5:
-                    _tw.append(f"万圣夜限定：{_htd}天后开"
+                    _tw.append(
+                        f"万圣夜限定："
+                        f"{'明天开' if _htd == 1 else str(_htd) + '天后开'}"
                                "（10/29–11/1）")
                 _xtd = (date(_d.year, 12, 20) - _d).days
                 if _d.month == 12 and 20 <= _d.day <= 25:
@@ -4746,7 +4753,9 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     _tw.append(f"圣诞心愿限定：{_xts}"
                                "（12/20–12/25，默念心愿翻一张）")
                 elif 1 <= _xtd <= 5:
-                    _tw.append(f"圣诞心愿限定：{_xtd}天后开"
+                    _tw.append(
+                        f"圣诞心愿限定："
+                        f"{'明天开' if _xtd == 1 else str(_xtd) + '天后开'}"
                                "（12/20–12/25）")
                 out.extend(_tw)
             except Exception:
@@ -4825,7 +4834,9 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     out.append(f"跨年封愿：{_nys}"
                                "（12/25–12/31，封了元旦才开）")
                 elif 1 <= _nyd <= 5:
-                    out.append(f"跨年封愿：{_nyd}天后开"
+                    out.append(
+                        f"跨年封愿："
+                        f"{'明天开' if _nyd == 1 else str(_nyd) + '天后开'}"
                                "（12/25–12/31）")
             except Exception:
                 pass
