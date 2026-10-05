@@ -6562,6 +6562,65 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         "婚恋信号强）")
             except Exception:
                 pass
+        # R4351：值日星宿/太岁方/文昌位——「今天什么星宿」走
+        # day_query.xiu+宿宜忌表；「今年太岁在哪」年支方位；
+        # 「文昌位/明天考试」日干预文昌贵人支→方位。
+        if any(k in _n for k in ("星宿", "什么宿", "值日宿",
+                                 "太岁在", "太岁方位", "太岁方",
+                                 "文昌", "考试", "复习", "逢考",
+                                 "明天考", "后天考")):
+            try:
+                if any(k in _n for k in ("星宿", "什么宿", "值日宿")):
+                    _xq9 = (huangli_mod.day_query(
+                        datetime(_dd.year, _dd.month, _dd.day, 12))
+                        or {}).get("xiu", "")
+                    if _xq9:
+                        _QG9 = {"角": "东方青龙", "亢": "东方青龙",
+                                "氐": "东方青龙", "房": "东方青龙",
+                                "心": "东方青龙", "尾": "东方青龙",
+                                "箕": "东方青龙",
+                                "斗": "北方玄武", "牛": "北方玄武",
+                                "女": "北方玄武", "虚": "北方玄武",
+                                "危": "北方玄武", "室": "北方玄武",
+                                "壁": "北方玄武",
+                                "奎": "西方白虎", "婁": "西方白虎",
+                                "胃": "西方白虎", "昴": "西方白虎",
+                                "畢": "西方白虎", "觜": "西方白虎",
+                                "參": "西方白虎",
+                                "井": "南方朱雀", "鬼": "南方朱雀",
+                                "柳": "南方朱雀", "星": "南方朱雀",
+                                "張": "南方朱雀", "翼": "南方朱雀",
+                                "軫": "南方朱雀"}
+                        _xy9 = (huangli_mod.XIUXIU_YIJI.get(_xq9) or {})
+                        out.append(
+                            f"{_pfx}星宿：{_xq9}宿"
+                            f"（{_QG9.get(_xq9, '')}）"
+                            + (f"——宜{'、'.join((_xy9.get('yi') or [])[:2])}"
+                               if _xy9.get('yi') else ""))
+                if any(k in _n for k in ("太岁在", "太岁方位", "太岁方")):
+                    _yt9 = (bazi_compute(_dd.year, _dd.month,
+                                         _dd.day, 12, "").year or "  ")[1]
+                    _td9 = _ZHI_DIR.get(_yt9, "")
+                    if _td9:
+                        out.append(
+                            f"今年太岁方：{_td9}"
+                            f"（{_yt9}方，宜静不宜动土）")
+                if any(k in _n for k in ("文昌", "考试", "复习",
+                                         "逢考", "明天考", "后天考")):
+                    _WC9 = {"甲": "巳", "乙": "午", "丙": "申",
+                            "丁": "酉", "戊": "申", "己": "酉",
+                            "庚": "亥", "辛": "子", "壬": "寅",
+                            "癸": "卯"}
+                    _dg9 = (huangli_mod.day_ganzhi(
+                        datetime(_dd.year, _dd.month, _dd.day, 12))
+                        or ["", ""])[0]
+                    _wc9 = _WC9.get(_dg9, "")
+                    if _wc9:
+                        out.append(
+                            f"{_pfx}文昌位：{_ZHI_DIR.get(_wc9, '')}"
+                            f"（{_wc9}方——复习/考试朝这坐沾点文气）")
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
