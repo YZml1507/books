@@ -4781,6 +4781,16 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                                "（12/25–12/31）")
             except Exception:
                 pass
+        # R3981：「下周有什么」前瞻——同源 _week_sky（天象+时令窗）。
+        if any(k in _n for k in ("下周", "这周", "本周", "接下来几天",
+                                 "过几天", "未来几天", "这周有")):
+            try:
+                _ws = _week_sky(_d)
+                if _ws:
+                    out.append("未来七天：" + "、".join(
+                        f"{w['d']} {w['t']}" for w in _ws))
+            except Exception:
+                pass
     except Exception:
         pass
     return out
