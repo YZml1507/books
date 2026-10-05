@@ -6764,6 +6764,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "他的星座", "她的星座",
                                  "农历生日", "阴历生日",
                                  "农历几", "阴历几",
+                                 # R4406b：「我/TA 出生星期几」出生日星期
+                                 # 反查（不同于生日倒数）。
+                                 "出生星期", "出生在星期", "出生是星期",
+                                 "出生那天星期", "出生周几",
                                  "虚岁")):
             try:
                 _ta9 = any(k in _n for k in
@@ -6795,6 +6799,13 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             f"{_who9}的农历生日：{_lb9v.get('month_cn','')}"
                             f"{_lb9v.get('day_cn','')}"
                             f"（{_lb9v.get('ganzhi_year','')}年）")
+                    elif any(k in _n for k in
+                             ("出生星期", "出生在星期", "出生是星期",
+                              "出生那天星期", "出生周几")):
+                        _wb9 = date(_by9, _bm9, _bd9i).weekday()
+                        out.append(
+                            f"{_who9}出生那天：星期"
+                            f"{'一二三四五六日'[_wb9]}")
                     elif "虚岁" in _n:
                         out.append(
                             f"{_who9}的虚岁："
@@ -7077,10 +7088,17 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "守护佛", "生辰石", "月份花",
                                  "守护神")):
             try:
+                # R4406：TA 人称同链——「TA本命佛/TA的守护石」取
+                # TA 生日（原一律用我档，答错人）。
+                _ta9b = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _re9b = (_BIRTHDAY_PARTNER_RE if _ta9b
+                         else _BIRTHDAY_FACT_RE)
+                _who9b = "TA" if _ta9b else "你"
                 _m9 = next(
-                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                    (_re9b.match(str(_fp).strip())
                      for _fp in facts or []
-                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                     if _re9b.match(str(_fp).strip())),
                     None)
                 if _m9:
                     _y9, _mo9, _dy9 = (int(_m9.group(1)),
@@ -7100,11 +7118,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             "狗": "阿弥陀佛", "猪": "阿弥陀佛"}
                     if any(k in _n for k in ("诞生石", "生日石", "生辰石")):
                         out.append(
-                            f"你的诞生石：{_ST9[_mo9]}"
+                            f"{_who9b}的诞生石：{_ST9[_mo9]}"
                             f"（{_mo9}月）")
                     if "生日花" in _n or "月份花" in _n:
                         out.append(
-                            f"你的生日花：{_FL9[_mo9]}"
+                            f"{_who9b}的生日花：{_FL9[_mo9]}"
                             f"（{_mo9}月）")
                     if any(k in _n for k in ("本命佛", "守护佛",
                                              "守护神")):
@@ -7113,7 +7131,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
                             "子丑寅卯辰巳午未申酉戌亥".index(_zz9b)]
                         out.append(
-                            f"你的本命佛：{_BF9[_sx9]}"
+                            f"{_who9b}的本命佛：{_BF9[_sx9]}"
                             f"（属{_sx9}）")
             except Exception:
                 pass
@@ -7525,7 +7543,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 # （「生日几号」留给 profile_facts 的生日倒数答，别抢话。）
                 # R4111：月亮词问「几号」由月相块答「下次新月/满月」，
                 # 日期回声别抢话。
-                if _nd is None and "生日" not in _n and not any(
+                if _nd is None and "生日" not in _n and "出生" not in _n \
+                        and not any(
                         k in _n for k in
                         ("月亮", "满月", "新月", "月圆", "月缺", "月相")) \
                         and any(
