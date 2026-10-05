@@ -14354,6 +14354,26 @@ function initViews() {
   /* R200b（US3）：顶层返回条 → 回首页（簇页/叶页通用） */
   var back = el('viewBack');
   if (back) back.addEventListener('click', function () { showView('home'); });
+  /* R3841：签窗期功能卡徽——开窗中把「每日一签」副标换成当窗
+   * 件名（🎃/🌸/🧧），非窗期原样。app.js defer 后段在 init()
+   * 之后才执行——_QIAN_CNY_WIN 等 var 彼时未赋值，挂 load 再判
+   * （hw/tq 窗函数内联硬表不受影响，但 cny 读表必须推迟）。 */
+  var _qfBadge = function () {
+    try {
+      var _qd0 = document.querySelector(
+        '.func-card[data-view="qian"] .func-desc');
+      var _qf0 =
+        (typeof _qianHwFest === 'function' && _qianHwFest())
+          ? '🎃 捣蛋签开着' :
+        (typeof _qianLoveFest === 'function' && _qianLoveFest())
+          ? '🌸 桃花签开着' :
+        (typeof _qianCnyFest === 'function' && _qianCnyFest())
+          ? '🧧 新春福签开着' : null;
+      if (_qf0 && _qd0) _qd0.textContent = '观音灵签 · ' + _qf0;
+    } catch (eQF) {}
+  };
+  if (document.readyState === 'complete') { _qfBadge(); }
+  else { window.addEventListener('load', _qfBadge); }
   /* R3249g（UX-AUDIT B4）：场景快捷条——「心里有事」开聊天并替
    * 她写好第一句；其余直达对应功能视图。 */
   document.querySelectorAll('.scene-chip').forEach(function (chip) {

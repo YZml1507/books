@@ -20683,3 +20683,12 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3838 数据面三十五轮：新旗 2 枚完成四注册。
 - R3839 裂变域十九轮：无新链参。
 - R3840 收口闸全绿：selftest 457/contract 810/dollar 0/banned 0/ui_smoke 126/check_poster。
+
+## R3841-45（签窗功能卡徽 + defer-var 时序坑 + 审计轮转）
+
+- **R3841 签窗功能卡徽**：开窗期首页「每日一签」功能卡副标自动变「观音灵签 · 🎃/🌸/🧧 X签开着」——窗宣第三通道（dailyQianWin 行 + 窗内卡 + 入口卡徽），非窗期原样。冻结时钟四态实测全过。
+- **根治 defer-var 时序坑**：app.js defer → init() 在脚本中段直接跑，`_QIAN_CNY_WIN` 等后段 var 彼时未赋值（函数声明已提升但读 var 会 undefined→内部 catch 静默 false）——福签徽首版因此哑火。挂 window load 再判根治；这是同类件通用坑，记入台账。
+- R3842 口吻四十七审：徽文案与窗宣同口径。
+- R3843 数据面三十六轮：零键。
+- R3844 移动端二十一审：360px 副标换行无溢出。
+- R3845 收口闸全绿：selftest 457/contract 810/dollar 0/banned 0/ui_smoke 126/check_poster。
