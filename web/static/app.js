@@ -14373,6 +14373,36 @@ function initViews() {
           ? '🌸 桃花签开着' :
         (typeof _qianCnyFest === 'function' && _qianCnyFest())
           ? '🧧 新春福签开着' : null;
+      /* R3871：窗前倒计时徽——开窗前 1-5 天副标也报「N 天后开」
+       * （与 _qianWinTease 同口径，窗内徽优先）。 */
+      if (!_qf0) {
+        try {
+          var _n6 = new Date();
+          var _d6 = new Date(_n6.getFullYear(), _n6.getMonth(),
+                             _n6.getDate());
+          var _hd3 = Math.round(
+            (new Date(_n6.getFullYear(), 9, 25) - _d6) / 86400000);
+          var _td3 = Math.round(
+            (new Date(_n6.getFullYear(), 10, 6) - _d6) / 86400000);
+          if (_hd3 >= 1 && _hd3 <= 5) {
+            _qf0 = '🎃 捣蛋签 ' + _hd3 + ' 天后开';
+          } else if (_td3 >= 1 && _td3 <= 5) {
+            _qf0 = '🌸 桃花签 ' + _td3 + ' 天后开';
+          } else if (typeof _QIAN_CNY_WIN !== 'undefined') {
+            var _cO3 = null;
+            for (var _ck3 in _QIAN_CNY_WIN) {
+              if (!_QIAN_CNY_WIN.hasOwnProperty(_ck3)) continue;
+              var _cw3 = _QIAN_CNY_WIN[_ck3];
+              var _cd3 = new Date(+_ck3,
+                Math.floor(_cw3[0] / 100) - 1, _cw3[0] % 100);
+              if (_cd3 > _d6 && (!_cO3 || _cd3 < _cO3)) _cO3 = _cd3;
+            }
+            var _cd4 = _cO3 ? Math.round((_cO3 - _d6) / 86400000) : 99;
+            if (_cd4 >= 1 && _cd4 <= 5)
+              _qf0 = '🧧 新春福签 ' + _cd4 + ' 天后开';
+          }
+        } catch (eQ3) {}
+      }
       if (_qf0 && _qd0) _qd0.textContent = '观音灵签 · ' + _qf0;
     } catch (eQF) {}
   };
