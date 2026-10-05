@@ -19976,17 +19976,27 @@ function _qianWinHook() {
               return (o5.m === 10 && o5.d >= 29) ||
                      (o5.m === 11 && o5.d <= 1);
             })) {
+          /* R3926：万圣夜末日（11/1）点名——「今晚截止」。 */
+          var _hwLast2 = _inBothDates(function (o5b) {
+            return o5b.m === 11 && o5b.d === 1;
+          });
           _qh.push('<span class="e-week-low qw-nav" role="button" ' +
-            'tabindex="0" data-dv="tarot">🎃 万圣夜限定开着呢' +
-            '——塔罗页翻一张不敢问的</span>');
+            'tabindex="0" data-dv="tarot">🎃 万圣夜限定' +
+            (_hwLast2 ? '今晚截止——不敢问的最后翻一张' :
+             '开着呢——塔罗页翻一张不敢问的') + '</span>');
         }
         if (typeof _inBothDates === 'function' &&
             _inBothDates(function (o6) {
               return o6.m === 12 && o6.d >= 20 && o6.d <= 25;
             })) {
+          /* R3926：圣诞心愿末日（12/25）点名——「今晚截止」。 */
+          var _xLast = _inBothDates(function (o6b) {
+            return o6b.m === 12 && o6b.d === 25;
+          });
           _qh.push('<span class="e-week-low qw-nav" role="button" ' +
-            'tabindex="0" data-dv="tarot">🎄 圣诞心愿限定开着呢' +
-            '——塔罗页默念心愿翻一张</span>');
+            'tabindex="0" data-dv="tarot">🎄 圣诞心愿限定' +
+            (_xLast ? '今晚截止——心愿最后翻一张' :
+             '开着呢——塔罗页默念心愿翻一张') + '</span>');
         }
       } catch (eTH) {}
       /* R3681：新春福签钩——与捣蛋/桃花同套窗机制（除夕—元宵，
