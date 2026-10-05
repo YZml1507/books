@@ -19845,8 +19845,13 @@ function _qianWinHook() {
             return (o2.m === 10 && o2.d >= 25) || (o2.m === 11 && o2.d <= 1);
           }));
           if (!_hwDk) {
-            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签开着呢' +
-              '——去签页抽今天的宜动签</span>');
+            /* R3921：窗末日点名——11/1 未抽行换「今晚截止」，
+             * 与元宵末日/迎财神单日点名同族。 */
+            var _hwLast = _now2.getMonth() === 10 &&
+                          _now2.getDate() === 1;
+            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签' +
+              (_hwLast ? '今晚截止——最后一支宜动签别错过' :
+               '开着呢——去签页抽今天的宜动签') + '</span>');
           } else {
             /* R3657：窗内连抽计数——签史 hw 标 ≥2 天挂
              * 「连抽 N 天」，给窗期一个小成就钩。 */
@@ -19912,8 +19917,12 @@ function _qianWinHook() {
             return o3.m === 11 && o3.d >= 6 && o3.d <= 11;
           }));
           if (!_tqDk) {
-            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签开着呢' +
-              '——去签页抽今天的桃花签</span>');
+            /* R3921 对称：桃花签末日（11/11）未抽行换「今晚截止」。 */
+            var _tqLast = _tqNow.getMonth() === 10 &&
+                          _tqNow.getDate() === 11;
+            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签' +
+              (_tqLast ? '今晚截止——最后一支桃花签别错过' :
+               '开着呢——去签页抽今天的桃花签') + '</span>');
           } else {
             var _tqN = 0;
             try {
