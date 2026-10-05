@@ -5669,7 +5669,12 @@ var _CALC_KEY_CN = {
   qi_yun_age: '起运岁数', cross_ref: '交叉印证', sun_sign: '太阳星座',
   hour_branch_rels: '时支关系', day_ganzhi: '日干支', nayin: '纳音',
   pillar_wx: '四柱五行', life: '命局总述', semantic: '取象',
-  question: '所问', verdict: '判词', pillar: '四柱'
+  question: '所问', verdict: '判词', pillar: '四柱',
+  /* R4671g：称骨字段原表中文名（kline 未进此表因渲染成图不进原表） */
+  chenggu: '称骨', weight_qian: '骨重钱数', weight_cn: '骨重',
+  parts: '四项来源', song: '称骨歌', available: '可称', note: '说明',
+  label: '名目', w_cn: '骨重', leap_note: '闰月口径',
+  late_zi_note: '夜子口径'
 };
 function _calcKeyCn(k) {
   return _CALC_KEY_CN[k] || _BASIS_KEY_CN['calc.' + k] ||
