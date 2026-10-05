@@ -5003,6 +5003,53 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     out.append(f"{_pfx}节日：{_nopf}没排上节日名")
             except Exception:
                 pass
+        # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
+        # 点名假期给该段，没点名给「今天在不在放/下一假期/补班日」。
+        if any(k in _n for k in ("放假", "假期", "调休", "补班",
+                                 "几天假", "放不放假", "天假")):
+            try:
+                import re as _re9
+                _named9 = next(
+                    (r for r in sorted(
+                        _LEGAL_SPANS, key=lambda r: r[1])
+                     if r[2] >= _d
+                     and any(t in _n for t in _re9.findall(r"..", r[0]))),
+                    None)
+                if _named9:
+                    _n9, _s9, _e9, _a9 = _named9
+                    _d9 = (_s9 - _d).days
+                    out.append(
+                        f"{_n9}假期：{_s9.month}月{_s9.day}日到"
+                        f"{_e9.month}月{_e9.day}日"
+                        f"（{(_e9 - _s9).days + 1}天）"
+                        + ("（就是这几天）" if _s9 <= _d <= _e9
+                           else f"（还有{_d9}天）" if _d9 > 0 else ""))
+                elif _d in tuple(x for r in _LEGAL_SPANS for x in r[3]):
+                    _r9 = next(r for r in _LEGAL_SPANS if _d in r[3])
+                    out.append(
+                        f"调休：今天是{_r9[0]}补班日（{_r9[1].month}月"
+                        f"{_r9[1].day}-{_r9[2].month}月{_r9[2].day}假期调的）")
+                else:
+                    _inn = next(
+                        (r for r in _LEGAL_SPANS if r[1] <= _d <= r[2]),
+                        None)
+                    if _inn:
+                        out.append(
+                            f"{_inn[0]}假期：今天就在放假（{_inn[1].month}月"
+                            f"{_inn[1].day}日到{_inn[2].month}月{_inn[2].day}日）")
+                    else:
+                        _nx9 = next(
+                            (r for r in sorted(
+                                _LEGAL_SPANS, key=lambda r: r[1])
+                             if r[1] > _d), None)
+                        if _nx9:
+                            out.append(
+                                f"下一假期{_nx9[0]}：{_nx9[1].month}月"
+                                f"{_nx9[1].day}日起放"
+                                f"{(_nx9[2] - _nx9[1]).days + 1}天"
+                                f"（还有{(_nx9[1] - _d).days}天）")
+            except Exception:
+                pass
         # R4061：「X什么时候/几号」反查＋「今年还剩几天」——节气走
         # term_time 天文表（与节气横幅同源），节日走公历/农历双表，
         # 除夕走腊月末日；已过自动取明年。
