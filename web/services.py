@@ -5813,6 +5813,48 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"{_nx9.month}月{_nx9.day}日起")
             except Exception:
                 pass
+        # R4272：点名数九段——「三九哪天/六九什么时候/九九出九」
+        # 窗口外也给段内日期（本冬或下一冬，冬至天文表同源）。
+        if any(k in _n for k in ("一九", "二九", "三九", "四九",
+                                 "五九", "六九", "七九", "八九",
+                                 "九九", "数九", "出九")):
+            try:
+                from guji.bazi import term_time as _ttj
+                _JN9 = "一二三四五六七八九"
+                _sj9 = next(
+                    (_i for _i, _c in enumerate(_JN9)
+                     if f"{_c}九" in _n), None)
+                _is_out9 = "出九" in _n and _sj9 is None
+                if _is_out9:
+                    _sj9 = 9   # 出九 = 九九最后一天（冬至+80，与窗内同口径）
+                if _sj9 is not None:
+                    for _yyj in (_dd.year - 1, _dd.year):
+                        _dzj = (_ttj(_yyj, "冬至")
+                                + timedelta(hours=8)).date()
+                        _sg9 = _dzj + timedelta(
+                            days=80 if _is_out9 else _sj9 * 9)
+                        _eg9 = _sg9 + (timedelta(days=0) if _is_out9
+                                     else timedelta(days=8))
+                        if _dd > _eg9:
+                            continue
+                        _cj9 = "出九" if _is_out9 else f"{_JN9[_sj9]}九"
+                        if _sg9 <= _dd <= _eg9:
+                            out.append(
+                                f"{_cj9}：就是今天" if _is_out9
+                                else f"{_cj9}：今天是{_cj9}第"
+                                     f"{(_dd - _sg9).days + 1}天"
+                                     f"（{_sg9.month}月{_sg9.day}日到"
+                                     f"{_eg9.month}月{_eg9.day}日）")
+                        else:
+                            out.append(
+                                f"{_cj9}：{_sg9.month}月{_sg9.day}日"
+                                + ("" if _is_out9 else
+                                   f"到{_eg9.month}月{_eg9.day}日")
+                                + f"（还有{(_sg9 - _dd).days}天"
+                                + ("" if _is_out9 else "起") + "）")
+                        break
+            except Exception:
+                pass
         if any(k in _n for k in ("几伏", "三伏", "入伏了", "出伏了",
                                  "在伏天", "伏天")):
             try:
@@ -6598,6 +6640,29 @@ def _chat_facts_inner(message: str, now: datetime,
     if generic:
         facts.append("没列入当日宜忌的事项属中性，不是不支持，只是黄历没"
                      "为它背书，可照常安排；想要背书就挑宜它的日子。")
+        # R4271：泛「哪天最好/最近好日子」找日问——没指场景的给
+        # 近14天日档榜（吉/小吉日，fortune_level 与当日日档同源）。
+        if _find_intent:
+            try:
+                _WD9 = "一二三四五六日"
+                _gd9 = []
+                _d0 = (now or _now_cn()).date()
+                for _io in range(14):
+                    _dx = _d0 + timedelta(days=_io)
+                    _bx = bazi_compute(
+                        _dx.year, _dx.month, _dx.day, 12, "男")
+                    _lx = fortune_level(
+                        bazi_calc(_bx, ask_date=_dx.isoformat()),
+                        day=datetime(_dx.year, _dx.month, _dx.day, 12))
+                    if _lx in ("吉", "小吉"):
+                        _gd9.append(
+                            f"{_dx.month}/{_dx.day}"
+                            f"（周{_WD9[_dx.weekday()]}·{_lx}）")
+                if _gd9:
+                    facts.append(
+                        "近14天日档较好的日子：" + "、".join(_gd9[:6]))
+            except Exception:
+                pass
         if past_note:
             facts.append("该日期已过去，请温和点出、按复盘口径回应，"
                          "不要再给择日建议。")
