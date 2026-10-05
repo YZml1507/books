@@ -2175,6 +2175,14 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "去寺庙": ["祭祀", "祈福"], "寺庙": ["祭祀", "祈福"],
     "求签": ["祈福"], "抽签": ["祈福"], "问卜": ["祈福"],
     "求签问卜": ["祈福"], "安门": ["修造"],
+    # R4461：考学/职事补键——高考中考会考国考挂科补考重修驾照
+    # 归求名（与考驾照同腿）；升职转正实习归求名+上任；婚期归嫁娶。
+    "高考": ["求名", "入学"], "中考": ["求名", "入学"],
+    "会考": ["求名"], "国考": ["求名", "上任"],
+    "挂科": ["求名"], "补考": ["求名"], "重修": ["求名"],
+    "驾照": ["求名"], "升职": ["求名", "上任"],
+    "转正": ["求名", "上任"], "实习": ["求名", "上任"],
+    "婚期": ["嫁娶"],
 }
 
 # 黄历宜忌规范词全集——直接命中这些词也按事项处理。词表由建除/宿值
@@ -5894,7 +5902,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  # R4431c：TA 电量/十神日补键。
                                  "TA的电量", "TA电量", "ta电量",
                                  "他的电量", "她的电量", "TA的状态",
-                                 "TA的十神日", "TA明天电量")):
+                                 "TA的十神日", "TA明天电量",
+                                 # R4461e：「倒霉/走背运/运气差/今天
+                                 # 不顺」情绪句也给真值打底。
+                                 "倒霉", "走背运", "运气差",
+                                 "最近不顺", "今天不顺", "水逆")):
             try:
                 # R4381b：TA 人称同链——「TA今天怎么样」取 TA 生日
                 # 的 personal 行，称呼换 TA。
@@ -6426,6 +6438,81 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                if _tg9 in _TT9 else ""))
                     except Exception:
                         pass
+            except Exception:
+                pass
+        # R4461：话题运问——事业/学业/健康/转运/犯小人不必再给
+        # 太岁判，直接发流年十神真值行（与 R4316 同一张表）。
+        if any(k in _n for k in ("事业运", "工作运", "学业运",
+                                 "健康运", "转运", "改运", "开运",
+                                 "犯小人", "小人")) \
+                and "小人书" not in _n:
+            try:
+                _ta9l = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _re9l = (_BIRTHDAY_PARTNER_RE if _ta9l
+                         else _BIRTHDAY_FACT_RE)
+                _m9l = next(
+                    (_re9l.match(str(_fp).strip())
+                     for _fp in facts or []
+                     if _re9l.match(str(_fp).strip())),
+                    None)
+                if _m9l:
+                    _yb9l = (bazi_compute(
+                        _dd.year, _dd.month, _dd.day, 12, "男").year
+                        or "  ")
+                    _dmz9l, _ = _bazi_day_ganzhi(
+                        datetime(int(_m9l.group(1)),
+                                 int(_m9l.group(2)),
+                                 int(_m9l.group(3))))
+                    _tg9l = ten_god(_dmz9l[0], _yb9l[0])
+                    _TT9l = {"比肩": "同行者多，互助也分力",
+                             "劫财": "财来财去，守为上",
+                             "食神": "产出顺，宜展示宜享受",
+                             "伤官": "想法多也易顶撞，收着点",
+                             "偏财": "外财流动，宜副业宜社交",
+                             "正财": "实干进账，稳打稳扎",
+                             "七杀": "压力大但出活，扛住就赢",
+                             "正官": "名分正位，宜求稳宜上进",
+                             "偏印": "偏门学问旺，想多做少",
+                             "正印": "贵人帮扶，宜学宜养"}
+                    out.append(
+                        f"今年{'TA' if _ta9l else '你'}的流年十神："
+                        f"{_tg9l}年"
+                        + (f"（{_TT9l.get(_tg9l, '')}）"
+                           if _tg9l in _TT9l else ""))
+            except Exception:
+                pass
+        # R4461b：「我适合什么工作/职业/行业/创业」——日主五行
+        # 老话行当向（与 R4336 日主五行同口径）。
+        if any(k in _n for k in ("适合什么工作", "适合什么职业",
+                                 "适合什么行业", "做什么行业",
+                                 "做什么工作", "适合创业", "适合干啥",
+                                 "适合干什么", "适合什么生意")):
+            try:
+                _ta9w = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _re9w = (_BIRTHDAY_PARTNER_RE if _ta9w
+                         else _BIRTHDAY_FACT_RE)
+                _m9w2 = next(
+                    (_re9w.match(str(_fp).strip())
+                     for _fp in facts or []
+                     if _re9w.match(str(_fp).strip())),
+                    None)
+                if _m9w2:
+                    _dg9c = _bazi_day_ganzhi(
+                        datetime(int(_m9w2.group(1)),
+                                 int(_m9w2.group(2)),
+                                 int(_m9w2.group(3))))[0][0]
+                    _e9c = GAN_ELEM.get(_dg9c, "")
+                    _IND9 = {"金": "金融/机械/五金/珠宝",
+                             "木": "文教/出版/绿植/家居",
+                             "水": "物流/水产/旅游/饮品",
+                             "火": "能源/餐饮/传媒/娱乐",
+                             "土": "地产/建筑/农业/仓储"}
+                    out.append(
+                        f"{'TA' if _ta9w else '你'}的日主：{_dg9c}"
+                        f"（五行属{_e9c}）——老话讲宜"
+                        f"{_IND9.get(_e9c, '')}类行当，当参考")
             except Exception:
                 pass
         # R4321：流月十神——「这个月我怎么样/下个月运势/今年哪个月
@@ -7464,7 +7551,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  # R4456d：财神爷/睡哪头/办公桌朝向
                                  # 变体补键。
                                  "财神", "财神在哪", "财神方位",
-                                 "什么方位", "哪头", "睡哪")):
+                                 "什么方位", "哪头", "睡哪",
+                                 # R4461c：财运族点名也发方位行。
+                                 "财运", "偏财", "正财", "破财",
+                                 "漏财", "守财", "旺财", "发财")):
             try:
                 _dt9 = datetime(_dd.year, _dd.month, _dd.day, 12)
                 _gd9 = huangli_mod.day_ganzhi(_dt9) or ["", ""]
@@ -7498,9 +7588,16 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     out.append(
                         f"{_pfx}贵人方位：{'、'.join(_grd9) or '—'}")
                     _em9 = True
-                if "财神" in _n:
+                if any(k in _n for k in ("财神", "财运", "偏财",
+                                         "正财", "旺财", "发财",
+                                         "破财", "漏财", "守财")):
                     out.append(f"{_pfx}财神方位：{_cai9}")
                     _em9 = True
+                    # R4461d：破财/漏财问句附煞方避忌一句。
+                    if any(k in _n for k in ("破财", "漏财")):
+                        out.append(
+                            f"{_pfx}煞方{_sha9 or '—'}——"
+                            "今天避开这方向动大钱")
                 # 「煞北/煞方」裸词给煞方；带「冲/凶」的问句由黄历
                 # 坐标块出冲煞行（含煞方），不重复。
                 if "煞" in _n and "冲" not in _n and "凶" not in _n:
