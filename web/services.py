@@ -5690,61 +5690,126 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "抽签", "摇签", "观音签", "灵签")):
             try:
                 _qw = []
-                _hwd = (date(_d.year, 10, 25) - _d).days
-                if (_d.month == 10 and _d.day >= 25) or \
-                   (_d.month == 11 and _d.day <= 1):
-                    # R3951：开张日/末日点名——与卡面同档。
-                    _hws = "今天开张" if _d.month == 10 and _d.day == 25 \
-                        else "今晚截止" if _d.month == 11 and _d.day == 1 \
-                        else "明天截止" if _d.month == 10 and _d.day == 31 \
-                        else "今天开着呢"
-                    _qw.append(f"捣蛋签窗：{_hws}"
-                               "（10/25–11/1，只出宜动的签）")
-                elif 1 <= _hwd <= 5:
-                    _qw.append(f"捣蛋签窗："
-                               f"{'明天开' if _hwd == 1 else str(_hwd) + '天后开'}"
-                               "（10/25–11/1）")
-                _tqd = (date(_d.year, 11, 6) - _d).days
-                if _d.month == 11 and 6 <= _d.day <= 11:
-                    _tqs = "今天开张" if _d.day == 6 \
-                        else "今晚截止" if _d.day == 11 \
-                        else "明天截止" if _d.day == 10 else "今天开着呢"
-                    _qw.append(f"桃花签窗：{_tqs}（11/6–11/11）")
-                elif 1 <= _tqd <= 5:
-                    _qw.append(f"桃花签窗："
-                               f"{'明天开' if _tqd == 1 else str(_tqd) + '天后开'}"
-                               "（11/6–11/11）")
-                from guji import lunar as _lm
-                _cwin = []
-                for _yy in (_d.year, _d.year + 1):
-                    _co = _lm.lunar_to_solar(
-                        _yy - 1, 12, _lm.month_days(_yy - 1, 12))
-                    _cc = _lm.lunar_to_solar(_yy, 1, 15)
-                    _cwin.append((_co, _cc))
-                _cin = [w for w in _cwin if w[0] <= _d <= w[1]]
-                if _cin:
-                    # R3961：除夕开张/元宵截止单日点名。
-                    _cys = "除夕开张" if _d == _cin[0][0] \
-                        else "元宵截止" if _d == _cin[0][1] \
-                        else "明天截止" if _d == _cin[0][1] - timedelta(days=1) \
-                        else "今天开着呢"
-                    _qw.append(
-                        f"新春福签窗：{_cys}"
-                        f"（{_cin[0][0].month}月{_cin[0][0].day}日–"
-                        f"{_cin[0][1].month}月{_cin[0][1].day}日，"
-                        f"除夕开到元宵）")
-                else:
-                    _cnext = [w for w in _cwin if w[0] > _d]
-                    if _cnext:
-                        _cd5 = (_cnext[0][0] - _d).days
-                        if 1 <= _cd5 <= 5:
+                # R4511：点名签只答点名窗——此前一窗开张时全窗齐发，
+                # 「桃花签什么时候开」撞上捣蛋签开张日会答错窗。
+                _named9 = next(
+                    (k for k in ("捣蛋签", "万圣签", "桃花签",
+                                 "福签", "新春签", "新年签")
+                     if k in _n), None)
+                if _named9 in ("捣蛋签", "万圣签"):
+                    if (_d.month == 10 and _d.day >= 25) or \
+                       (_d.month == 11 and _d.day <= 1):
+                        _hs9 = "今天开张" if _d.month == 10 \
+                            and _d.day == 25 \
+                            else "今晚截止" if _d.month == 11 \
+                            and _d.day == 1 \
+                            else "明天截止" if _d.month == 10 \
+                            and _d.day == 31 else "今天开着呢"
+                        _qw.append(f"{_named9}窗：{_hs9}"
+                                   "（10/25–11/1，只出宜动的签）")
+                    else:
+                        _hd9 = date(_d.year, 10, 25)
+                        if _hd9 <= _d:
+                            _hd9 = date(_d.year + 1, 10, 25)
+                        _qw.append(
+                            f"{_named9}：10月25日开窗"
+                            f"（还有{(_hd9 - _d).days}天）")
+                elif _named9 == "桃花签":
+                    if _d.month == 11 and 6 <= _d.day <= 11:
+                        _ts9 = "今天开张" if _d.day == 6 \
+                            else "今晚截止" if _d.day == 11 \
+                            else "明天截止" if _d.day == 10 \
+                            else "今天开着呢"
+                        _qw.append(f"桃花签窗：{_ts9}（11/6–11/11）")
+                    else:
+                        _td9 = date(_d.year, 11, 6)
+                        if _td9 <= _d:
+                            _td9 = date(_d.year + 1, 11, 6)
+                        _qw.append(
+                            f"桃花签：11月6日开窗"
+                            f"（还有{(_td9 - _d).days}天）")
+                elif _named9 in ("福签", "新春签", "新年签"):
+                    from guji import lunar as _lm9
+                    _cw9 = []
+                    for _yy9 in (_d.year, _d.year + 1):
+                        _cw9.append((
+                            _lm9.lunar_to_solar(
+                                _yy9 - 1, 12,
+                                _lm9.month_days(_yy9 - 1, 12)),
+                            _lm9.lunar_to_solar(_yy9, 1, 15)))
+                    _ci9 = [w for w in _cw9 if w[0] <= _d <= w[1]]
+                    if _ci9:
+                        _cs9 = "除夕开张" if _d == _ci9[0][0] \
+                            else "元宵截止" if _d == _ci9[0][1] \
+                            else "今天开着呢"
+                        _qw.append(
+                            f"新春福签窗：{_cs9}"
+                            f"（{_ci9[0][0].month}月"
+                            f"{_ci9[0][0].day}日–{_ci9[0][1].month}"
+                            f"月{_ci9[0][1].day}日，除夕开到元宵）")
+                    else:
+                        _cnx9 = [w for w in _cw9 if w[0] > _d]
+                        if _cnx9:
                             _qw.append(
-                                f"新春福签窗："
-                                f"{'明天开' if _cd5 == 1 else str(_cd5) + '天后开'}"
-                                f"（{_cnext[0][0].month}月"
-                                f"{_cnext[0][0].day}日–"
-                                f"{_cnext[0][1].month}月"
-                                f"{_cnext[0][1].day}日）")
+                                f"新春福签窗：{_cnx9[0][0].month}月"
+                                f"{_cnx9[0][0].day}日除夕开"
+                                f"（还有{(_cnx9[0][0] - _d).days}天）")
+                elif not _named9:
+                    _hwd = (date(_d.year, 10, 25) - _d).days
+                    if (_d.month == 10 and _d.day >= 25) or \
+                   (_d.month == 11 and _d.day <= 1):
+                        # R3951：开张日/末日点名——与卡面同档。
+                        _hws = "今天开张" if _d.month == 10 and _d.day == 25 \
+                            else "今晚截止" if _d.month == 11 and _d.day == 1 \
+                            else "明天截止" if _d.month == 10 and _d.day == 31 \
+                            else "今天开着呢"
+                        _qw.append(f"捣蛋签窗：{_hws}"
+                                   "（10/25–11/1，只出宜动的签）")
+                    elif 1 <= _hwd <= 5:
+                        _qw.append(f"捣蛋签窗："
+                                   f"{'明天开' if _hwd == 1 else str(_hwd) + '天后开'}"
+                                   "（10/25–11/1）")
+                    _tqd = (date(_d.year, 11, 6) - _d).days
+                    if _d.month == 11 and 6 <= _d.day <= 11:
+                        _tqs = "今天开张" if _d.day == 6 \
+                            else "今晚截止" if _d.day == 11 \
+                            else "明天截止" if _d.day == 10 else "今天开着呢"
+                        _qw.append(f"桃花签窗：{_tqs}（11/6–11/11）")
+                    elif 1 <= _tqd <= 5:
+                        _qw.append(f"桃花签窗："
+                                   f"{'明天开' if _tqd == 1 else str(_tqd) + '天后开'}"
+                                   "（11/6–11/11）")
+                    from guji import lunar as _lm
+                    _cwin = []
+                    for _yy in (_d.year, _d.year + 1):
+                        _co = _lm.lunar_to_solar(
+                            _yy - 1, 12, _lm.month_days(_yy - 1, 12))
+                        _cc = _lm.lunar_to_solar(_yy, 1, 15)
+                        _cwin.append((_co, _cc))
+                    _cin = [w for w in _cwin if w[0] <= _d <= w[1]]
+                    if _cin:
+                        # R3961：除夕开张/元宵截止单日点名。
+                        _cys = "除夕开张" if _d == _cin[0][0] \
+                            else "元宵截止" if _d == _cin[0][1] \
+                            else "明天截止" if _d == _cin[0][1] - timedelta(days=1) \
+                            else "今天开着呢"
+                        _qw.append(
+                            f"新春福签窗：{_cys}"
+                            f"（{_cin[0][0].month}月{_cin[0][0].day}日–"
+                            f"{_cin[0][1].month}月{_cin[0][1].day}日，"
+                            f"除夕开到元宵）")
+                    else:
+                        _cnext = [w for w in _cwin if w[0] > _d]
+                        if _cnext:
+                            _cd5 = (_cnext[0][0] - _d).days
+                            if 1 <= _cd5 <= 5:
+                                _qw.append(
+                                    f"新春福签窗："
+                                    f"{'明天开' if _cd5 == 1 else str(_cd5) + '天后开'}"
+                                    f"（{_cnext[0][0].month}月"
+                                    f"{_cnext[0][0].day}日–"
+                                    f"{_cnext[0][1].month}月"
+                                    f"{_cnext[0][1].day}日）")
                 # R4346b：远窗反查——离窗超 5 天问「X什么时候开」
                 # 原静默；点名窗给固定窗期+倒数，没点名给最近一窗。
                 if not _qw:
