@@ -4799,6 +4799,76 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     out.append(f"{_pfx}节日：{_nopf}没排上节日名")
             except Exception:
                 pass
+        # R4061：「X什么时候/几号」反查＋「今年还剩几天」——节气走
+        # term_time 天文表（与节气横幅同源），节日走公历/农历双表，
+        # 除夕走腊月末日；已过自动取明年。
+        if "今年还剩" in _n or ("今年" in _n and "几天" in _n):
+            try:
+                out.append(
+                    f"今年还剩{(date(_d.year, 12, 31) - _d).days}天")
+            except Exception:
+                pass
+        if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天")):
+            try:
+                from guji.bazi import TERM_LONGITUDE, term_time
+                # 问「什么时候」语境无歧义（清明这类双节也按节气答日
+                # 期），直接全表匹配，不走 _SOLAR_TERMS 白名单。
+                _tname = next(
+                    (t for t in TERM_LONGITUDE if t in _n), "")
+                _nd = None
+                _v = ""
+                if _tname:
+                    for _yy2 in (_d.year, _d.year + 1):
+                        _cand = (term_time(_yy2, _tname)
+                                 + timedelta(hours=8)).date()
+                        if _cand >= _d:
+                            _nd = _cand
+                            _v = _tname
+                            break
+                else:
+                    for (_mm2, _dd2), _fv in _FEST_SOLAR.items():
+                        if any((p2 in _n or
+                                (p2.endswith("节") and p2[:-1] in _n))
+                               for p2 in _fv.split("·")):
+                            _cand = date(_d.year, _mm2, _dd2)
+                            if _cand < _d:
+                                _cand = date(_d.year + 1, _mm2, _dd2)
+                            _nd = _cand
+                            _v = _fv
+                            break
+                    if _nd is None and "除夕" in _n:
+                        from guji import lunar as _l3
+                        for _yy2 in (_d.year, _d.year + 1):
+                            _cand = _l3.lunar_to_solar(
+                                _yy2 - 1, 12,
+                                _l3.month_days(_yy2 - 1, 12))
+                            if _cand >= _d:
+                                _nd = _cand
+                                _v = "除夕"
+                                break
+                    if _nd is None:
+                        from guji import lunar as _l4
+                        for (_lm2, _ld2), _fv in _FEST_LUNAR.items():
+                            if any((p2 in _n or
+                                    (p2.endswith("节") and p2[:-1] in _n))
+                                   for p2 in _fv.split("·")):
+                                for _yy2 in (_d.year, _d.year + 1):
+                                    _cand = _l4.lunar_to_solar(
+                                        _yy2, _lm2, _ld2)
+                                    if _cand >= _d:
+                                        _nd = _cand
+                                        _v = _fv
+                                        break
+                                if _nd is not None:
+                                    break
+                if _nd is not None:
+                    _dl3 = (_nd - _d).days
+                    out.append(
+                        f"{_v}：{_nd.month}月{_nd.day}日"
+                        + ("（就是今天）" if _dl3 == 0
+                           else f"（还有{_dl3}天）"))
+            except Exception:
+                pass
         # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
         # 有今日值宫+点名星座的那句（daily_horoscope 与星座卡
         # 同源，不再让她对着十二星座名干想）。
