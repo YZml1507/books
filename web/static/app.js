@@ -26798,7 +26798,7 @@ function baziPersonaCard(j) {
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
-  var _SDATA_RE = /^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed|histUnlocked)$|^shareBy:|^lastResult:/;
+  var _SDATA_RE = /^(chatSessionId|chatTranscript|trAskedToday|hhInvite|shareBy|chatTopicFactDone|chatCardsFactDone|chatBootId|ly:lastq|ly:lastcast|chatClosed|histUnlocked)$|^wishReplyFrom$|^shareBy:|^lastResult:/;
   function phBind() {
     const card = document.querySelector('.func-card[data-view="history"]');
     if (card) card.addEventListener('click', function () { setTimeout(loadPaipanHistory, 0); });
