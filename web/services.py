@@ -9893,7 +9893,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                  "寡妇年": "年内无立春的老话叫法——婚期看人不看年",
                  "无春年": "年内无立春——老话叫盲年，婚期看人不看年",
                  "盲年": "年内无立春老话叫盲年——婚期看人不看年"}
-        _g9h = [k for k in _glo9 if k in _n]
+        # R4801a：白话词撞物名排除——「铁观音」是茶不是菩萨。
+        _GLO_EXC = {"观音": ("铁观音", "观音山", "观音桥"),
+                    "财神": ("财神到",)}
+        _g9h = [k for k in _glo9 if k in _n
+                and not any(e in _n for e in _GLO_EXC.get(k, ()))]
         if _g9h:
             out.append("黄历行话白话："
                        + "，".join(f"{_k}={_glo9[_k]}" for _k in _g9h))
