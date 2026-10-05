@@ -6465,6 +6465,74 @@ async function loadDaily() {
           }
         }
       } catch (eTQ) {}
+      /* R3681：新春福签钩——与捣蛋/桃花同套窗机制（除夕—元宵，
+       * 公历窗查 _QIAN_CNY_WIN 表）：开窗前 1-5 天倒计时；窗内
+       * 未抽提醒+连抽计数（cny 标限本窗区间）。 */
+      try {
+        var _cyNow = new Date();
+        var _cyT0 = new Date(_cyNow.getFullYear(), _cyNow.getMonth(),
+                             _cyNow.getDate());
+        var _cyOpen = null, _cyY = 0;
+        if (typeof _QIAN_CNY_WIN !== 'undefined') {
+          for (var _cyk in _QIAN_CNY_WIN) {
+            if (!_QIAN_CNY_WIN.hasOwnProperty(_cyk)) continue;
+            var _cyr = _QIAN_CNY_WIN[_cyk];
+            var _cyd = new Date(+_cyk,
+              Math.floor(_cyr[0] / 100) - 1, _cyr[0] % 100);
+            if (_cyd > _cyT0 && (!_cyOpen || _cyd < _cyOpen)) {
+              _cyOpen = _cyd; _cyY = +_cyk;
+            }
+          }
+        }
+        var _cyDays = _cyOpen
+          ? Math.round((_cyOpen - _cyT0) / 86400000) : 99;
+        if (_cyDays >= 1 && _cyDays <= 5) {
+          _pc2.push('<span class="e-week-low">🧧 新春福签 ' +
+            _cyDays + ' 天后开张——过年讨彩头，抽支吉签</span>');
+        } else if (typeof _qianCnyFest === 'function' &&
+                   _qianCnyFest()) {
+          var _cyR0 = null;
+          if (typeof _QIAN_CNY_WIN !== 'undefined') {
+            for (var _cyk2 in _QIAN_CNY_WIN) {
+              if (!_QIAN_CNY_WIN.hasOwnProperty(_cyk2)) continue;
+              var _cyr2 = _QIAN_CNY_WIN[_cyk2];
+              var _cyO2 = new Date(+_cyk2,
+                Math.floor(_cyr2[0] / 100) - 1, _cyr2[0] % 100);
+              var _cyC2 = new Date(+_cyk2,
+                Math.floor(_cyr2[1] / 100) - 1, _cyr2[1] % 100);
+              if (_cyO2 <= _cyT0 && _cyT0 <= _cyC2) _cyR0 = _cyr2;
+            }
+          }
+          var _cyDk = _qianCnyIdxOf(_winAnchorIso(function (o4) {
+            var r4 = _QIAN_CNY_WIN[o4.y];
+            var md4 = o4.m * 100 + o4.d;
+            return !!(r4 && md4 >= r4[0] && md4 <= r4[1]);
+          }));
+          if (!_cyDk) {
+            _pc2.push('<span class="e-week-low">🧧 新春福签开着呢' +
+              '——去签页抽今天的福签</span>');
+          } else if (_cyR0) {
+            var _cyN = 0;
+            try {
+              var _cyLo = String(Math.floor(_cyR0[0] / 100)).padStart(2, '0') +
+                '-' + String(_cyR0[0] % 100).padStart(2, '0');
+              var _cyHi = String(Math.floor(_cyR0[1] / 100)).padStart(2, '0') +
+                '-' + String(_cyR0[1] % 100).padStart(2, '0');
+              var _cyYr = String(_cyNow.getFullYear());
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.cny &&
+                      x.d >= _cyYr + '-' + _cyLo &&
+                      x.d <= _cyYr + '-' + _cyHi) _cyN++;
+                });
+            } catch (eCN) {}
+            if (_cyN >= 2) {
+              _pc2.push('<span class="e-week-low">🧧 新春福签连抽 ' +
+                _cyN + ' 天了——窗开到元宵</span>');
+            }
+          }
+        }
+      } catch (eCY) {}
       if (_mine) {
         _pc2.push('<span class="daily-mine ' +
           esc(_mine.tone || 'flat') + '">' +
