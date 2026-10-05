@@ -5053,6 +5053,26 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                        + (f"（五行属{wx}）" if wx else ""))
             if sign:
                 out.append(f"{_who}的太阳星座：{sign}")
+            # R4066：生日倒数事实——问「我生日还有几天」手里有真值；
+            # 2/29 非闰年按 3/1 过。
+            try:
+                _t4 = _now_cn().date()
+                _nx = None
+                for _yy4 in (_t4.year, _t4.year + 1):
+                    try:
+                        _c4 = date(_yy4, mo, d)
+                    except ValueError:
+                        _c4 = date(_yy4, 3, 1)
+                    if _c4 >= _t4:
+                        _nx = _c4
+                        break
+                if _nx is not None:
+                    _dleft = (_nx - _t4).days
+                    out.append(f"{_who}生日：{_nx.month}月{_nx.day}日"
+                               + ("（就是今天）" if _dleft == 0
+                                  else f"（还有{_dleft}天）"))
+            except Exception:
+                pass
         except (ValueError, TypeError):
             continue
     return out

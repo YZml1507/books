@@ -4080,8 +4080,11 @@ def _run_inner() -> list[str]:
     _pft = " ".join(_pf)
     assert "日主" in _pft and "太阳星座" in _pft \
         and "五行属" in _pft, ("chat.profile_facts", _pft[:200])
-    assert _pf[0] == "她叫小满" and _pf[4] == "桃花支：卯" \
-        and len(_pf) == 5, _pf
+    assert _pf[0] == "她叫小满" and _pf[5] == "桃花支：卯" \
+        and len(_pf) == 6, _pf
+    # R4066：档案生日倒数事实钉扎——「她生日：M月D日（还有N天）」。
+    assert any(f.startswith("她生日：") and "还有" in f and "天" in f
+               for f in _pf), _pf
     _pf2 = _svc.chat_profile_facts(["生日：2003-99-99", "x"])
     assert _pf2 == ["生日：2003-99-99", "x"], _pf2
     _pf3 = _svc.chat_profile_facts([])
