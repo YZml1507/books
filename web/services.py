@@ -2402,6 +2402,16 @@ def _next_named_day(msg: str, today: date):
             if cand < today:
                 cand = date(today.year + 1, mm2, dd2)
             return cand, fv
+    # 月第 N 周节（感恩/母亲/父亲/黑五）——_festival_for 同表，
+    # 「黑五」别名按显示名判。
+    for _hn, (_hm3, _wd3, _nth3) in _HOLIDAY_NTH.items():
+        if _hn in msg or any(
+                _al2 in msg and _disp2 == _hn
+                for _al2, _disp2 in _HOLIDAY_QUERY_ALIAS.items()):
+            cand = _nth_weekday(today.year, _hm3, _wd3, _nth3)
+            if cand < today:
+                cand = _nth_weekday(today.year + 1, _hm3, _wd3, _nth3)
+            return cand, _hn
     if "除夕" in msg:
         from guji import lunar as _lx
         for yy in (today.year, today.year + 1):
