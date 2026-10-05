@@ -4834,6 +4834,26 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 if _mo.get("label"):
                     out.append(f"{_pfx}月相：{_mo['label']}"
                                f"（{_mo.get('line', '')}）")
+                # R4111：「下次满月/新月什么时候」——只报今日相位
+                # 不答日期的缺口补齐。仍走农历口径（初一/十五），
+                # 与 _week_sky 许愿/复盘事件同表。
+                if any(k in _n for k in ("什么时候", "几号", "哪天",
+                                         "下次", "下一次", "还有几天")):
+                    _want = ("满月" if ("满月" in _n or "月圆" in _n)
+                             else ("新月" if ("新月" in _n or "月缺" in _n)
+                                   else ""))
+                    if _want:
+                        _wlbl = {"满月": "满月复盘", "新月": "新月许愿"}[_want]
+                        if _mo.get("label") == _wlbl:
+                            out.append(f"下次{_want}：就是今天")
+                        else:
+                            for _i5 in range(1, 40):
+                                _md5 = _d + timedelta(days=_i5)
+                                if _moon_for(_md5).get("label") == _wlbl:
+                                    out.append(
+                                        f"下次{_want}：{_md5.month}月"
+                                        f"{_md5.day}日（还有{_i5}天）")
+                                    break
             except Exception:
                 pass
         # R3886：当日节日名活事实——问「今天什么节/X节快乐」手里
@@ -4878,7 +4898,12 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 # R4101：节日/节气名都没命中时，「星期几/周几/几号/什么
                 # 日子」要的是日期本身——按日偏移链的 _dd/_pfx 回声。
                 # （「生日几号」留给 profile_facts 的生日倒数答，别抢话。）
-                if _nd is None and "生日" not in _n and any(
+                # R4111：月亮词问「几号」由月相块答「下次新月/满月」，
+                # 日期回声别抢话。
+                if _nd is None and "生日" not in _n and not any(
+                        k in _n for k in
+                        ("月亮", "满月", "新月", "月圆", "月缺", "月相")) \
+                        and any(
                         k in _n for k in
                         ("星期几", "周几", "几号", "什么日子")):
                     _wdn2 = "一二三四五六日"
