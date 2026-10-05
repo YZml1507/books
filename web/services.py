@@ -5220,6 +5220,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # 与黄历卡同源（huangli() 单日坐标），命名日迁移同享。
         if any(k in _n for k in ("值神", "吉神", "凶煞", "黄道", "黑道",
                                  "冲什么", "冲煞", "煞哪", "冲哪个",
+                                 "冲我", "克我", "旺我", "跟我冲",
+                                 "跟我属相", "冲咱",
                                  "岁破", "日破", "月破", "四离", "四绝",
                                  "杨公", "受死", "彭祖", "百忌", "建除",
                                  "除日", "危日", "收日", "开日", "闭日",
@@ -5235,10 +5237,45 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"（{'黑道日' if _hl9.get('zhishen_ji') else '黄道日'}）")
                 _cs9 = _hl9.get("chongsha") or {}
                 if _cs9.get("chong_animal") and any(
-                        k in _n for k in ("冲", "煞")):
+                        k in _n for k in ("冲", "煞", "克我", "旺我")):
                     out.append(
                         f"{_pfx}冲煞：冲{_cs9['chong_animal']}"
                         f"（{_cs9['chong']}），煞{_cs9.get('sha_fang', '')}方")
+                    # R4246c：「冲我属相吗/克我吗/旺我吗」个人判定——
+                    # 存了生日的人直接比今日冲煞与六合，给结论不绕。
+                    if any(k in _n for k in (
+                            "冲我", "克我", "旺我", "跟我冲", "跟我合",
+                            "合不合我", "冲咱", "跟我属相", "对我")):
+                        _SX9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                        _m9 = next(
+                            (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                             for _fp in facts or []
+                             if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                            None)
+                        if _m9:
+                            _uz9 = _SX9[(int(_m9.group(1)) - 4) % 12]
+                            _czh9 = (_hl9.get("chongsha") or {}).get(
+                                "chong", "")
+                            _dz9c = (huangli_mod.day_ganzhi(datetime(
+                                _dd.year, _dd.month, _dd.day, 12)
+                            ) or ["", ""])[1]
+                            _lh9c = LIU_HE.get(_dz9c, "")
+                            _Z2A9 = {"子": "鼠", "丑": "牛", "寅": "虎",
+                                     "卯": "兔", "辰": "龙", "巳": "蛇",
+                                     "午": "马", "未": "羊", "申": "猴",
+                                     "酉": "鸡", "戌": "狗", "亥": "猪"}
+                            if _uz9 == _cs9.get("chong_animal"):
+                                out.append(
+                                    f"对你：属{_uz9}——今天冲的就是"
+                                    f"你的属相（{_czh9}），诸事宜缓")
+                            elif _Z2A9.get(_lh9c) == _uz9:
+                                out.append(
+                                    f"对你：属{_uz9}——今天日支跟你是"
+                                    "六合，反而旺你")
+                            else:
+                                out.append(
+                                    f"对你：属{_uz9}——今天冲的是"
+                                    f"属{_cs9['chong_animal']}，不冲你")
                 _pz9 = _hl9.get("pengzu") or {}
                 if _pz9.get("gan_text") and any(
                         k in _n for k in ("彭祖", "百忌")):
@@ -5339,8 +5376,14 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             except Exception:
                 pass
         # R4191：日干支/日干五行活事实——与黄历卡 ganzhi_day_cn 同源。
+        # R4246b：「我属什么/我五行缺什么」是问人不问日——人称词在句
+        # 就跳过（profile_facts 档已给生肖/日主五行），别拿日干支充数。
         if any(k in _n for k in ("五行", "干支", "属什么", "纳音",
-                                 "天干地支", "什么日")):
+                                 "天干地支", "什么日")) \
+                and not any(k in _n for k in (
+                    "我属", "我什么命", "我五行", "TA属", "ta属", "他属",
+                    "她属", "俺属", "对象属", "老公属", "老婆属",
+                    "男朋友属", "女朋友属", "TA的五行", "TA什么命")):
             try:
                 _gd9 = huangli_mod.day_ganzhi(
                     datetime(_dd.year, _dd.month, _dd.day, 12))
@@ -5894,6 +5937,21 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                        + (f"（五行属{wx}）" if wx else ""))
             if sign:
                 out.append(f"{_who}的太阳星座：{sign}")
+            # R4246：生肖+生日星期+周岁同档——「我属什么/我多大/
+            # 我生日星期几」都是手里现算的真值，不再靠模型脑补。
+            try:
+                _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[(y - 4) % 12]
+                out.append(f"{_who}的生肖：属{_sx9}")
+                _bd9 = date(y, mo, d)
+                out.append(
+                    f"{_who}生日那天：{_bd9.year}年{mo}月{d}日 "
+                    f"星期{'一二三四五六日'[_bd9.weekday()]}")
+                _t9 = _now_cn().date()
+                _ag9 = _t9.year - y - (
+                    (_t9.month, _t9.day) < (mo, d))
+                out.append(f"{_who}现在：{_ag9}周岁")
+            except Exception:
+                pass
             # R4066：生日倒数事实——问「我生日还有几天」手里有真值；
             # 2/29 非闰年按 3/1 过。
             try:
