@@ -4808,7 +4808,8 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     f"今年还剩{(date(_d.year, 12, 31) - _d).days}天")
             except Exception:
                 pass
-        if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天")):
+        if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天",
+                                 "还有几天", "还有多少天")):
             try:
                 from guji.bazi import TERM_LONGITUDE, term_time
                 # 问「什么时候」语境无歧义（清明这类双节也按节气答日
@@ -4826,16 +4827,29 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                             _v = _tname
                             break
                 else:
-                    for (_mm2, _dd2), _fv in _FEST_SOLAR.items():
-                        if any((p2 in _n or
-                                (p2.endswith("节") and p2[:-1] in _n))
-                               for p2 in _fv.split("·")):
-                            _cand = date(_d.year, _mm2, _dd2)
-                            if _cand < _d:
-                                _cand = date(_d.year + 1, _mm2, _dd2)
-                            _nd = _cand
-                            _v = _fv
-                            break
+                    # R4096：「跨年/新年」是口语词不在节日表——跨年指
+                    # 12/31 夜，新年指 1/1 元旦，各答各的下一发生日。
+                    if "跨年" in _n:
+                        _nd = date(_d.year, 12, 31)
+                        if _nd < _d:
+                            _nd = date(_d.year + 1, 12, 31)
+                        _v = "跨年夜"
+                    elif "新年" in _n:
+                        _nd = date(_d.year, 1, 1)
+                        if _nd < _d:
+                            _nd = date(_d.year + 1, 1, 1)
+                        _v = "新年（元旦）"
+                    if _nd is None:
+                        for (_mm2, _dd2), _fv in _FEST_SOLAR.items():
+                            if any((p2 in _n or
+                                    (p2.endswith("节") and p2[:-1] in _n))
+                                   for p2 in _fv.split("·")):
+                                _cand = date(_d.year, _mm2, _dd2)
+                                if _cand < _d:
+                                    _cand = date(_d.year + 1, _mm2, _dd2)
+                                _nd = _cand
+                                _v = _fv
+                                break
                     if _nd is None and "除夕" in _n:
                         from guji import lunar as _l3
                         for _yy2 in (_d.year, _d.year + 1):
