@@ -15820,7 +15820,17 @@ function initDivination() {
   /* R3264（R32）：今日仪式——点击即本地记录，不打卡不断签。 */
   on('dailyRitual', function () {
     try {
-      localStorage.setItem('ritual:' + todayIso(), '1');
+      var _rtK = 'ritual:' + todayIso();
+      if (!localStorage.getItem(_rtK)) {
+        /* R3801：ritual: 同属 150 天 GC 族——年报「完成仪式」
+         * 年级口径封顶 ~150，rtY:YYYY 永久汇总。 */
+        try {
+          var _rtY = 'rtY:' + todayIso().slice(0, 4);
+          localStorage.setItem(_rtY,
+            String((+localStorage.getItem(_rtY) || 0) + 1));
+        } catch (eRT) {}
+      }
+      localStorage.setItem(_rtK, '1');
     } catch (eR) {}
     var _dr2 = el('dailyRitual');
     if (_dr2) {
@@ -20516,6 +20526,8 @@ function _yearStats(dateKey) {
     if (_ckB > out.streakBest) out.streakBest = _ckB;
     var _udR = +(localStorage.getItem('udY:' + yy) || 0);
     if (_udR > out.visitDays) out.visitDays = _udR;
+    var _rtR = +(localStorage.getItem('rtY:' + yy) || 0);
+    if (_rtR > out.ritualCount) out.ritualCount = _rtR;
     var _jrR = +(localStorage.getItem('jrY:' + yy) || 0);
     if (_jrR > out.journalCount) out.journalCount = _jrR;
     var _mdR = JSON.parse(localStorage.getItem('mdY:' + yy) || 'null');
@@ -27332,7 +27344,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|visit:first$|udY:|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$|st:cur$|st:last$|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|visit:first$|udY:|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$|st:cur$|st:last$|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:|rtY:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -27688,6 +27700,7 @@ function baziPersonaCard(j) {
                 /* R3756：连签/年汇总/年信旗同收（足迹件）。 */
                 k === 'st:cur' || k === 'st:last' ||
                 k.indexOf('udY:') === 0 ||
+                k.indexOf('rtY:') === 0 ||
                 k.indexOf('ckY:') === 0 || k.indexOf('ckBest:') === 0 ||
                 k.indexOf('mdY:') === 0 || k.indexOf('jrY:') === 0 ||
                 k.indexOf('yearlyLetter:') === 0 ||
