@@ -4656,6 +4656,20 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 out.extend(_tw)
             except Exception:
                 pass
+        # R3876：跨年封愿实时态——12/25–31 封口窗（前端
+        # _wishNySealWin 同段），问「跨年许愿/封愿」时给活态。
+        if any(k in _n for k in ("跨年许愿", "跨年愿", "封愿",
+                                 "新年愿望", "明年的愿", "新年愿望瓶")):
+            try:
+                _nyd = (date(_d.year, 12, 25) - _d).days
+                if _d.month == 12 and 25 <= _d.day <= 31:
+                    out.append("跨年封愿：今天开着呢"
+                               "（12/25–12/31，封了元旦才开）")
+                elif 1 <= _nyd <= 5:
+                    out.append(f"跨年封愿：{_nyd}天后开"
+                               "（12/25–12/31）")
+            except Exception:
+                pass
     except Exception:
         pass
     return out
