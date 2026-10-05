@@ -707,6 +707,22 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
  * 深档换深底浅字虚线。 */
 html[data-theme="dark"] .muyu-global{background:#352E33;
   color:var(--text); border-color:rgba(173,158,140,.45);}
+/* R4442（深档补丁二批）：纸面族组件浅底保留，但 --text/--muted/
+ * --primary-ink 在深档反白成浅字——浅底浅字=看不见。纸面锁深字
+ * 与纸面灰字，dm-intro/dm-sym-worry 浅衬锁暗紫。 */
+html[data-theme="dark"] .ansb-q,
+html[data-theme="dark"] .ansb-answer,
+html[data-theme="dark"] .ansb-ha,
+html[data-theme="dark"] .ansb-crisis{color:#3E3428;}
+html[data-theme="dark"] .ansb-book-s,
+html[data-theme="dark"] .ansb-note,
+html[data-theme="dark"] .ansb-bookmark,
+html[data-theme="dark"] .ansb-htitle,
+html[data-theme="dark"] .ansb-hd,
+html[data-theme="dark"] .ansb-hq{color:#7F6C57;}
+html[data-theme="dark"] .dm-intro p,
+html[data-theme="dark"] .dm-sym-worry{color:#5A4A6E;}
+html[data-theme="dark"] .ansb-rk{color:#8A5FB8;}
 /* R3264（R40）：久归深拥横幅 */
 .return-banner{display:flex; align-items:center; justify-content:center;
   gap:10px; padding:10px 16px; background:var(--card); color:var(--text);
