@@ -18196,9 +18196,24 @@ if (document.readyState === 'loading') {
       }
       /* R3573：对擂/递好运落地欢迎条挂 CTA——别只口播「打个卡
        * 接招」，直挂按钮滚到打卡区（受邀新客少一步）。 */
-      if (_sv2 === 'home' && !bar.querySelector('.welcome-cta')) {
+      if ((_sv2 === 'home' || _sv2 === 'monthrec' || _sv2 === 'yearrec')
+          && !bar.querySelector('.welcome-cta')) {
         var _q3 = new URLSearchParams(location.search);
-        if (_q3.get('duel') || _q3.get('hug') || _q3.get('wish')) {
+        /* R3777：复盘海报落地也挂 CTA——受邀者看完「你的年记
+         * 也攒一份」要有下一步（攒记从打卡起）。 */
+        if (_sv2 === 'monthrec' || _sv2 === 'yearrec') {
+          var _wcta4 = document.createElement('button');
+          _wcta4.type = 'button';
+          _wcta4.className = 'welcome-cta';
+          _wcta4.textContent = '📝 去打卡攒小记';
+          _wcta4.addEventListener('click', function () {
+            var _ck2 = el('dailyCard');
+            if (_ck2 && _ck2.scrollIntoView) {
+              _ck2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+          bar.insertBefore(_wcta4, bar.querySelector('.welcome-close'));
+        } else if (_q3.get('duel') || _q3.get('hug') || _q3.get('wish')) {
           var _wcta3 = document.createElement('button');
           _wcta3.type = 'button';
           _wcta3.className = 'welcome-cta';
@@ -18207,7 +18222,7 @@ if (document.readyState === 'loading') {
             '🌑 去丢个愿望' : _q3.get('wish') ?
             '🌕 去丢个愿望' : '🤗 去打卡收下好运';
           _wcta3.addEventListener('click', function () {
-            var _ck = el('checkin');
+            var _ck = el('dailyCard');
             if (_ck && _ck.scrollIntoView) {
               _ck.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
