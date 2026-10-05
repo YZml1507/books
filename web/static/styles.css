@@ -730,6 +730,15 @@ html[data-theme="dark"] .toast-error{background:#3A2E2B;}
  * 通用 input 深档规则，聊天小记输入框白底浅字。 */
 html[data-theme="dark"] #journalInput{background:#352E33;
   color:var(--text); border-color:#4E4348;}
+/* R4445：cross-dir 方向徽标硬编 #5A4A8A 深紫+10% 紫底——深卡上
+ * ≈2:1 看不见字，提亮一档。 */
+html[data-theme="dark"] .cross-dir{color:#B9A8E8;
+  background:rgba(122,107,168,.22); border-color:rgba(160,140,220,.4);}
+/* R4445b：cite-block 标题深青 #1F6F68 与 mb-del 悬停深红 #a0503c——
+ * 同档漏网，各提亮到已立深档同族色。 */
+html[data-theme="dark"] .cite-block h4{color:#9AD6CE;}
+html[data-theme="dark"] .mb-act.mb-del:hover{color:#E8A288;
+  background:rgba(216,120,102,.18);}
 /* R3264（R40）：久归深拥横幅 */
 .return-banner{display:flex; align-items:center; justify-content:center;
   gap:10px; padding:10px 16px; background:var(--card); color:var(--text);

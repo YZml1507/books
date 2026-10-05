@@ -21506,3 +21506,4 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R4442（深档补丁二批，同直报类）：纸面族组件浅底保留但文字变量反白——`.ansb-q/.ansb-answer/.ansb-ha/.ansb-crisis` 的 `var(--text,#3e3428)` 在深档=#F0E7DC 浅字叠浅纸=看不见，锁 #3E3428；`.ansb-book-s/.ansb-note/.ansb-bookmark/.ansb-htitle/.ansb-hd/.ansb-hq` 的 `--muted` 锁纸面灰 #7F6C57；`.dm-intro p/.dm-sym-worry` 的 `--primary-ink` 锁暗紫 #5A4A6E；`.ansb-rk` 锁 #8A5FB8。烟测 126 例全绿。
 - R4443：`.install-howto-x` 关闭钮 32→var(--tap) 44px 触控下限。
 - R4444/R4444b：深档补丁三批——`.toast-error` 浅粉底补 #3A2E2B（错误 toast 是主错误通道，深档白字浅底=不可读）；`#journalInput` ID 白底压过通用 input 深档规则，锁深底浅字。
+- R4445/R4445b：深档补丁四批——`.cross-dir` 方向徽标深紫字提亮 #B9A8E8；`.cite-block h4` 深青提亮 #9AD6CE；`.mb-del` 悬停深红提亮 #E8A288。深档低对比清查基本扫净（白底族/浅衬族/硬编深色字三面都过）。
