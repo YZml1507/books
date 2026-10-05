@@ -20643,3 +20643,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3811 裂变域十七轮：weekletter/moon/monthrec 老客 toast
   通道实测——三链受邀文案全出（新客 bar 前批已验）。
 - R3812-15：口吻四十一审/移动端十八审/数据面三十轮/收尾，全绿。
+
+## R3816-20（窗宣覆盖率修复 + 审计轮转）
+
+- **R3816 真修（覆盖率缺口）**：三个季节签窗的窗宣行（倒计时/未抽提醒/连抽计数）原只活在 `dailyPersonal` 个性块——没存盘的用户永远看不到宣导（窗本身人人可抽）。抽 `_qianWinHook()` 全局 helper 复用同一串逻辑；新增 `dailyQianWin` 公共行，仅在 personal 缺席时挂（daily-mine-block 自立块，不占 +N 收纳）。双态实测：无盘用户 10/20 出「捣蛋签 5 天后开张」、存盘用户 personal 内单行零重复、零报错。
+- R3817 口吻四十二审：窗宣公共行口吻与 personal 同串零偏差。
+- R3818 数据面三十一轮：本轮零新增键（纯展示层），`_qianWinHook` 只读 `qian:hist`/窗函数。
+- R3819 移动端十九审：360px dailyQianWin 自立块零横滚。
+- R3820 收口闸全绿：selftest 457/contract 810/dollar 0/banned 0/ui_smoke 126/check_poster。

@@ -6510,188 +6510,8 @@ async function loadDaily() {
             '别硬扛，小满陪你</div>');
         }
       }
-      /* R3639/R3648：捣蛋签钩——开窗前 1-5 天倒计时；窗内
-       * 今天还没抽就提醒去抽（抽过自动退场）。 */
-      try {
-        var _now2 = new Date();
-        var _hwOpen = new Date(_now2.getFullYear(), 9, 25);
-        var _ddays = Math.round((_hwOpen - new Date(
-          _now2.getFullYear(), _now2.getMonth(), _now2.getDate()))
-          / 86400000);
-        if (_ddays >= 1 && _ddays <= 5) {
-          _pc2.push('<span class="e-week-low">🎃 捣蛋签 ' +
-            _ddays + ' 天后开张——那几天来抽一支宜动签</span>');
-        } else if (typeof _qianHwFest === 'function' &&
-                   _qianHwFest()) {
-          /* 与 _qianHwDraw 同锚：放行日（CST 先行时按 CST 日）
-           * 查键——本地日会漏查刚抽过的签。 */
-          var _hwDk = _qianHwIdxOf(_winAnchorIso(function (o2) {
-            return (o2.m === 10 && o2.d >= 25) || (o2.m === 11 && o2.d <= 1);
-          }));
-          if (!_hwDk) {
-            _pc2.push('<span class="e-week-low">🎃 捣蛋签开着呢' +
-              '——去签页抽今天的宜动签</span>');
-          } else {
-            /* R3657：窗内连抽计数——签史 hw 标 ≥2 天挂
-             * 「连抽 N 天」，给窗期一个小成就钩。 */
-            var _hwN = 0;
-            try {
-              var _hwY = _now2.getFullYear();
-              JSON.parse(localStorage.getItem('qian:hist') || '[]')
-                .forEach(function (x) {
-                  if (x && x.hw && x.d >= _hwY + '-10-25' &&
-                      x.d <= _hwY + '-11-01') _hwN++;
-                });
-            } catch (eHN) {}
-            if (_hwN >= 2) {
-              _pc2.push('<span class="e-week-low">🎃 捣蛋签连抽 ' +
-                _hwN + ' 天了——窗开到 11/1</span>');
-            }
-          }
-        } else if (_ddays <= -8 && _ddays >= -14) {
-          /* R3658：窗后收官 toast——抽过 ≥1 支的人 11/2-11/8
-           * 首访弹一次（单日旗 hwCloseTip），带签名收官。 */
-          try {
-            if (localStorage.getItem('hwCloseTip') !==
-                String(_now2.getFullYear())) {
-              var _hwC = 0, _hwLast = 0;
-              var _hwY2 = _now2.getFullYear();
-              JSON.parse(localStorage.getItem('qian:hist') || '[]')
-                .forEach(function (x) {
-                  if (x && x.hw && x.d >= _hwY2 + '-10-25' &&
-                      x.d <= _hwY2 + '-11-01') {
-                    _hwC++;
-                    if (!_hwLast) _hwLast = x.n;
-                  }
-                });
-              if (_hwC >= 1) {
-                localStorage.setItem('hwCloseTip',
-                                     String(_hwY2));
-                var _hwNm = (typeof QIAN !== 'undefined' &&
-                             QIAN[_hwLast - 1])
-                  ? QIAN[_hwLast - 1].name : '';
-                showToast('🎃 捣蛋签收官了——你抽到 ' + _hwC +
-                  ' 支宜动签' + (_hwNm ? '，最新是「' + _hwNm + '」' : '') +
-                  '，去签页再看看', 'info');
-              }
-            }
-          } catch (eHC) {}
-        }
-      } catch (eHW2) {}
-      /* R3671：桃花签钩——捣蛋签收官到桃花签开窗中间无缝
-       * 接力：开窗前 1-5 天倒计时（11/1-11/5）；窗内今天
-       * 还没抽提醒 + 连抽计数（lv 标限本窗）。 */
-      try {
-        var _tqNow = new Date();
-        var _tqOpen = new Date(_tqNow.getFullYear(), 10, 6);
-        var _tqDays = Math.round((_tqOpen - new Date(
-          _tqNow.getFullYear(), _tqNow.getMonth(),
-          _tqNow.getDate())) / 86400000);
-        if (_tqDays >= 1 && _tqDays <= 5) {
-          _pc2.push('<span class="e-week-low">🌸 桃花签 ' +
-            _tqDays + ' 天后开张——想心里那个人就来抽一支</span>');
-        } else if (typeof _qianLoveFest === 'function' &&
-                   _qianLoveFest()) {
-          var _tqDk = _qianLoveIdxOf(_winAnchorIso(function (o3) {
-            return o3.m === 11 && o3.d >= 6 && o3.d <= 11;
-          }));
-          if (!_tqDk) {
-            _pc2.push('<span class="e-week-low">🌸 桃花签开着呢' +
-              '——去签页抽今天的桃花签</span>');
-          } else {
-            var _tqN = 0;
-            try {
-              var _tqY = _tqNow.getFullYear();
-              JSON.parse(localStorage.getItem('qian:hist') || '[]')
-                .forEach(function (x) {
-                  if (x && x.lv && x.d >= _tqY + '-11-06' &&
-                      x.d <= _tqY + '-11-11') _tqN++;
-                });
-            } catch (eTN) {}
-            if (_tqN >= 2) {
-              _pc2.push('<span class="e-week-low">🌸 桃花签连抽 ' +
-                _tqN + ' 天了——窗开到 11/11</span>');
-            }
-          }
-        }
-      } catch (eTQ) {}
-      /* R3681：新春福签钩——与捣蛋/桃花同套窗机制（除夕—元宵，
-       * 公历窗查 _QIAN_CNY_WIN 表）：开窗前 1-5 天倒计时；窗内
-       * 未抽提醒+连抽计数（cny 标限本窗区间）。 */
-      try {
-        var _cyNow = new Date();
-        var _cyT0 = new Date(_cyNow.getFullYear(), _cyNow.getMonth(),
-                             _cyNow.getDate());
-        var _cyOpen = null, _cyY = 0;
-        if (typeof _QIAN_CNY_WIN !== 'undefined') {
-          for (var _cyk in _QIAN_CNY_WIN) {
-            if (!_QIAN_CNY_WIN.hasOwnProperty(_cyk)) continue;
-            var _cyr = _QIAN_CNY_WIN[_cyk];
-            var _cyd = new Date(+_cyk,
-              Math.floor(_cyr[0] / 100) - 1, _cyr[0] % 100);
-            if (_cyd > _cyT0 && (!_cyOpen || _cyd < _cyOpen)) {
-              _cyOpen = _cyd; _cyY = +_cyk;
-            }
-          }
-        }
-        var _cyDays = _cyOpen
-          ? Math.round((_cyOpen - _cyT0) / 86400000) : 99;
-        if (_cyDays >= 1 && _cyDays <= 5) {
-          _pc2.push('<span class="e-week-low">🧧 新春福签 ' +
-            _cyDays + ' 天后开张——过年讨彩头，抽支吉签</span>');
-        } else if (typeof _qianCnyFest === 'function' &&
-                   _qianCnyFest()) {
-          var _cyR0 = null;
-          if (typeof _QIAN_CNY_WIN !== 'undefined') {
-            for (var _cyk2 in _QIAN_CNY_WIN) {
-              if (!_QIAN_CNY_WIN.hasOwnProperty(_cyk2)) continue;
-              var _cyr2 = _QIAN_CNY_WIN[_cyk2];
-              var _cyO2 = new Date(+_cyk2,
-                Math.floor(_cyr2[0] / 100) - 1, _cyr2[0] % 100);
-              var _cyC2 = new Date(+_cyk2,
-                Math.floor(_cyr2[1] / 100) - 1, _cyr2[1] % 100);
-              if (_cyO2 <= _cyT0 && _cyT0 <= _cyC2) _cyR0 = _cyr2;
-            }
-          }
-          var _cyDk = _qianCnyIdxOf(_winAnchorIso(function (o4) {
-            var r4 = _QIAN_CNY_WIN[o4.y];
-            var md4 = o4.m * 100 + o4.d;
-            return !!(r4 && md4 >= r4[0] && md4 <= r4[1]);
-          }));
-          if (!_cyDk) {
-            /* R3684/R3691：窗内单日点名——元宵末日「今晚截止」
-             * ＞初五迎财神＞通用未抽行。 */
-            _pc2.push('<span class="e-week-low">🧧 ' +
-              ((typeof _qianCnyLastDay === 'function' &&
-                _qianCnyLastDay())
-                ? '元宵佳节——福签今晚截止，讨最后一支彩头'
-                : (typeof _qianCaishenDay === 'function' &&
-                   _qianCaishenDay())
-                ? '初五迎财神——今天抽支福签讨头彩'
-                : '新春福签开着呢——去签页抽今天的福签') +
-              '</span>');
-          } else if (_cyR0) {
-            var _cyN = 0;
-            try {
-              var _cyLo = String(Math.floor(_cyR0[0] / 100)).padStart(2, '0') +
-                '-' + String(_cyR0[0] % 100).padStart(2, '0');
-              var _cyHi = String(Math.floor(_cyR0[1] / 100)).padStart(2, '0') +
-                '-' + String(_cyR0[1] % 100).padStart(2, '0');
-              var _cyYr = String(_cyNow.getFullYear());
-              JSON.parse(localStorage.getItem('qian:hist') || '[]')
-                .forEach(function (x) {
-                  if (x && x.cny &&
-                      x.d >= _cyYr + '-' + _cyLo &&
-                      x.d <= _cyYr + '-' + _cyHi) _cyN++;
-                });
-            } catch (eCN) {}
-            if (_cyN >= 2) {
-              _pc2.push('<span class="e-week-low">🧧 新春福签连抽 ' +
-                _cyN + ' 天了——窗开到元宵</span>');
-            }
-          }
-        }
-      } catch (eCY) {}
+      var _qwh = _qianWinHook();
+      if (_qwh) _pc2.push(_qwh);
       /* R3701：每日古话——一日一句经典原文+人话注，
        * 古籍域的轻日更钩（不搬运注疏，只给宽慰）。 */
       try {
@@ -6889,6 +6709,11 @@ async function loadDaily() {
           return esc(e.d + ' ' + e.t);
         }).join(' · '));
     } else { _dailyMetaItem('dailyWeekSky', ''); }
+    /* R3816：签窗钩公共行——窗宣原只活在 dailyPersonal，
+     * 没存盘的人看不到（窗本身人人可抽）。personal 在就出
+     * 那边，这份只在 personal 缺席时挂，避免双行。 */
+    _dailyMetaItem('dailyQianWin',
+      (j.personal && j.personal.line) ? '' : _qianWinHook());
     /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
      * ≥2 天才展示（第 1 天没有「常客」感，挂着反而像计数器）。 */
     var _uDays = _usageDays();
@@ -19851,6 +19676,195 @@ function _isoShift(dateKey, n) {
 }
 /* R3756/62：年信窗判定——12/26 起写当年、1/1–1/15 写去年；
  * 周/月信尾链与年信块共用一份窗+落档判，防口径漂移。 */
+function _qianWinHook() {
+  /* R3816：三个季节签窗钩抽公共——原只活在 dailyPersonal
+   * （没存盘的人看不到窗宣）。helper 返回行串，personal 与
+   * 公共行两处共用。 */
+  var _qh = [];
+      /* R3639/R3648：捣蛋签钩——开窗前 1-5 天倒计时；窗内
+       * 今天还没抽就提醒去抽（抽过自动退场）。 */
+      try {
+        var _now2 = new Date();
+        var _hwOpen = new Date(_now2.getFullYear(), 9, 25);
+        var _ddays = Math.round((_hwOpen - new Date(
+          _now2.getFullYear(), _now2.getMonth(), _now2.getDate()))
+          / 86400000);
+        if (_ddays >= 1 && _ddays <= 5) {
+          _qh.push('<span class="e-week-low">🎃 捣蛋签 ' +
+            _ddays + ' 天后开张——那几天来抽一支宜动签</span>');
+        } else if (typeof _qianHwFest === 'function' &&
+                   _qianHwFest()) {
+          /* 与 _qianHwDraw 同锚：放行日（CST 先行时按 CST 日）
+           * 查键——本地日会漏查刚抽过的签。 */
+          var _hwDk = _qianHwIdxOf(_winAnchorIso(function (o2) {
+            return (o2.m === 10 && o2.d >= 25) || (o2.m === 11 && o2.d <= 1);
+          }));
+          if (!_hwDk) {
+            _qh.push('<span class="e-week-low">🎃 捣蛋签开着呢' +
+              '——去签页抽今天的宜动签</span>');
+          } else {
+            /* R3657：窗内连抽计数——签史 hw 标 ≥2 天挂
+             * 「连抽 N 天」，给窗期一个小成就钩。 */
+            var _hwN = 0;
+            try {
+              var _hwY = _now2.getFullYear();
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.hw && x.d >= _hwY + '-10-25' &&
+                      x.d <= _hwY + '-11-01') _hwN++;
+                });
+            } catch (eHN) {}
+            if (_hwN >= 2) {
+              _qh.push('<span class="e-week-low">🎃 捣蛋签连抽 ' +
+                _hwN + ' 天了——窗开到 11/1</span>');
+            }
+          }
+        } else if (_ddays <= -8 && _ddays >= -14) {
+          /* R3658：窗后收官 toast——抽过 ≥1 支的人 11/2-11/8
+           * 首访弹一次（单日旗 hwCloseTip），带签名收官。 */
+          try {
+            if (localStorage.getItem('hwCloseTip') !==
+                String(_now2.getFullYear())) {
+              var _hwC = 0, _hwLast = 0;
+              var _hwY2 = _now2.getFullYear();
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.hw && x.d >= _hwY2 + '-10-25' &&
+                      x.d <= _hwY2 + '-11-01') {
+                    _hwC++;
+                    if (!_hwLast) _hwLast = x.n;
+                  }
+                });
+              if (_hwC >= 1) {
+                localStorage.setItem('hwCloseTip',
+                                     String(_hwY2));
+                var _hwNm = (typeof QIAN !== 'undefined' &&
+                             QIAN[_hwLast - 1])
+                  ? QIAN[_hwLast - 1].name : '';
+                showToast('🎃 捣蛋签收官了——你抽到 ' + _hwC +
+                  ' 支宜动签' + (_hwNm ? '，最新是「' + _hwNm + '」' : '') +
+                  '，去签页再看看', 'info');
+              }
+            }
+          } catch (eHC) {}
+        }
+      } catch (eHW2) {}
+      /* R3671：桃花签钩——捣蛋签收官到桃花签开窗中间无缝
+       * 接力：开窗前 1-5 天倒计时（11/1-11/5）；窗内今天
+       * 还没抽提醒 + 连抽计数（lv 标限本窗）。 */
+      try {
+        var _tqNow = new Date();
+        var _tqOpen = new Date(_tqNow.getFullYear(), 10, 6);
+        var _tqDays = Math.round((_tqOpen - new Date(
+          _tqNow.getFullYear(), _tqNow.getMonth(),
+          _tqNow.getDate())) / 86400000);
+        if (_tqDays >= 1 && _tqDays <= 5) {
+          _qh.push('<span class="e-week-low">🌸 桃花签 ' +
+            _tqDays + ' 天后开张——想心里那个人就来抽一支</span>');
+        } else if (typeof _qianLoveFest === 'function' &&
+                   _qianLoveFest()) {
+          var _tqDk = _qianLoveIdxOf(_winAnchorIso(function (o3) {
+            return o3.m === 11 && o3.d >= 6 && o3.d <= 11;
+          }));
+          if (!_tqDk) {
+            _qh.push('<span class="e-week-low">🌸 桃花签开着呢' +
+              '——去签页抽今天的桃花签</span>');
+          } else {
+            var _tqN = 0;
+            try {
+              var _tqY = _tqNow.getFullYear();
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.lv && x.d >= _tqY + '-11-06' &&
+                      x.d <= _tqY + '-11-11') _tqN++;
+                });
+            } catch (eTN) {}
+            if (_tqN >= 2) {
+              _qh.push('<span class="e-week-low">🌸 桃花签连抽 ' +
+                _tqN + ' 天了——窗开到 11/11</span>');
+            }
+          }
+        }
+      } catch (eTQ) {}
+      /* R3681：新春福签钩——与捣蛋/桃花同套窗机制（除夕—元宵，
+       * 公历窗查 _QIAN_CNY_WIN 表）：开窗前 1-5 天倒计时；窗内
+       * 未抽提醒+连抽计数（cny 标限本窗区间）。 */
+      try {
+        var _cyNow = new Date();
+        var _cyT0 = new Date(_cyNow.getFullYear(), _cyNow.getMonth(),
+                             _cyNow.getDate());
+        var _cyOpen = null, _cyY = 0;
+        if (typeof _QIAN_CNY_WIN !== 'undefined') {
+          for (var _cyk in _QIAN_CNY_WIN) {
+            if (!_QIAN_CNY_WIN.hasOwnProperty(_cyk)) continue;
+            var _cyr = _QIAN_CNY_WIN[_cyk];
+            var _cyd = new Date(+_cyk,
+              Math.floor(_cyr[0] / 100) - 1, _cyr[0] % 100);
+            if (_cyd > _cyT0 && (!_cyOpen || _cyd < _cyOpen)) {
+              _cyOpen = _cyd; _cyY = +_cyk;
+            }
+          }
+        }
+        var _cyDays = _cyOpen
+          ? Math.round((_cyOpen - _cyT0) / 86400000) : 99;
+        if (_cyDays >= 1 && _cyDays <= 5) {
+          _qh.push('<span class="e-week-low">🧧 新春福签 ' +
+            _cyDays + ' 天后开张——过年讨彩头，抽支吉签</span>');
+        } else if (typeof _qianCnyFest === 'function' &&
+                   _qianCnyFest()) {
+          var _cyR0 = null;
+          if (typeof _QIAN_CNY_WIN !== 'undefined') {
+            for (var _cyk2 in _QIAN_CNY_WIN) {
+              if (!_QIAN_CNY_WIN.hasOwnProperty(_cyk2)) continue;
+              var _cyr2 = _QIAN_CNY_WIN[_cyk2];
+              var _cyO2 = new Date(+_cyk2,
+                Math.floor(_cyr2[0] / 100) - 1, _cyr2[0] % 100);
+              var _cyC2 = new Date(+_cyk2,
+                Math.floor(_cyr2[1] / 100) - 1, _cyr2[1] % 100);
+              if (_cyO2 <= _cyT0 && _cyT0 <= _cyC2) _cyR0 = _cyr2;
+            }
+          }
+          var _cyDk = _qianCnyIdxOf(_winAnchorIso(function (o4) {
+            var r4 = _QIAN_CNY_WIN[o4.y];
+            var md4 = o4.m * 100 + o4.d;
+            return !!(r4 && md4 >= r4[0] && md4 <= r4[1]);
+          }));
+          if (!_cyDk) {
+            /* R3684/R3691：窗内单日点名——元宵末日「今晚截止」
+             * ＞初五迎财神＞通用未抽行。 */
+            _qh.push('<span class="e-week-low">🧧 ' +
+              ((typeof _qianCnyLastDay === 'function' &&
+                _qianCnyLastDay())
+                ? '元宵佳节——福签今晚截止，讨最后一支彩头'
+                : (typeof _qianCaishenDay === 'function' &&
+                   _qianCaishenDay())
+                ? '初五迎财神——今天抽支福签讨头彩'
+                : '新春福签开着呢——去签页抽今天的福签') +
+              '</span>');
+          } else if (_cyR0) {
+            var _cyN = 0;
+            try {
+              var _cyLo = String(Math.floor(_cyR0[0] / 100)).padStart(2, '0') +
+                '-' + String(_cyR0[0] % 100).padStart(2, '0');
+              var _cyHi = String(Math.floor(_cyR0[1] / 100)).padStart(2, '0') +
+                '-' + String(_cyR0[1] % 100).padStart(2, '0');
+              var _cyYr = String(_cyNow.getFullYear());
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.cny &&
+                      x.d >= _cyYr + '-' + _cyLo &&
+                      x.d <= _cyYr + '-' + _cyHi) _cyN++;
+                });
+            } catch (eCN) {}
+            if (_cyN >= 2) {
+              _qh.push('<span class="e-week-low">🧧 新春福签连抽 ' +
+                _cyN + ' 天了——窗开到元宵</span>');
+            }
+          }
+        }
+      } catch (eCY) {}
+  return _qh.join('<br>');
+}
 function _ylWindow() {
   try {
     var _t = new Date(todayIso() + 'T00:00:00');
@@ -20855,9 +20869,10 @@ function _dailyMetaItem(id, html) {
     n = document.createElement('div');
     n.id = id;
     /* R3248b：personal 粒是多行文本块——挪出胶囊行自立一块（不进 +N）。 */
-    n.className = id === 'dailyPersonal' ? 'daily-mine-block'
-                                         : 'daily-meta-item';
-    if (id === 'dailyPersonal' && _metaRow && _metaRow.parentNode) {
+    n.className = (id === 'dailyPersonal' || id === 'dailyQianWin')
+                            ? 'daily-mine-block' : 'daily-meta-item';
+    if ((id === 'dailyPersonal' || id === 'dailyQianWin') &&
+        _metaRow && _metaRow.parentNode) {
       _metaRow.parentNode.insertBefore(n, _metaRow.nextSibling);
     } else if (_metaRow) {
       _metaRow.appendChild(n);
