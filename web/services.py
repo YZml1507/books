@@ -5455,6 +5455,162 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     f"（日干{_g9}属{_wx9.get(_g9, '')}）")
             except Exception:
                 pass
+        # R4286：属相配对活事实——六合/三合/六冲/六害/相刑/相破
+        # 表上判定。三种问法：
+        # ①点两名「我属马他属鼠合不合」→ 两属相判定；
+        # ②「我们属相合吗」→ 我+TA 生辰各出一属相再判；
+        # ③「我适合找什么属相」→ 个人六合/三合/六冲名单。
+        if not any(k in _n for k in ("属什么", "几几年属")) and (
+                len(re.findall(
+                    r"属[鼠牛虎兔龙蛇马羊猴鸡狗猪]", _n)) >= 2
+                or re.search(
+                    r"[鼠牛虎兔龙蛇马羊猴鸡狗猪]{2}"
+                    r"(?:相冲|相合|相克|相刑|相害|相破|相配|"
+                    r"合不合|不合|犯冲)", _n)
+                or (any(k in _n for k in ("属相", "生肖"))
+                    and any(k in _n for k in
+                            ("合", "配", "婚配", "般配", "相冲", "相克",
+                             "相刑", "相害", "相破", "犯冲", "找", "适合",
+                             "不合适", "相合", "不合")))):
+            try:
+                _SXz = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                _ZH9 = "子丑寅卯辰巳午未申酉戌亥"
+                _A2Z9 = {_SXz[i]: _ZH9[i] for i in range(12)}
+                _Z2A9z = {_ZH9[i]: _SXz[i] for i in range(12)}
+                _SH9 = [{"申", "子", "辰"}, {"巳", "酉", "丑"},
+                        {"寅", "午", "戌"}, {"亥", "卯", "未"}]
+
+                def _sxv9(za: str, zb: str) -> str:
+                    """两生肖判定行（白话，六合>三合>冲>刑害破>平常）。"""
+                    if za == zb:
+                        return "同属相：不算合也不犯冲，看性格磨合"
+                    if LIU_HE.get(_A2Z9[za]) == _A2Z9[zb]:
+                        return "六合：属相里最合的一对"
+                    if any(za in g and zb in g for g in
+                           ({_Z2A9z[z] for z in s} for s in _SH9)):
+                        return "三合：很合的一组"
+                    if CHONG.get(_A2Z9[za]) == _A2Z9[zb]:
+                        return "六冲：属相里最冲的一对，多磨合"
+                    if ((_A2Z9[za], _A2Z9[zb]) in XING
+                            or (_A2Z9[zb], _A2Z9[za]) in XING):
+                        return "相刑：有些磕绊，说话留点软"
+                    if XIANG_HAI.get(_A2Z9[za]) == _A2Z9[zb]:
+                        return "六害：容易互相误会，多把话说明"
+                    if XIANG_PO.get(_A2Z9[za]) == _A2Z9[zb]:
+                        return "相破：小有摩擦，别计较小节"
+                    return "不冲不合：平常配，看两个人怎么处"
+
+                def _sx_of9(_mk) -> str:
+                    _lz9 = lunar.solar_to_lunar(
+                        int(_mk.group(1)), int(_mk.group(2)),
+                        int(_mk.group(3)))
+                    return _SXz[_ZH9.index(
+                        _lz9.get("ganzhi_year", "  ")[1])]
+
+                # 句内点名两属相：先收「属X」点名（保序），不足再
+                # 收「X和Y/X跟Y」连词对——「马虎」这类连字不判。
+                _named9 = re.findall(
+                    r"属([鼠牛虎兔龙蛇马羊猴鸡狗猪])", _n)
+                if len(_named9) < 2:
+                    _cn9 = re.search(
+                        r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])"
+                        r"[和跟与配×、]"
+                        r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])", _n)
+                    if not _cn9:
+                        # 「龙虎相冲」连写式：两生肖贴一起后跟判词。
+                        _cn9 = re.search(
+                            r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])"
+                            r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])"
+                            r"(?:相冲|相合|相克|相刑|相害|相破|相配|"
+                            r"合不合|不合|犯冲)", _n)
+                    if _cn9:
+                        _named9 = [_cn9.group(1), _cn9.group(2)]
+                _me9 = None
+                _mm9 = re.search(
+                    r"[我俺].{0,2}属([鼠牛虎兔龙蛇马羊猴鸡狗猪])", _n)
+                if _mm9:
+                    _me9 = _mm9.group(1)
+                _pair9 = None
+                if _me9:
+                    _oth9 = [c for c in _named9 if c != _me9]
+                    if _oth9:
+                        _pair9 = (_me9, _oth9[0])
+                    elif len(_named9) >= 2 and _named9[0] == _me9 \
+                            and _named9[1] == _me9:
+                        _pair9 = (_me9, _me9)
+                elif len(_named9) >= 2:
+                    _pair9 = (_named9[0], _named9[1])
+                # 「我们属相合吗/属相合不合」：档案里我+TA 生日各出
+                # 一属相（前提句里没点名两个属相）。
+                if _pair9 is None and facts:
+                    _my9 = next(
+                        (_BIRTHDAY_FACT_RE.match(str(_x).strip())
+                         for _x in facts
+                         if _BIRTHDAY_FACT_RE.match(str(_x).strip())),
+                        None)
+                    _ta9 = next(
+                        (_BIRTHDAY_PARTNER_RE.match(str(_x).strip())
+                         for _x in facts
+                         if _BIRTHDAY_PARTNER_RE.match(str(_x).strip())),
+                        None)
+                    # 「合不合适」这类泛问前提得句里真有属相词——
+                    # 「马虎了事合不合适」不能当生肖对判。
+                    if _my9 and _ta9 and len(_named9) < 2 \
+                            and "属" in _n \
+                            and not any(k in _n for k in (
+                                "找", "适合", "婚配", "配什么",
+                                "配我", "合拍属相", "什么属相",
+                                "克表", "配表", "婚表", "冲表",
+                                "合表")):
+                        _pair9 = (_sx_of9(_my9), _sx_of9(_ta9))
+                if _pair9:
+                    out.append(
+                        f"属{_pair9[0]}×属{_pair9[1]}："
+                        f"{_sxv9(_pair9[0], _pair9[1])}")
+                elif any(k in _n for k in
+                         ("相克表", "婚配表", "配对表", "合婚表",
+                          "相冲表", "相合表", "属相表")):
+                    # 「属相相克表」要的是通用表——六冲+六合对全列。
+                    out.append(
+                        "属相六冲对：鼠×马、牛×羊、虎×猴、"
+                        "兔×鸡、龙×狗、蛇×猪")
+                    out.append(
+                        "属相六合对：鼠×牛、虎×猪、兔×狗、"
+                        "龙×鸡、蛇×猴、马×羊")
+                elif any(k in _n for k in
+                         ("找", "适合", "婚配", "配什么", "配我",
+                          "合拍属相", "跟什么属相", "什么属相配",
+                          "相合属相")):
+                    # 开放问：本人属相（句内点名或档案生日）→ 名单。
+                    _self9 = _me9
+                    if not _self9:
+                        _fs9 = next(
+                            (c for c in _SXz if c in _n), None)
+                        _self9 = _fs9
+                    if not _self9 and facts:
+                        _my9b = next(
+                            (_BIRTHDAY_FACT_RE.match(str(_x).strip())
+                             for _x in facts
+                             if _BIRTHDAY_FACT_RE.match(
+                                     str(_x).strip())),
+                            None)
+                        if _my9b:
+                            _self9 = _sx_of9(_my9b)
+                    if _self9:
+                        _z9 = _A2Z9[_self9]
+                        _lh9 = _Z2A9z.get(LIU_HE.get(_z9, ""), "")
+                        _grp9 = next(
+                            (s for s in _SH9 if _z9 in s), set())
+                        _san9 = [_Z2A9z[z] for z in _grp9
+                                 if z != _z9]
+                        _ch9 = _Z2A9z.get(CHONG.get(_z9, ""), "")
+                        _best9 = ([_lh9] if _lh9 else []) + _san9
+                        out.append(
+                            f"属{_self9}的合拍属相：最合"
+                            f"{'、'.join('属' + a for a in _best9)}"
+                            + (f"，最冲属{_ch9}" if _ch9 else ""))
+            except Exception:
+                pass
         # R4206：合拍日支信号——已存 CP 时问「我们合拍吗/跟TA合不合」
         # 给当日日支信号（与合拍页 _sig 同式：今日日支 vs 双方日支
         # 的合/冲/半合/害/刑/破；分数要全盘，这里给感受标签）。
