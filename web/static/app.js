@@ -6722,7 +6722,18 @@ async function loadDaily() {
       /* R3868：data-dv 自定义目标——万圣夜限定行去塔罗页，
        * 其余仍去签页。 */
       var _qwGo = function (v) {
-        try { showView(v || 'qian'); } catch (eQ) {}
+        try {
+          /* R3986：data-dv=# 前缀走页内锚滚动（年信导引行），
+           * 其余照旧跳视图。 */
+          if (v && v.charAt(0) === '#') {
+            var _an = document.querySelector(v);
+            if (_an && _an.scrollIntoView) {
+              _an.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+            return;
+          }
+          showView(v || 'qian');
+        } catch (eQ) {}
       };
       _dcEl.addEventListener('click', function (e) {
         var _t = e.target && e.target.closest
@@ -20136,7 +20147,77 @@ function _qianWinHook() {
           } catch (eCT) {}
         }
       } catch (eCY) {}
+      /* R3986：年信窗导引行——年信卡只活在页尾信区，没往下翻的人
+       * 看不见；窗内未落档时挂「去下面看」锚行（data-dv=# 走
+       * scrollIntoView 不跳视图）。 */
+      try {
+        var _ylY0 = (typeof _ylWindow === 'function')
+          ? _ylWindow() : 0;
+        if (_ylY0) {
+          /* 与年信卡同门槛（_ylStats 同源）——信没落笔不挂行。 */
+          var _ylS0 = (typeof _ylStats === 'function')
+            ? _ylStats(_ylY0) : {ck: 0, md: 0, j: 0};
+          if (_ylS0.ck >= 10 || _ylS0.md >= 12 || _ylS0.j >= 3) {
+            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0" ' +
+              'data-dv="#yearlyLetter">🏮 这一年小满给你写了封信——往下翻翻看 →</span>');
+          }
+        }
+      } catch (eYL) {}
   return _qh.join('<br>');
+}
+/* R3986：年聚合共用 helper——年信卡与导引行同一套口径。
+ * 原始键（checkin:/mood:/journal:）150 天 GC，故读时合并
+ * 年汇总键（ckY:/mdY:/jrY:/ckBest:），两者取大不双计；
+ * 连签取 原始键走/ckBest/st:cur 三者大。 */
+function _ylStats(yr) {
+  var s = {ck: 0, md: 0, j: 0, mdCnt: {}, best: 0};
+  try {
+    var _yp = String(yr) + '-';
+    var _yCkDates = [];
+    for (var _yi = 0; _yi < localStorage.length; _yi++) {
+      var _yk = localStorage.key(_yi);
+      if (typeof _yk !== 'string') continue;
+      if (_yk.indexOf('checkin:' + _yp) === 0) {
+        s.ck++; _yCkDates.push(_yk.slice(8));
+      } else if (_yk.indexOf('mood:' + _yp) === 0) {
+        var _yvv = localStorage.getItem(_yk);
+        if (_yvv !== null && _yvv !== '') {
+          s.md++; s.mdCnt[_yvv] = (s.mdCnt[_yvv] || 0) + 1;
+        }
+      } else if (_yk.indexOf('journal:' + _yp) === 0) {
+        if (localStorage.getItem(_yk)) s.j++;
+      }
+    }
+    s.ck = Math.max(s.ck,
+      +(localStorage.getItem('ckY:' + yr) || 0));
+    try {
+      var _yMdR = JSON.parse(
+        localStorage.getItem('mdY:' + yr) || '{}');
+      var _yMdRSum = 0;
+      Object.keys(_yMdR).forEach(function (k2) {
+        _yMdRSum += _yMdR[k2] || 0;
+      });
+      if (_yMdRSum > s.md) { s.md = _yMdRSum; s.mdCnt = _yMdR; }
+    } catch (eMR) {}
+    s.j = Math.max(s.j,
+      +(localStorage.getItem('jrY:' + yr) || 0));
+    s.best = +(localStorage.getItem('ckBest:' + yr) || 0);
+    if (_yCkDates.length) {
+      _yCkDates.sort();
+      var _yCur = 1, _yPrev = _yCkDates[0];
+      for (var _yi2 = 1; _yi2 < _yCkDates.length; _yi2++) {
+        var _yn = _yCkDates[_yi2];
+        var _yd = (new Date(_yn + 'T00:00:00') -
+                   new Date(_yPrev + 'T00:00:00')) / 86400000;
+        _yCur = (_yd === 1) ? _yCur + 1 : 1;
+        if (_yCur > s.best) s.best = _yCur;
+        _yPrev = _yn;
+      }
+    }
+    var _stCY = +(localStorage.getItem('st:cur') || 0);
+    if (_stCY > s.best) s.best = _stCY;
+  } catch (eS) {}
+  return s;
 }
 function _ylWindow() {
   try {
@@ -21927,56 +22008,10 @@ function renderCheckin(dateKey) {
     var _ylYear = _ylWindow();
     var _ylKey = _ylYear ? ('yearlyLetter:' + _ylYear) : '';
     if (_ylYear) {
-      /* R3756-P1：checkin:/mood:/journal: 原始键 150 天 GC——
-       * 年信读写时汇总（ckY:/mdY:/jrY:/ckBest:），原始键只作
-       * 汇总前老数据的兜底（两者取大，不双计）。 */
-      var _yp = String(_ylYear) + '-';
-      var _yCk = 0, _yMd = 0, _yJ = 0, _yMdCnt = {};
-      var _yCkDates = [];
-      for (var _yi = 0; _yi < localStorage.length; _yi++) {
-        var _yk = localStorage.key(_yi);
-        if (typeof _yk !== 'string') continue;
-        if (_yk.indexOf('checkin:' + _yp) === 0) {
-          _yCk++; _yCkDates.push(_yk.slice(8));
-        } else if (_yk.indexOf('mood:' + _yp) === 0) {
-          var _yvv = localStorage.getItem(_yk);
-          if (_yvv !== null && _yvv !== '') {
-            _yMd++; _yMdCnt[_yvv] = (_yMdCnt[_yvv] || 0) + 1;
-          }
-        } else if (_yk.indexOf('journal:' + _yp) === 0) {
-          if (localStorage.getItem(_yk)) _yJ++;
-        }
-      }
-      _yCk = Math.max(_yCk,
-        +(localStorage.getItem('ckY:' + _ylYear) || 0));
-      try {
-        var _yMdR = JSON.parse(
-          localStorage.getItem('mdY:' + _ylYear) || '{}');
-        var _yMdRSum = 0;
-        Object.keys(_yMdR).forEach(function (k2) {
-          _yMdRSum += _yMdR[k2] || 0;
-        });
-        if (_yMdRSum > _yMd) { _yMd = _yMdRSum; _yMdCnt = _yMdR; }
-      } catch (eMR) {}
-      _yJ = Math.max(_yJ,
-        +(localStorage.getItem('jrY:' + _ylYear) || 0));
-      /* 最长连签：原始键走 + ckBest: 年汇总 + st:cur 现连签
-       *（跨年连签也算今年的份）三者取大。 */
-      var _yBest = +(localStorage.getItem('ckBest:' + _ylYear) || 0);
-      if (_yCkDates.length) {
-        _yCkDates.sort();
-        var _yCur = 1, _yPrev = _yCkDates[0];
-        for (var _yi2 = 1; _yi2 < _yCkDates.length; _yi2++) {
-          var _yn = _yCkDates[_yi2];
-          var _yd = (new Date(_yn + 'T00:00:00') -
-                     new Date(_yPrev + 'T00:00:00')) / 86400000;
-          _yCur = (_yd === 1) ? _yCur + 1 : 1;
-          if (_yCur > _yBest) _yBest = _yCur;
-          _yPrev = _yn;
-        }
-      }
-      var _stCY = +(localStorage.getItem('st:cur') || 0);
-      if (_stCY > _yBest) _yBest = _stCY;
+      /* R3986：年聚合抽 _ylStats 共用——导引行同门槛判，口径不漂。 */
+      var _ys = _ylStats(_ylYear);
+      var _yCk = _ys.ck, _yMd = _ys.md, _yJ = _ys.j,
+          _yMdCnt = _ys.mdCnt, _yBest = _ys.best;
       /* 上门槛：这一年真来过的才写信（纯路过不下信）。 */
       if (_yCk >= 10 || _yMd >= 12 || _yJ >= 3) {
         var _yDom = -1, _yDomN = 0;
