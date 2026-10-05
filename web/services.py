@@ -4656,6 +4656,17 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 out.extend(_tw)
             except Exception:
                 pass
+        # R3881：今日月相活事实——问「月亮/满月/新月」手里有
+        # 当日相位+那句月相话（与日签卡 _moon_for 同源）。
+        if any(k in _n for k in ("月亮", "月相", "满月", "新月",
+                                 "月圆", "月缺", "今晚的月亮")):
+            try:
+                _mo = _moon_for(_d)
+                if _mo.get("label"):
+                    out.append(f"今日月相：{_mo['label']}"
+                               f"（{_mo.get('line', '')}）")
+            except Exception:
+                pass
         # R3876：跨年封愿实时态——12/25–31 封口窗（前端
         # _wishNySealWin 同段），问「跨年许愿/封愿」时给活态。
         if any(k in _n for k in ("跨年许愿", "跨年愿", "封愿",
