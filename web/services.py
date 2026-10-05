@@ -4849,7 +4849,12 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             if _dd == _d and any(
                     k in _n for k in
                     ("穿", "开运色", "运势", "运气", "星座",
-                     "月亮", "满月", "新月", "月相")):
+                     "月亮", "满月", "新月", "月相",
+                     # R4171c：黄历坐标词同享命名日迁移——
+                     # 「立冬那天冲什么」该出立冬的煞。
+                     "值神", "冲煞", "冲什么", "煞哪", "彭祖", "百忌",
+                     "建除", "黄道", "黑道", "吉神", "凶煞", "岁破",
+                     "日课")):
                 _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
                 if _ndn is not None:
                     _dd, _pfx = _ndn, _vn
@@ -5095,6 +5100,48 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                           "过节")):
                     _nopf = _pfx if _pfx != "今日" else "今天"
                     out.append(f"{_pfx}节日：{_nopf}没排上节日名")
+            except Exception:
+                pass
+        # R4171：黄历坐标活事实——值神/冲煞/彭祖百忌/建除/日课，
+        # 与黄历卡同源（huangli() 单日坐标），命名日迁移同享。
+        if any(k in _n for k in ("值神", "吉神", "凶煞", "黄道", "黑道",
+                                 "冲什么", "冲煞", "煞哪", "冲哪个",
+                                 "岁破", "日破", "月破", "四离", "四绝",
+                                 "杨公", "受死", "彭祖", "百忌", "建除",
+                                 "除日", "危日", "收日", "开日", "闭日",
+                                 "执日", "破日", "成日", "平日", "定日",
+                                 "满日", "建日", "日课")):
+            try:
+                _hl9 = huangli(_dd.isoformat())
+                _zs9 = _hl9.get("zhishen")
+                if _zs9 and any(k in _n for k in
+                                ("值神", "吉神", "凶煞", "黄道", "黑道")):
+                    out.append(
+                        f"{_pfx}值神：{_zs9}"
+                        f"（{'黑道日' if _hl9.get('zhishen_ji') else '黄道日'}）")
+                _cs9 = _hl9.get("chongsha") or {}
+                if _cs9.get("chong_animal") and any(
+                        k in _n for k in ("冲", "煞")):
+                    out.append(
+                        f"{_pfx}冲煞：冲{_cs9['chong_animal']}"
+                        f"（{_cs9['chong']}），煞{_cs9.get('sha_fang', '')}方")
+                _pz9 = _hl9.get("pengzu") or {}
+                if _pz9.get("gan_text") and any(
+                        k in _n for k in ("彭祖", "百忌")):
+                    out.append(
+                        f"{_pfx}彭祖百忌：{_pz9['gan_text']}；"
+                        f"{_pz9['zhi_text']}")
+                _jc9 = _hl9.get("jianchu")
+                if _jc9 and any(k in _n for k in
+                                ("建除", "除日", "危日", "收日", "开日",
+                                 "闭日", "执日", "破日", "成日", "平日",
+                                 "定日", "满日", "建日")):
+                    out.append(f"{_pfx}建除十二神：{_jc9}日")
+                _fl9 = _hl9.get("day_flags") or []
+                if any(k in _n for k in ("岁破", "日破", "月破", "四离",
+                                         "四绝", "杨公", "受死", "日课")):
+                    out.append(
+                        f"{_pfx}日课：{'、'.join(_fl9) if _fl9 else '无大凶课'}")
             except Exception:
                 pass
         # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
