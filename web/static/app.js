@@ -20063,6 +20063,9 @@ function _qianWinHook() {
               ((typeof _qianCnyLastDay === 'function' &&
                 _qianCnyLastDay())
                 ? '元宵佳节——福签今晚截止，讨最后一支彩头'
+                : (typeof _qianCnyFirstDay === 'function' &&
+                   _qianCnyFirstDay())
+                ? '除夕团圆——福签今天开张，讨第一支彩头'
                 : (typeof _qianCaishenDay === 'function' &&
                    _qianCaishenDay())
                 ? '初五迎财神——今天抽支福签讨头彩'
@@ -26147,6 +26150,12 @@ function _qianCnyFest() {
     var r = _QIAN_CNY_WIN[o.y];
     var md = o.m * 100 + o.d;
     return !!(r && md >= r[0] && md <= r[1]);
+  });
+}
+function _qianCnyFirstDay() {
+  return _inBothDates(function (o) {
+    var r = _QIAN_CNY_WIN[o.y];
+    return !!(r && o.m * 100 + o.d === r[0]);
   });
 }
 function _qianCnyLastDay() {
