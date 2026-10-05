@@ -20659,3 +20659,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3823 数据面三十二轮：`_qianWinHook` 纯读（qian:hist/qian:hw/lv/cny 判定键），零新增键。
 - R3824 留存面十二轮复扫：dailyQianWin 空态 hidden 不占位，daily-mine-block 不进 +N 收纳。
 - R3825 收口：无静态文件改动（测试批），闸沿用 R3820 绿态。
+
+## R3826-30（窗宣行可点 + 审计轮转）
+
+- **R3826 真修（死链文本）**：窗宣行「去签页抽今天的宜动签」原是纯文本——说「去」却不能去。全部行加 `.qw-nav` role=button/tabindex，`#dailyCard` 常驻容器委派 click/Enter/Space→`showView('qian')`（覆盖 personal 内与公共行两挂点）。探针豁免表 dailyCard 条目理由同步更新（scrollIntoView+qw-nav 双责）。实测：非盘 ≥2 次回访（mini 缎带态）点行 → view-qian 激活、零报错。
+- R3827 口吻四十四审：行文案未动、仅交互升级。
+- R3828 数据面三十三轮：零键。
+- R3829 裂变域十八轮/移动端二十审：360px 点按链过；首访全封面态行被封面/inert 盖住属既有设计（拆封才可见内容），mini 态不受影响。
+- R3830 收口闸全绿：selftest 457/contract 810/dollar 0/banned 0/ui_smoke 126/check_poster。

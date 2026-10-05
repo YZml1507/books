@@ -6714,6 +6714,24 @@ async function loadDaily() {
      * 那边，这份只在 personal 缺席时挂，避免双行。 */
     _dailyMetaItem('dailyQianWin',
       (j.personal && j.personal.line) ? '' : _qianWinHook());
+    /* R3826：窗宣行可点——「去签页」真跳签页（之前纯文本死链）。
+     * 委派挂 #dailyCard 常驻容器一次，行随重渲换新不受影响。 */
+    var _dcEl = el('dailyCard');
+    if (_dcEl && !_dcEl._qwBound) {
+      _dcEl._qwBound = true;
+      var _qwGo = function () { try { showView('qian'); } catch (eQ) {} };
+      _dcEl.addEventListener('click', function (e) {
+        var _t = e.target && e.target.closest
+          ? e.target.closest('.qw-nav') : null;
+        if (_t) _qwGo();
+      });
+      _dcEl.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        var _t = e.target && e.target.closest
+          ? e.target.closest('.qw-nav') : null;
+        if (_t) { e.preventDefault(); _qwGo(); }
+      });
+    }
     /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
      * ≥2 天才展示（第 1 天没有「常客」感，挂着反而像计数器）。 */
     var _uDays = _usageDays();
@@ -19690,7 +19708,7 @@ function _qianWinHook() {
           _now2.getFullYear(), _now2.getMonth(), _now2.getDate()))
           / 86400000);
         if (_ddays >= 1 && _ddays <= 5) {
-          _qh.push('<span class="e-week-low">🎃 捣蛋签 ' +
+          _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签 ' +
             _ddays + ' 天后开张——那几天来抽一支宜动签</span>');
         } else if (typeof _qianHwFest === 'function' &&
                    _qianHwFest()) {
@@ -19700,7 +19718,7 @@ function _qianWinHook() {
             return (o2.m === 10 && o2.d >= 25) || (o2.m === 11 && o2.d <= 1);
           }));
           if (!_hwDk) {
-            _qh.push('<span class="e-week-low">🎃 捣蛋签开着呢' +
+            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签开着呢' +
               '——去签页抽今天的宜动签</span>');
           } else {
             /* R3657：窗内连抽计数——签史 hw 标 ≥2 天挂
@@ -19715,7 +19733,7 @@ function _qianWinHook() {
                 });
             } catch (eHN) {}
             if (_hwN >= 2) {
-              _qh.push('<span class="e-week-low">🎃 捣蛋签连抽 ' +
+              _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签连抽 ' +
                 _hwN + ' 天了——窗开到 11/1</span>');
             }
           }
@@ -19759,7 +19777,7 @@ function _qianWinHook() {
           _tqNow.getFullYear(), _tqNow.getMonth(),
           _tqNow.getDate())) / 86400000);
         if (_tqDays >= 1 && _tqDays <= 5) {
-          _qh.push('<span class="e-week-low">🌸 桃花签 ' +
+          _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签 ' +
             _tqDays + ' 天后开张——想心里那个人就来抽一支</span>');
         } else if (typeof _qianLoveFest === 'function' &&
                    _qianLoveFest()) {
@@ -19767,7 +19785,7 @@ function _qianWinHook() {
             return o3.m === 11 && o3.d >= 6 && o3.d <= 11;
           }));
           if (!_tqDk) {
-            _qh.push('<span class="e-week-low">🌸 桃花签开着呢' +
+            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签开着呢' +
               '——去签页抽今天的桃花签</span>');
           } else {
             var _tqN = 0;
@@ -19780,7 +19798,7 @@ function _qianWinHook() {
                 });
             } catch (eTN) {}
             if (_tqN >= 2) {
-              _qh.push('<span class="e-week-low">🌸 桃花签连抽 ' +
+              _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签连抽 ' +
                 _tqN + ' 天了——窗开到 11/11</span>');
             }
           }
@@ -19808,7 +19826,7 @@ function _qianWinHook() {
         var _cyDays = _cyOpen
           ? Math.round((_cyOpen - _cyT0) / 86400000) : 99;
         if (_cyDays >= 1 && _cyDays <= 5) {
-          _qh.push('<span class="e-week-low">🧧 新春福签 ' +
+          _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🧧 新春福签 ' +
             _cyDays + ' 天后开张——过年讨彩头，抽支吉签</span>');
         } else if (typeof _qianCnyFest === 'function' &&
                    _qianCnyFest()) {
@@ -19832,7 +19850,7 @@ function _qianWinHook() {
           if (!_cyDk) {
             /* R3684/R3691：窗内单日点名——元宵末日「今晚截止」
              * ＞初五迎财神＞通用未抽行。 */
-            _qh.push('<span class="e-week-low">🧧 ' +
+            _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🧧 ' +
               ((typeof _qianCnyLastDay === 'function' &&
                 _qianCnyLastDay())
                 ? '元宵佳节——福签今晚截止，讨最后一支彩头'
@@ -19857,7 +19875,7 @@ function _qianWinHook() {
                 });
             } catch (eCN) {}
             if (_cyN >= 2) {
-              _qh.push('<span class="e-week-low">🧧 新春福签连抽 ' +
+              _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🧧 新春福签连抽 ' +
                 _cyN + ' 天了——窗开到元宵</span>');
             }
           }

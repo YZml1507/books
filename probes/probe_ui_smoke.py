@@ -580,8 +580,10 @@ def main() -> int:
         # R2344（R60-P2）：裸绑定补登记
         "dailyRecall": "点击=data-hlask-q 文档级委托，链路同 deeplink/"
                        "问一嘴用例",
-        "dailyCard": "卡片本体无独立点击动作（scrollIntoView 场景），"
-                     "封面/打卡/预告均各有用例",
+        "dailyCard": "卡片本体：scrollIntoView 场景 + R3826 签窗宣"
+                     "委托（.qw-nav click/keydown→showView('qian')"
+                     "导航链路已由 deep.* 用例覆盖；与 dailyPersonal"
+                     " dq-line 同型豁免",
         "birthDrawer": "details 原生开合；ui:birth.submit 已展开并提交",
         "chatEmpty": "容器内的 .chat-chip 走 data-ask 委托→chatSend，"
                      "发送链路已由 crisis_fe/drawer 用例覆盖",
