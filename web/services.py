@@ -5755,6 +5755,114 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     f"现在：{_sh9}时（{_sw9}）{_vd9}")
             except Exception:
                 pass
+        # R4291：时间坐标族——ISO 周数/下周日期段/当月天数/闰年/
+        # 任意日星期反查（M月D日星期几）。
+        if any(k in _n for k in ("第几周", "几周了", "周数",
+                                 "下周哪", "下周是", "这个月几",
+                                 "这个月有", "这个月还有",
+                                 "这个月过了", "这个月剩",
+                                 "今年有", "今年多少天", "闰年",
+                                 "几天", "多少天", "星期几",
+                                 "礼拜几", "是周几", "是星期")) and \
+                not any(k in _n for k in
+                        ("还有几天", "剩几天", "过几天", "几天后",
+                         "今天星期", "明天星期", "昨天星期")):
+            try:
+                import calendar as _cal9
+                _ISO9 = _d.isocalendar()
+                if any(k in _n for k in ("第几周", "几周了", "周数")):
+                    _w9 = _ISO9[1]
+                    _ws9 = _d - timedelta(days=_d.weekday())
+                    _we9 = _ws9 + timedelta(days=6)
+                    out.append(
+                        f"本周：今年第{_w9}周"
+                        f"（{_ws9.month}月{_ws9.day}日周一到"
+                        f"{_we9.month}月{_we9.day}日周日）")
+                if "下周" in _n:
+                    _nx9 = _d - timedelta(days=_d.weekday()) \
+                        + timedelta(days=7)
+                    _ne9 = _nx9 + timedelta(days=6)
+                    out.append(
+                        f"下周：{_nx9.month}月{_nx9.day}日"
+                        f"（周一）到{_ne9.month}月{_ne9.day}日"
+                        "（周日）")
+                _mmq9 = re.search(r"(\d{1,2})月", _n)
+                _qm9v = int(_mmq9.group(1)) if _mmq9 else None
+                if _qm9v is None:
+                    # 中文数字月：十月/腊月/正月/十一月
+                    _mcn9 = re.search(
+                        r"(十一|十二|十|腊|正|[一二三四五六七八九])月",
+                        _n)
+                    if _mcn9:
+                        _CM9 = {"正": 1, "一": 1, "二": 2, "三": 3,
+                                "四": 4, "五": 5, "六": 6, "七": 7,
+                                "八": 8, "九": 9, "十": 10,
+                                "十一": 11, "十二": 12, "腊": 12}
+                        _qm9v = _CM9.get(_mcn9.group(1))
+                _wkq9 = any(k in _n for k in
+                            ("星期几", "礼拜几", "是周几", "是星期"))
+                if "下个月" in _n or "下月" in _n:
+                    _nm9 = (_d.year, _d.month + 1) if _d.month < 12 \
+                        else (_d.year + 1, 1)
+                    _nd9 = _cal9.monthrange(*_nm9)[1]
+                    out.append(
+                        f"下个月：{_nm9[0]}年{_nm9[1]}月"
+                        f"（1日到{_nd9}日，共{_nd9}天）")
+                elif "这个月" in _n or (_qm9v and not _wkq9):
+                    if _qm9v and "这个月" not in _n:
+                        if 1 <= _qm9v <= 12:
+                            _qy9 = _d.year + 1 if "明年" in _n \
+                                else _d.year + (
+                                    1 if _qm9v < _d.month else 0)
+                            out.append(
+                                f"{_qy9}年{_qm9v}月：共"
+                                f"{_cal9.monthrange(_qy9, _qm9v)[1]}天")
+                    else:
+                        _dim9 = _cal9.monthrange(
+                            _d.year, _d.month)[1]
+                        out.append(
+                            f"这个月：{_d.month}月共{_dim9}天，"
+                            f"过了{_d.day - 1}天，"
+                            f"还剩{_dim9 - _d.day}天")
+                # 任意日星期反查：「11月1日星期几/12月25号是周几」。
+                if _wkq9:
+                    _wd9 = re.search(
+                        r"(?:(\d{4})年)?(\d{1,2})月"
+                        r"(\d{1,2})[日号]", _n)
+                    if _wd9:
+                        _wy9 = int(_wd9.group(1)) if _wd9.group(1) \
+                            else _d.year + (1 if (
+                                int(_wd9.group(2)),
+                                int(_wd9.group(3))) < (
+                                    _d.month, _d.day) else 0)
+                        try:
+                            _wd9d = date(_wy9, int(_wd9.group(2)),
+                                         int(_wd9.group(3)))
+                            out.append(
+                                f"{_wd9d.month}月{_wd9d.day}日："
+                                f"星期{'一二三四五六日'[_wd9d.weekday()]}"
+                                f"（{_wy9}年，"
+                                f"{'还有' + str((_wd9d - _d).days) + '天' if _wd9d >= _d else '已过' + str((_d - _wd9d).days) + '天'}）")
+                        except ValueError:
+                            pass
+                if "今年" in _n or "闰年" in _n or "第几天" in _n:
+                    _yy9 = _d.year + (1 if "明年" in _n else 0)
+                    _lp9 = _cal9.isleap(_yy9)
+                    _diy9 = _dd.timetuple().tm_yday
+                    _tot9 = 366 if _lp9 else 365
+                    if "第几天" in _n and "今年" not in _n \
+                            and "闰年" not in _n:
+                        out.append(
+                            f"今天是今年第{_d.timetuple().tm_yday}天")
+                    else:
+                        out.append(
+                            f"{'明年' if _yy9 != _d.year else '今年'}："
+                            f"{_yy9}年{'是闰年' if _lp9 else '是平年'}"
+                            f"（{_tot9}天）"
+                            + (f"，今天是第{_diy9}天"
+                               if _yy9 == _d.year else ""))
+            except Exception:
+                pass
         # R4261：本命年/犯太岁个人判定——流年支 × 生年支真算
         #（同支本命年、六冲冲太岁、刑/害/破犯太岁，口径与
         # bazi_calc 流年K线同一套表），不犯就直说还给下个本命年。
