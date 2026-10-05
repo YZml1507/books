@@ -19876,9 +19876,13 @@ function _qianWinHook() {
                           _now2.getDate() === 1;
             var _hwFirst = _now2.getMonth() === 9 &&
                            _now2.getDate() === 25;
+            /* R4041：末日前一天「明天截止」第二压点。 */
+            var _hwSoon = _now2.getMonth() === 9 &&
+                          _now2.getDate() === 31;
             _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签' +
               (_hwLast ? '今晚截止——最后一支宜动签别错过' :
                _hwFirst ? '今天开张——抽支宜动签讨个彩头' :
+               _hwSoon ? '明天截止——宜动签还剩两天' :
                '开着呢——去签页抽今天的宜动签') + '</span>');
           } else {
             /* R3657：窗内连抽计数——签史 hw 标 ≥2 天挂
@@ -19950,9 +19954,12 @@ function _qianWinHook() {
                           _tqNow.getDate() === 11;
             var _tqFirst = _tqNow.getMonth() === 10 &&
                            _tqNow.getDate() === 6;
+            var _tqSoon = _tqNow.getMonth() === 10 &&
+                          _tqNow.getDate() === 10;
             _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签' +
               (_tqLast ? '今晚截止——最后一支桃花签别错过' :
                _tqFirst ? '今天开张——想心里那个人就来抽一支' :
+               _tqSoon ? '明天截止——桃花签还剩两天' :
                '开着呢——去签页抽今天的桃花签') + '</span>');
           } else {
             var _tqN = 0;
@@ -20014,10 +20021,14 @@ function _qianWinHook() {
           var _hwFirst2 = _inBothDates(function (o5c) {
             return o5c.m === 10 && o5c.d === 29;
           });
+          var _hwSoon2 = _inBothDates(function (o5d) {
+            return o5d.m === 10 && o5d.d === 31;
+          });
           _qh.push('<span class="e-week-low qw-nav" role="button" ' +
             'tabindex="0" data-dv="tarot">🎃 万圣夜限定' +
             (_hwLast2 ? '今晚截止——不敢问的最后翻一张' :
              _hwFirst2 ? '今天开张——塔罗页翻一张不敢问的' :
+             _hwSoon2 ? '明天截止——不敢问的还剩两天' :
              '开着呢——塔罗页翻一张不敢问的') + '</span>');
         }
         if (typeof _inBothDates === 'function' &&
@@ -20031,10 +20042,14 @@ function _qianWinHook() {
           var _xFirst = _inBothDates(function (o6c) {
             return o6c.m === 12 && o6c.d === 20;
           });
+          var _xSoon = _inBothDates(function (o6d) {
+            return o6d.m === 12 && o6d.d === 24;
+          });
           _qh.push('<span class="e-week-low qw-nav" role="button" ' +
             'tabindex="0" data-dv="tarot">🎄 圣诞心愿限定' +
             (_xLast ? '今晚截止——心愿最后翻一张' :
              _xFirst ? '今天开张——默念心愿翻一张' :
+             _xSoon ? '明天截止——心愿还剩两天' :
              '开着呢——塔罗页默念心愿翻一张') + '</span>');
         }
       } catch (eTH) {}
@@ -22449,10 +22464,16 @@ function renderCheckin(dateKey) {
         var _nyFirst = _inBothDates(function (oNy2) {
           return oNy2.m === 12 && oNy2.d === 25;
         });
+        /* R4041：末日前一天「明天截止」第二压点。 */
+        var _nySoon = _inBothDates(function (oNy3) {
+          return oNy3.m === 12 && oNy3.d === 30;
+        });
         _xmasHtml += '<div class="ck-quest ck-nytease">' +
           (_nyLast ? '🧨 跨年许愿今晚截止——写给明年的话，' +
            '封口存到元旦才启封' :
            _nyFirst ? '🧨 跨年许愿今天开——写给明年的话，' +
+           '封口存到元旦才启封' :
+           _nySoon ? '🧨 跨年许愿明天截止——写给明年的话，' +
            '封口存到元旦才启封' :
            '🧨 跨年许愿开着呢——写给明年的话，' +
            '封口存到元旦才启封') +
