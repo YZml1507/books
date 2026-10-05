@@ -6691,6 +6691,91 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                if _mm9d > _d else "（过了）"))
             except Exception:
                 pass
+        # R4361：个人属性问——「我属什么/我几岁/我什么星座/我是什么命/
+        # 我五行属啥」有档必答（与档案层同源真值）；上升/月亮星座
+        # 要时辰排盘，档案没时辰就直说。
+        if any(k in _n for k in ("我属什么", "我属相", "我几岁",
+                                 "我多大", "我什么星座", "我哪个星座",
+                                 "TA属什么", "TA几岁", "TA什么星座",
+                                 "他属什么", "她属什么", "我是什么命",
+                                 "我什么命", "属啥", "上升星座",
+                                 "月亮星座", "几岁", "多大年纪",
+                                 "虚岁")):
+            try:
+                _ta9 = any(k in _n for k in
+                           ("TA", "ta", "他", "她", "对象", "另一半"))
+                _m9w = next(
+                    ((_BIRTHDAY_PARTNER_RE if _ta9
+                      else _BIRTHDAY_FACT_RE).match(str(_fp).strip())
+                     for _fp in facts or []
+                     if (_BIRTHDAY_PARTNER_RE if _ta9
+                         else _BIRTHDAY_FACT_RE).match(
+                             str(_fp).strip())),
+                    None)
+                _who9 = "TA" if _ta9 else "你"
+                if "上升星座" in _n or "月亮星座" in _n:
+                    out.append(
+                        f"{_who9}的{'上升' if '上升' in _n else '月亮'}"
+                        "星座：得出生时辰才排得出来——档案只存了日期，"
+                        "去八字盘补个时辰再看")
+                elif _m9w:
+                    _by9, _bm9, _bd9i = (int(_m9w.group(1)),
+                                         int(_m9w.group(2)),
+                                         int(_m9w.group(3)))
+                    if "虚岁" in _n:
+                        out.append(
+                            f"{_who9}的虚岁："
+                            f"{_d.year - _by9 + 1}岁")
+                    elif any(k in _n for k in ("属什么", "属相", "属啥",
+                                               "几岁", "多大", "年纪")) \
+                            and "星座" not in _n and "命" not in _n:
+                        if "五行" in _n or "金木水火土" in _n:
+                            # 「金木水火土我属啥」问的是日主五行。
+                            _dg9w = _bazi_day_ganzhi(
+                                datetime(_by9, _bm9, _bd9i))[0][0]
+                            out.append(
+                                f"{_who9}的日主：{_dg9w}"
+                                f"（五行属{GAN_ELEM.get(_dg9w, '')}）")
+                        else:
+                            if any(k in _n for k in
+                                   ("属什么", "属相")):
+                                _lz9 = lunar.solar_to_lunar(
+                                    _by9, _bm9, _bd9i)
+                                _zz9 = _lz9.get(
+                                    "ganzhi_year", "  ")[1]
+                                _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
+                                    "子丑寅卯辰巳午未申酉戌亥".index(
+                                        _zz9)]
+                                out.append(
+                                    f"{_who9}的生肖：属{_sx9}")
+                        _ag9 = _d.year - _by9 - (
+                            (_d.month, _d.day) < (_bm9, _bd9i))
+                        if any(k in _n for k in
+                               ("几岁", "多大", "年纪")):
+                            _ay9 = _d.year + (
+                                1 if "明年" in _n else
+                                2 if "后年" in _n else 0)
+                            out.append(
+                                f"{_who9}现在：{_ag9}周岁"
+                                + (f"（{_ay9}年满{_ay9 - _by9}岁）"
+                                   if _ay9 != _d.year else "")
+                                + f"·虚岁{_d.year - _by9 + 1}岁")
+                    if "星座" in _n:
+                        from guji.xingzuo import sun_sign as _ss9c
+                        _sg9c = _ss9c(_bm9, _bd9i, year=_by9) or ""
+                        if _sg9c:
+                            out.append(
+                                f"{_who9}的太阳星座：{_sg9c}")
+                    if "什么命" in _n or ("命" in _n
+                                          and "属" in _n):
+                        _bp9n = bazi_compute(_by9, _bm9, _bd9i, 12, "")
+                        _ny9n = (_bp9n.nayin or [""])[0]
+                        if _ny9n:
+                            out.append(
+                                f"{_who9}的年命纳音：{_ny9n}命"
+                                f"（{_bp9n.year}年）")
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
