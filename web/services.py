@@ -2169,6 +2169,12 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "出殡": ["安葬", "破土"], "下葬": ["安葬", "破土"],
     "戴孝": ["安葬"], "放生": ["祈福", "解除"],
     "拜佛": ["祭祀", "祈福"], "进香": ["祭祀", "祈福"],
+    # R4456i：庙宇/求签补键——庙里/寺庙同拜庙祭祀祈福腿；
+    # 求签族归祈福；安门归修造（安门不在宜忌规范词表）。
+    "去庙里": ["祭祀", "祈福"], "庙里": ["祭祀", "祈福"],
+    "去寺庙": ["祭祀", "祈福"], "寺庙": ["祭祀", "祈福"],
+    "求签": ["祈福"], "抽签": ["祈福"], "问卜": ["祈福"],
+    "求签问卜": ["祈福"], "安门": ["修造"],
 }
 
 # 黄历宜忌规范词全集——直接命中这些词也按事项处理。词表由建除/宿值
@@ -4557,6 +4563,8 @@ _CHAT_ACTIONS = [
     # 搬家/什么时候领证好/挑日子」全漏。收意图词（「好日子」
     # 裸词不收——「今天是个好日子」是寒暄不是导航）。
     (("黄历", "宜忌", "择日", "挑日子", "选日子", "挑个日子",
+      # R4456g：通胜/皇历/通书/历书别名同指黄历入口。
+      "通胜", "皇历", "通书", "历书",
       "哪天适合", "什么时候适合", "适合搬家", "适合开业", "适合领证",
       "适合结婚", "适合表白", "适合动土", "适合出行", "吉日",
       "良辰", "宜什么",
@@ -4782,7 +4790,8 @@ _CHAT_ACTIONS = [
      "出盘后，结果卡上有「💘 看看 TA 的气质画像」，按她的"
      "盘推出气质型+相遇信号，还能晒图；让她先去桃花页看盘",
      "taohua", "💘 去看正缘画像", None),
-    (("八字",),
+    # R4456h：「算命/批八字/测八字」同指八字盘入口。
+    (("八字", "算命", "算八字", "批八字", "测八字", "看八字"),
      "她想排八字，铺子里有真入口：首页「八字」卡输生日"
      "出真盘，看完回来接着聊",
      "bazi", "📜 去排八字", None),
@@ -4865,16 +4874,22 @@ def _chat_action(message: str):
                 "铺子里的口径是这份公开资料",
                 "hehun", f"✨ 去和「{c['n']}」合盘", "celeb")
     for keys, line, view, label, anchor in _CHAT_ACTIONS:
-        if view == "bazi" and keys == ("八字",):
+        if view == "bazi" and keys and keys[0] == "八字":
             # 「八字」裸词过宽（「我八字软吗」是提问不是要排盘）——
             # 要求同句带动作词。R3370-P2-8：命盘/看盘/我的盘同族。
             # R3418-P2-1：其它 view=bazi 的条目（K线族）走正常
             # key 匹配，不吃动作词闸。
             # R3418-P2-5：排盘/个盘形态——产品自用术语不在盘词集，
             # 「帮我排盘」「合个盘」此前全漏。
+            # R4456h2：算命/批八字/测八字扩键本身是动作意图，直通。
             if (("八字" in _n or "命盘" in _n or "我的盘" in _n
                  or "看盘" in _n or "排盘" in _n or "个盘" in _n)
-                    and any(k in _n for k in ("算", "看", "排", "测"))):
+                    and any(k in _n for k in ("算", "看", "排", "测"))) \
+                    or (any(k in _n for k in ("算命", "算八字", "批八字",
+                                              "测八字", "看八字", "批命"))
+                        # 「算命prompt」归 saP 锚（复制 prompt 件），
+                        # 别被算命裸键吞掉。
+                        and "prompt" not in _n.lower()):
                 return line, view, label, anchor
             continue
         if anchor == "trQH":
@@ -5357,7 +5372,15 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 pass
         # R4171：黄历坐标活事实——值神/冲煞/彭祖百忌/建除/日课，
         # 与黄历卡同源（huangli() 单日坐标），命名日迁移同享。
-        if any(k in _n for k in ("值神", "吉神", "凶煞", "黄道", "黑道",
+        # R4456：「冲牛吗/冲不冲鼠/对属牛的好吗」点名属相——
+        # 属相后必须跟问句边界（冲马桶≠冲马），正则先行进门。
+        _qa9m = (re.search(
+            r"对属([鼠牛虎兔龙蛇马羊猴鸡狗猪])"
+            r"(?=$|[吗呢好不行。？！?，,\s的])", _n)
+            or re.search(
+            r"(?:冲不冲|冲了没|冲)([鼠牛虎兔龙蛇马羊猴鸡狗猪])"
+            r"(?=$|[吗呢好不行。？！?，,\s的])", _n))
+        if _qa9m or any(k in _n for k in ("值神", "吉神", "凶煞", "黄道", "黑道",
                                  "冲什么", "冲煞", "煞哪", "冲哪个",
                                  "冲我", "克我", "旺我", "跟我冲",
                                  "跟我属相", "冲咱",
@@ -5382,13 +5405,14 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 _taq9 = _tap9 and any(
                     k in _n for k in ("克我", "旺我", "冲我",
                                       "跟我冲", "跟我合", "对我"))
+                # R4456b：点名句不重复发泛冲煞行。
                 if (_cs9.get("chong_animal") and any(
                         k in _n for k in ("冲", "煞", "克我", "旺我"))) \
                         or _taq9:
                     if _cs9.get("chong_animal") and any(
                             k in _n for k in
                             ("冲", "煞", "克我", "旺我")) \
-                            and not _taq9:
+                            and not _taq9 and not _qa9m:
                         out.append(
                             f"{_pfx}冲煞：冲{_cs9['chong_animal']}"
                             f"（{_cs9['chong']}），"
@@ -5497,6 +5521,20 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                 out.append(
                                     f"对你：属{_uz9}——今天冲的是"
                                     f"属{_cs9['chong_animal']}，不冲你")
+                # R4456c：点名属相对冲判定（不必档案；不带冲煞字
+                # 的问句也发——「对属牛的好吗」全靠它）。
+                if _qa9m and _cs9.get("chong_animal"):
+                    _qa9 = _qa9m.group(1)
+                    if _qa9 == _cs9["chong_animal"]:
+                        out.append(
+                            f"{_pfx}点名：今天正冲属{_qa9}"
+                            f"（{_cs9.get('chong', '')}）——"
+                            "大事缓一天")
+                    else:
+                        out.append(
+                            f"{_pfx}点名：今天冲属"
+                            f"{_cs9['chong_animal']}，"
+                            f"属{_qa9}不犯冲")
                 _pz9 = _hl9.get("pengzu") or {}
                 if _pz9.get("gan_text") and any(
                         k in _n for k in ("彭祖", "百忌")):
@@ -7423,7 +7461,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         if any(k in _n for k in ("方位", "方向", "往哪", "朝哪",
                                  "喜神", "福神", "贵神", "煞哪",
                                  "煞方", "煞", "往", "朝", "向", "去",
-                                 "财神在哪", "财神方位", "什么方位")):
+                                 # R4456d：财神爷/睡哪头/办公桌朝向
+                                 # 变体补键。
+                                 "财神", "财神在哪", "财神方位",
+                                 "什么方位", "哪头", "睡哪")):
             try:
                 _dt9 = datetime(_dd.year, _dd.month, _dd.day, 12)
                 _gd9 = huangli_mod.day_ganzhi(_dt9) or ["", ""]
@@ -7500,7 +7541,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 # 泛方向问（往哪/朝哪/去哪/什么方位）没点名→方位四件一把给。
                 if not _em9 and any(k in _n for k in
                                     ("往哪", "朝哪", "去哪", "方位",
-                                     "方向")):
+                                     "方向", "朝向", "哪头", "睡哪")):
                     out.append(
                         f"{_pfx}方位四件：财神{_cai9}、"
                         f"喜神{_xi9 or '—'}、"
@@ -7756,6 +7797,19 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             out.append(
                 "胎神方位这档小满还没录——要查去专业黄历，"
                 "今天的宜忌以卡面为准")
+        # R4456e：看相/测字/风水铺子没这门——直说+指手里有的。
+        if any(k in _n for k in ("看相", "相面", "测字", "看风水",
+                                 "风水")):
+            out.append(
+                "看相测字看风水这门小满没学——挑日子、看方位"
+                "黄历页和日签卡里有，去那儿翻翻")
+        # R4456f：作息老话——亥时睡卯时起（民俗时辰养生口径一句）。
+        if any(k in _n for k in ("几点睡", "几点起", "几点钟睡",
+                                 "几点钟起", "什么时候睡",
+                                 "什么时候起", "晚睡")):
+            out.append(
+                "老话讲亥时（21–23 点）躺下、卯时（5–7 点）起"
+                "最养人——作息按自己节奏，当参考")
         # R4196：点名节日回声——「重阳节快乐/双十一/520」不带
         # 问题词也认得它：给真实日期+倒数+节日tip（与 _FEST_TIP
         # 同源）；带问题/值域词的走各自块，不抢话。
