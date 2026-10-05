@@ -11973,6 +11973,13 @@ def _chat_facts_inner(message: str, now: datetime,
         if spoken != "今天" or any(
                 w in msg for w in ("今天", "今日", "今晚", "今夜")):
             generic = True
+        elif (_find_intent or re.search(
+                # R4811d：负向找日/时刻问裸形——没场景没日词也别
+                # 空返，进 generic 发凶日榜/吉时榜。
+                r"凶日|大凶|最不吉|最差|避凶|躲凶|避雷|诸事不宜|"
+                r"几点|上午|下午|早上|中午|傍晚|凌晨|夜里|半夜|"
+                r"时辰|什么时间|啥时辰", msg_n)):
+            generic = True
         else:
             return []
     q = huangli_mod.day_query(dt)
@@ -12094,10 +12101,14 @@ def _chat_facts_inner(message: str, now: datetime,
                          "为它背书，可照常安排；想要背书就挑宜它的日子。")
         # R4271：泛「哪天最好/最近好日子」找日问——没指场景的给
         # 近14天日档榜（吉/小吉日，fortune_level 与当日日档同源）。
-        if _find_intent:
+        if _find_intent or re.search(
+                # R4811a：负向找日同门——「凶日有哪些/哪天最不吉/
+                # 避凶日」近14天避雷榜。
+                r"凶日|大凶|最不吉|最差|避凶|躲凶|避雷|"
+                r"诸事不宜|不吉利|不順|凶的", msg_n):
             try:
                 _WD9 = "一二三四五六日"
-                _gd9 = []
+                _gd9, _bd9 = [], []
                 _d0 = (now or _now_cn()).date()
                 for _io in range(14):
                     _dx = _d0 + timedelta(days=_io)
@@ -12110,9 +12121,36 @@ def _chat_facts_inner(message: str, now: datetime,
                         _gd9.append(
                             f"{_dx.month}/{_dx.day}"
                             f"（周{_WD9[_dx.weekday()]}·{_lx}）")
-                if _gd9:
+                    elif _lx == "凶":
+                        _bd9.append(
+                            f"{_dx.month}/{_dx.day}"
+                            f"（周{_WD9[_dx.weekday()]}）")
+                if re.search(r"凶日|大凶|最不吉|最差|避凶|躲凶|"
+                             r"避雷|诸事不宜|不吉利|不順|凶的",
+                             msg_n):
+                    facts.append(
+                        "近14天日档较差（避雷）的日子："
+                        + ("、".join(_bd9[:6]) if _bd9
+                           else "没翻到，这半月都平或吉"))
+                elif _gd9:
                     facts.append(
                         "近14天日档较好的日子：" + "、".join(_gd9[:6]))
+            except Exception:
+                pass
+        # R4811b：时辰问法——「几点搬家/上午好还是下午好/啥时辰」
+        # 没场景也给当日吉时榜（黄历小时辰吉凶表同源）。
+        if re.search(
+                r"几点|上午|下午|早上|中午|傍晚|凌晨|夜里|半夜|"
+                r"时辰|什么时间|啥时辰|上午好|下午好", msg_n) \
+                and not re.search(r"时辰：|我的时辰|改时辰|几点生",
+                                  msg_n):
+            try:
+                _hrs9 = (q.get("hours") or [])
+                _gj9 = [f"{h['branch']}时（{h['shen']}）"
+                        for h in _hrs9 if h.get("ji")]
+                if _gj9:
+                    facts.append(
+                        f"今日吉时：{'、'.join(_gj9[:5])}")
             except Exception:
                 pass
         if past_note:
@@ -12180,6 +12218,27 @@ def _chat_facts_inner(message: str, now: datetime,
         verdict = (f"黄历判定：{date_cn}{past_mid} 宜忌都没直接提「{scene}」，中性，"
                    f"不是不支持，只是黄历{that_day}没为它背书，{scene}可照常安排。"
                    f"{_good_part()}")
+    # R4811c：月域/季域找日问——「哪个月搬家好/几月适合结婚」
+    # 不是问今天是问跨月挑；改发近45天宜日榜并说明更远没排。
+    if (any(k in msg_n for k in ("哪个月", "几月份", "哪一年",
+                                 "哪年", "什么季节", "哪个季节"))
+            or ("几月" in msg_n and "几月几" not in msg_n)
+            or ("哪月" in msg_n and "哪月几" not in msg_n)) \
+            and not past_note:
+        verdict = (f"跨月挑日子：黄历日课翻近45天——{_good_part()}"
+                   f"（更远的月份日课还没排上，到跟前再挑）")
+    # R4811b：场景句带时刻词——「几点搬家好/上午出门好吗」
+    # 追发当日吉时榜。
+    if re.search(r"几点|上午|下午|早上|中午|傍晚|凌晨|夜里|半夜|"
+                 r"时辰|什么时间|啥时辰", msg_n):
+        try:
+            _hrs9 = (q.get("hours") or [])
+            _gj9 = [f"{h['branch']}时（{h['shen']}）"
+                    for h in _hrs9 if h.get("ji")]
+            if _gj9:
+                verdict += f"（今日吉时：{'、'.join(_gj9[:5])}）"
+        except Exception:
+            pass
     if past_mid:
         verdict += "（该日期已过去，请温和点出、按复盘口径回应，不要再给择日建议。）"
     # R233g（R44-P1-7）：医疗类事项（求医/治病/手术/体检等）判词必须带
