@@ -3641,8 +3641,13 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
             return _c9, f"{_yy9}年"
     for (mm2, dd2), fv in _FEST_SOLAR.items():
         # R4541c：同农历节路——削「节」裸名只认 ≥3 字名。
+        # R4766a：削出的裸词若是人称呼唤高频词（女生/情人/儿童…），
+        # 组合词会误中——「追女生」撞女生节。这类只认全名。
+        _STEM_AMBI = ("情人", "女生", "妇女", "女神", "青年",
+                      "儿童", "教师", "圣诞", "愚人", "劳动")
         if any((p2 in msg or (len(p2) >= 3 and p2.endswith("节")
-                              and p2[:-1] in msg))
+                              and p2[:-1] in msg
+                              and not p2[:-1].endswith(_STEM_AMBI)))
                for p2 in fv.split("·")):
             cand = date(today.year, mm2, dd2)
             if cand < today:
@@ -3790,8 +3795,11 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
     for (lm2, ld2), fv in _FEST_LUNAR.items():
         # R4541c：削「节」放裸名匹配只认 ≥3 字名——「春节」削成
         # 「春」会把「春捂秋冻/春天吃什么」全错配到春节。
+        # R4766c：物件词裸名同收黑名单——「火把」会误中「举个火把」。
+        _STEM_AMBI_L = ("火把",)
         if any((p2 in msg or (len(p2) >= 3 and p2.endswith("节")
-                              and p2[:-1] in msg))
+                              and p2[:-1] in msg
+                              and not p2[:-1].endswith(_STEM_AMBI_L)))
                for p2 in fv.split("·")):
             for yy in (today.year, today.year + 1):
                 cand = _ly.lunar_to_solar(yy, lm2, ld2)
@@ -6437,7 +6445,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 pass
         # R3881：今日月相活事实——问「月亮/满月/新月」手里有
         # 当日相位+那句月相话（与日签卡 _moon_for 同源）。
-        if "满月酒" not in _n and "百岁宴" not in _n and any(
+        if "满月酒" not in _n and "百岁宴" not in _n and not any(
+                # R4766b：「满月礼物/满月宴/过满月」是婴俗礼不是月相问。
+                k in _n for k in ("满月礼", "满月宴", "办满月",
+                                  "过满月", "满月糖", "满月蛋",
+                                  "满月宝")) and any(
                 k in _n for k in ("月亮", "月相", "满月", "新月",
                                  "月圆", "月缺", "今晚的月亮",
                                  # R4466e：赏月/观星同源——观星先看
@@ -10014,7 +10026,12 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # R4551d：名字门——起名页是真功能，改名老话讲五行。
         if any(k in _n for k in ("我名字好不好", "名字好不好", "名字怎么样",
                                  "想改名", "改名好不好", "测名字",
-                                 "名字打分", "名字好不好听")):
+                                 "名字打分", "名字好不好听",
+                                 # R4766e：起名需求同指起名页——
+                                 # 「起名字/取名/宝宝起名」此前静默。
+                                 "起名字", "取名", "起名", "取名字",
+                                 "起个名", "宝宝起名", "小孩起名",
+                                 "孩子起名", "公司起名", "店铺起名")):
             out.append(
                 "起名字这门铺子有——起名页排五行缺啥给候选名；"
                 "改名老话讲先看五行补啥")
@@ -10412,6 +10429,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         if any(k in _n for k in ("随多少份子", "份子钱多少",
                                  "红包包多少", "包多少红包",
                                  "回礼回什么", "送什么礼", "送啥礼",
+                                 # R4766d：「X礼物」长尾同门——人情老话
+                                 # 一句+诞生石方向。
+                                 "礼物", "送礼物", "挑礼物", "买礼物",
                                  "礼物送什么", "送礼送什么",
                                  "送男朋友", "送女朋友", "送妈妈",
                                  "送爸爸", "送长辈", "送老师",
