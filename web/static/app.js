@@ -6719,17 +6719,21 @@ async function loadDaily() {
     var _dcEl = el('dailyCard');
     if (_dcEl && !_dcEl._qwBound) {
       _dcEl._qwBound = true;
-      var _qwGo = function () { try { showView('qian'); } catch (eQ) {} };
+      /* R3868：data-dv 自定义目标——万圣夜限定行去塔罗页，
+       * 其余仍去签页。 */
+      var _qwGo = function (v) {
+        try { showView(v || 'qian'); } catch (eQ) {}
+      };
       _dcEl.addEventListener('click', function (e) {
         var _t = e.target && e.target.closest
           ? e.target.closest('.qw-nav') : null;
-        if (_t) _qwGo();
+        if (_t) _qwGo(_t.getAttribute('data-dv'));
       });
       _dcEl.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter' && e.key !== ' ') return;
         var _t = e.target && e.target.closest
           ? e.target.closest('.qw-nav') : null;
-        if (_t) { e.preventDefault(); _qwGo(); }
+        if (_t) { e.preventDefault(); _qwGo(_t.getAttribute('data-dv')); }
       });
     }
     /* R3260：足迹胶囊——「来铺子的第N天」是关系锚不是仪表盘；
@@ -15031,7 +15035,12 @@ function initDivination() {
           ' 天后开张——心愿翻一张看它会怎么来');
     }
     _trTse.hidden = !_tt.length;
-    _trTse.innerHTML = _tt.join('<br>');
+    /* 纯文案行——走 textNode+br 追加，不走 innerHTML 拼接。 */
+    _trTse.textContent = '';
+    _tt.forEach(function (t5, i5) {
+      if (i5) _trTse.appendChild(document.createElement('br'));
+      _trTse.appendChild(document.createTextNode(t5));
+    });
   };
   _trFestTease();
   /* R3435：跨零点进出窗口重判——页面过夜到 12/20 钮要现身、
@@ -19882,6 +19891,19 @@ function _qianWinHook() {
           } catch (eTC) {}
         }
       } catch (eTQ) {}
+      /* R3868：万圣夜限定窗内行（塔罗 10.29–11.1）——同万圣档
+       * 的姊妹窗，签窗那几行去签页，这行去塔罗页（data-dv）。 */
+      try {
+        if (typeof _inBothDates === 'function' &&
+            _inBothDates(function (o5) {
+              return (o5.m === 10 && o5.d >= 29) ||
+                     (o5.m === 11 && o5.d <= 1);
+            })) {
+          _qh.push('<span class="e-week-low qw-nav" role="button" ' +
+            'tabindex="0" data-dv="tarot">🎃 万圣夜限定开着呢' +
+            '——塔罗页翻一张不敢问的</span>');
+        }
+      } catch (eTH) {}
       /* R3681：新春福签钩——与捣蛋/桃花同套窗机制（除夕—元宵，
        * 公历窗查 _QIAN_CNY_WIN 表）：开窗前 1-5 天倒计时；窗内
        * 未抽提醒+连抽计数（cny 标限本窗区间）。 */
