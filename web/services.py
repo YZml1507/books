@@ -5720,11 +5720,21 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "今天能量", "我的能量", "今天电量",
                                  "我今天适合", "我今天的运势", "我运势",
                                  "我明天怎么样", "我明天运势",
-                                 "明天的运势", "明天能量", "我后天")):
+                                 "明天的运势", "明天能量", "我后天",
+                                 "TA今天", "ta今天", "TA的运势",
+                                 "TA今天怎么样", "TA今天运气",
+                                 "他今天", "她今天", "对象今天")):
             try:
+                # R4381b：TA 人称同链——「TA今天怎么样」取 TA 生日
+                # 的 personal 行，称呼换 TA。
+                _ta10 = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _re10 = (_BIRTHDAY_PARTNER_RE if _ta10
+                         else _BIRTHDAY_FACT_RE)
+                _who10 = "TA" if _ta10 else "你"
                 _ub10 = None
                 for _pf10 in facts or []:
-                    _m10 = _BIRTHDAY_FACT_RE.match(str(_pf10).strip())
+                    _m10 = _re10.match(str(_pf10).strip())
                     if _m10:
                         _ub10 = (int(_m10.group(1)), int(_m10.group(2)),
                                  int(_m10.group(3)))
@@ -5734,16 +5744,27 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  bday="{:04d}-{:02d}-{:02d}".format(
                                      *_ub10)).get("personal") or {}
                     _eg = _per.get("energy") or {}
+                    # 判词模板写死「你的…」，TA 问法换成 TA。
+                    def _w10(s: str) -> str:
+                        return (s or "").replace(
+                            "你的日主", "TA的日主").replace(
+                            "今天是你的", "今天是TA的").replace(
+                            "你的日支", "TA的日支").replace(
+                            "你的", "TA的") if _ta10 else (s or "")
                     if _per.get("line"):
-                        out.append(f"{_pfx}你的十神日：{_per['line']}")
+                        out.append(
+                            f"{_pfx}{_who10}的十神日："
+                            f"{_w10(_per['line'])}")
                     if _eg.get("line"):
                         out.append(
-                            f"{_pfx}电量：{_eg['line']}"
+                            f"{_pfx}{_who10}的电量："
+                            f"{_w10(_eg['line'])}"
                             + (f"（{_eg.get('score')}/100）"
                                if _eg.get("score") is not None else ""))
                     _mn = _per.get("mine") or {}
                     if _mn.get("line") and _mn.get("tone") != "flat":
-                        out.append(f"{_pfx}你的盘：{_mn['line']}")
+                        out.append(
+                            f"{_pfx}{_who10}的盘：{_w10(_mn['line'])}")
             except Exception:
                 pass
         # R4226：今日牌问句——与卡面「🃏 今日牌」同源（daily 确定性
@@ -6242,12 +6263,19 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 or "下月" in _n or "哪个月" in _n
                 or "几月" in _n) and any(
                 k in _n for k in ("运", "怎么样", "如何", "顺",
-                                  "好不好", "我")):
+                                  "好不好", "我", "TA", "ta",
+                                  "他", "她")):
             try:
+                # R4381：TA 人称同链——「TA这个月运势」取 TA 生日。
+                _ta9c = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _re9c = (_BIRTHDAY_PARTNER_RE if _ta9c
+                         else _BIRTHDAY_FACT_RE)
+                _who9c = "TA" if _ta9c else "你"
                 _m9c = next(
-                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                    (_re9c.match(str(_fp).strip())
                      for _fp in facts or []
-                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                     if _re9c.match(str(_fp).strip())),
                     None)
                 if _m9c:
                     _dmz9c, _ = _bazi_day_ganzhi(
@@ -6276,7 +6304,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             (_ez9 if _rg9 in _EASY9 else _hd9).append(
                                 f"{_mm9}月{_rg9}")
                         out.append(
-                            f"今年你的顺月：{'、'.join(_ez9[:5])}"
+                            f"今年{_who9c}的顺月："
+                            f"{'、'.join(_ez9[:5])}"
                             + (f"；硬月：{'、'.join(_hd9[:4])}"
                                if _hd9 else ""))
                     else:
@@ -6297,7 +6326,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         _rg9 = ten_god(_dmg9, _mg9[0])
                         _lb9m = "下个月" if _nb9m else "这个月"
                         out.append(
-                            f"{_lb9m}你的流月十神：{_mg9}月（{_rg9}）"
+                            f"{_lb9m}{_who9c}的流月十神：{_mg9}月"
+                            f"（{_rg9}）"
                             + (f"——{_TT9c.get(_rg9, '')}"
                                if _rg9 in _TT9c else ""))
             except Exception:
@@ -7058,6 +7088,40 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(
                             f"你的本命佛：{_BF9[_sx9]}"
                             f"（属{_sx9}）")
+            except Exception:
+                pass
+        # R4381c：「我们差几岁/TA比我大几岁」——双生日在档出
+        # 真差值（与 profile_facts 年龄差行同口径）。
+        if ("差几岁" in _n or "差多少" in _n or "年龄差" in _n
+                or "大几岁" in _n or "小几岁" in _n
+                or "比我大" in _n or "比我小" in _n):
+            try:
+                _ba9 = next(
+                    (_BIRTHDAY_FACT_RE.match(str(_x).strip())
+                     for _x in facts or []
+                     if _BIRTHDAY_FACT_RE.match(str(_x).strip())),
+                    None)
+                _bb9 = next(
+                    (_BIRTHDAY_PARTNER_RE.match(str(_x).strip())
+                     for _x in facts or []
+                     if _BIRTHDAY_PARTNER_RE.match(str(_x).strip())),
+                    None)
+                if _ba9 and _bb9:
+                    _da9 = (date(int(_bb9.group(1)),
+                                 int(_bb9.group(2)),
+                                 int(_bb9.group(3)))
+                            - date(int(_ba9.group(1)),
+                                   int(_ba9.group(2)),
+                                   int(_ba9.group(3)))).days
+                    _ya9 = abs(_da9) / 365.25
+                    if _da9 > 0:
+                        out.append(
+                            f"年龄差：TA比你小{_ya9:.1f}岁")
+                    elif _da9 < 0:
+                        out.append(
+                            f"年龄差：TA比你大{_ya9:.1f}岁")
+                    else:
+                        out.append("年龄差：你们同年同月同日生")
             except Exception:
                 pass
         # R4371：「TA/我生日送什么」——拿档案生日给个有据方向
