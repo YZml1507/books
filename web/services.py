@@ -5392,10 +5392,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(
                             f"{_pfx}幸运数字：{_lk9['num']}"
                             f"（开运色{_lk9.get('color', '')}）")
-                if "财神" in _n or "方位" in _n:
-                    _cf9 = huangli_mod.caishen_fang(
-                        datetime(_dd.year, _dd.month, _dd.day, 12))
-                    out.append(f"{_pfx}财神方位：{_cf9}")
+                # R4276 起：财神/方位问句统一走方向神块（喜神/福神/
+                # 贵人/煞方一口袋+方向判定），这里不再单发财神行。
                 if any(k in _n for k in ("吉时", "好时辰", "几点好",
                                          "几点吉")):
                     _hrs = huangli(_dd.isoformat()).get("hours") or []
@@ -5777,6 +5775,100 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         _tf9 = _fest_tip(_nvf)
                         if _tf9:
                             out.append(f"{_pfx}食俗：{_tf9}")
+            except Exception:
+                pass
+        # R4276：方向神活事实——财神/喜神/福神/贵人/煞方一口袋
+        #（财神走 huangli_mod.caishen_fang 同源，喜神/福神按天干
+        # 通行表，贵人方=天乙贵人支的方位，煞方=冲煞 sha_fang）。
+        # 带「往/朝+方位」的问句给方向判定（吉方/煞方/中性）。
+        if any(k in _n for k in ("方位", "方向", "往哪", "朝哪",
+                                 "喜神", "福神", "贵神", "煞哪",
+                                 "煞方", "煞", "往", "朝", "向", "去",
+                                 "财神在哪", "财神方位", "什么方位")):
+            try:
+                _dt9 = datetime(_dd.year, _dd.month, _dd.day, 12)
+                _gd9 = huangli_mod.day_ganzhi(_dt9) or ["", ""]
+                _XIF9 = {"甲": "东北", "己": "东北", "乙": "西北",
+                         "庚": "西北", "丙": "西南", "辛": "西南",
+                         "丁": "南", "壬": "南", "戊": "东南",
+                         "癸": "东南"}
+                _FUF9 = {"甲": "北", "己": "北", "乙": "西南",
+                         "庚": "西南", "丙": "东", "辛": "东",
+                         "丁": "东南", "壬": "东南", "戊": "东北",
+                         "癸": "东北"}
+                _Z2D9 = {"子": "北", "丑": "东北", "寅": "东北",
+                         "卯": "东", "辰": "东南", "巳": "东南",
+                         "午": "南", "未": "西南", "申": "西南",
+                         "酉": "西", "戌": "西北", "亥": "西北"}
+                _cs9 = huangli(_dd.isoformat()).get("chongsha") or {}
+                _cai9 = huangli_mod.caishen_fang(_dt9)
+                _gr9 = huangli_mod.guiren(_dt9)
+                _grd9 = [_Z2D9.get(z, z) for z in _gr9]
+                _xi9 = _XIF9.get(_gd9[0], "")
+                _fu9 = _FUF9.get(_gd9[0], "")
+                _sha9 = _cs9.get("sha_fang", "")
+                _em9 = False
+                if "喜神" in _n:
+                    out.append(f"{_pfx}喜神方位：{_xi9 or '—'}")
+                    _em9 = True
+                if "福神" in _n:
+                    out.append(f"{_pfx}福神方位：{_fu9 or '—'}")
+                    _em9 = True
+                if "贵神" in _n or "贵人方位" in _n:
+                    out.append(
+                        f"{_pfx}贵人方位：{'、'.join(_grd9) or '—'}")
+                    _em9 = True
+                if "财神" in _n:
+                    out.append(f"{_pfx}财神方位：{_cai9}")
+                    _em9 = True
+                # 「煞北/煞方」裸词给煞方；带「冲/凶」的问句由黄历
+                # 坐标块出冲煞行（含煞方），不重复。
+                if "煞" in _n and "冲" not in _n and "凶" not in _n:
+                    out.append(f"{_pfx}煞方：{_sha9 or '—'}")
+                    _em9 = True
+                # 「往东走好吗/朝南开行吗」点名方向判定——
+                # 吉方=财神/喜神/福神/贵人所含方位，煞方回避。
+                _dm9 = re.search(
+                    r"[往朝向奔去走]?\s*(东南|东北|西南|西北|东|南|西|北)",
+                    _n)
+                if _dm9 and any(k in _n for k in
+                                ("往", "朝", "向", "奔", "走", "去")) \
+                        and not any(k in _n for k in
+                                    ("方位", "方向", "哪")):
+                    _wd9 = _dm9.group(1)
+                    _good9 = []
+                    if _cai9 == _wd9:
+                        _good9.append("财神")
+                    if _xi9 == _wd9:
+                        _good9.append("喜神")
+                    if _fu9 == _wd9:
+                        _good9.append("福神")
+                    if _wd9 in _grd9:
+                        _good9.append("贵人")
+                    if _sha9 == _wd9:
+                        out.append(
+                            f"{_pfx}向{_wd9}：今天是煞方，能换方向"
+                            "就换一个")
+                    elif _good9:
+                        out.append(
+                            f"{_pfx}向{_wd9}：好方向——"
+                            f"今天是{'、'.join(_good9)}方")
+                    else:
+                        out.append(
+                            f"{_pfx}向{_wd9}：不犯煞也不临吉，"
+                            "平常走没问题")
+                    _em9 = True
+                # 泛方向问（往哪/朝哪/去哪/什么方位）没点名→方位四件一把给。
+                if not _em9 and any(k in _n for k in
+                                    ("往哪", "朝哪", "去哪", "方位",
+                                     "方向")):
+                    out.append(
+                        f"{_pfx}方位四件：财神{_cai9}、"
+                        f"喜神{_xi9 or '—'}、"
+                        f"贵人{'、'.join(_grd9) or '—'}、"
+                        f"煞{_sha9 or '—'}")
+                elif not _em9 and "方位" in _n:
+                    out.append(f"{_pfx}财神方位：{_cai9}")
             except Exception:
                 pass
         # R4216：时令日内坐标+农历行——「今天几九/几伏/农历几号」。
