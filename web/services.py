@@ -4504,7 +4504,9 @@ _CHAT_ACTIONS = [
       # R3418-P1-4：「了/一」夹字形态——起了个卦/摇了一卦是
       # 最原生说法之一，原子串表零命中。
       "起了个卦", "起了一卦", "起了卦", "摇了一卦", "摇一卦",
-      "卜了一卦", "算了一卦", "打了个卦"),
+      "卜了一卦", "算了一卦", "打了个卦",
+      # R4451f：「卦辞/爻辞/一卦/卦象」裸问也给真入口。
+      "卦辞", "爻辞", "一卦", "卦象"),
      "她想摇卦，铺子里有真入口：首页「六爻」卡能真摇，"
      "让她去那儿摇，出卦回来接着聊；别在聊里替她假断",
      "liuyao", "🪙 去六爻摇一卦", None),
@@ -5609,6 +5611,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     "我属", "我什么命", "我五行", "TA属", "ta属", "他属",
                     "她属", "俺属", "对象属", "老公属", "老婆属",
                     "男朋友属", "女朋友属", "TA的五行", "TA什么命",
+                    # R4451：的/裸写变体——「TA五行/我的五行/他的
+                    # 五行」照样是问人，别发日干支。
+                    "TA五行", "ta五行", "我的五行", "他的五行",
+                    "她的五行", "对象的五行", "俺的五行",
                     # R4396b：「我什么日主/TA的日柱/我的天干地支」
                     # 是问人八字柱——归 R4396 个人柱答，别发日干支。
                     "日主", "日柱", "年柱", "月柱", "时柱", "三柱",
@@ -6891,6 +6897,13 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  # 反查（不同于生日倒数）。
                                  "出生星期", "出生在星期", "出生是星期",
                                  "出生那天星期", "出生周几",
+                                 # R4451：TA 的·我的 连写变体——
+                                 # 五行/星座/上升裸写同属个人档。
+                                 "TA的五行", "TA五行", "ta五行",
+                                 "他的五行", "她的五行",
+                                 "对象的五行", "我的五行",
+                                 "TA的星座", "ta的星座",
+                                 "对象的星座", "的上升",
                                  "虚岁")):
             try:
                 _ta9 = any(k in _n for k in
@@ -6904,7 +6917,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                              str(_fp).strip())),
                     None)
                 _who9 = "TA" if _ta9 else "你"
-                if "上升星座" in _n or "月亮星座" in _n:
+                # R4451c：「我的上升」裸写同诚实答（无时辰直说）。
+                if "上升" in _n or "月亮星座" in _n:
                     out.append(
                         f"{_who9}的{'上升' if '上升' in _n else '月亮'}"
                         "星座：得出生时辰才排得出来——档案只存了日期，"
@@ -6933,6 +6947,14 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(
                             f"{_who9}的虚岁："
                             f"{_d.year - _by9 + 1}岁")
+                    # R4451b：「TA的五行/我的五行」——日主+五行
+                    # （与「金木水火土我属啥」同口径）。
+                    elif "五行" in _n:
+                        _dg9w2 = _bazi_day_ganzhi(
+                            datetime(_by9, _bm9, _bd9i))[0][0]
+                        out.append(
+                            f"{_who9}的日主：{_dg9w2}"
+                            f"（五行属{GAN_ELEM.get(_dg9w2, '')}）")
                     elif any(k in _n for k in ("属什么", "属相", "属啥",
                                                "生肖", "几岁", "多大",
                                                "年纪")) \
@@ -7713,6 +7735,27 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                else "（今年已过）"))
             except Exception:
                 pass
+        # R4451d：裸报名曰——「TA的生日/我的生日」整句即档案键，
+        # 按同一命名日回声出日期+倒数（别等问句词）。
+        try:
+            _nkey9 = _n.strip("？?。!.，,~～ ")
+            if _nkey9 in _personal:
+                _nd9 = _personal[_nkey9]
+                _dl9 = (_nd9 - _d).days
+                _lb9 = ("我生日" if _nkey9.startswith(("我", "自己"))
+                        else "TA生日")
+                out.append(
+                    f"{_lb9}：{_nd9.month}月{_nd9.day}日"
+                    + ("（就是今天）" if _dl9 == 0
+                       else f"（还有{_dl9}天）" if _dl9 > 0
+                       else "（今年已过）"))
+        except Exception:
+            pass
+        # R4451e：胎神档未录——直说没有，不编。
+        if "胎神" in _n:
+            out.append(
+                "胎神方位这档小满还没录——要查去专业黄历，"
+                "今天的宜忌以卡面为准")
         # R4196：点名节日回声——「重阳节快乐/双十一/520」不带
         # 问题词也认得它：给真实日期+倒数+节日tip（与 _FEST_TIP
         # 同源）；带问题/值域词的走各自块，不抢话。
