@@ -5019,7 +5019,8 @@ function showPosterModal(canvas, view, j) {
      * （sa* 深链锚），不然链只到八字表单，钩主件沉底。 */
     /* R3771：复盘海报族 sv 参数位——view 已被别名归 home，
      * 落地承接要知道晒的是月记还是年记。 */
-    if (view === 'monthrec' || view === 'yearrec') {
+    if (view === 'monthrec' || view === 'yearrec' ||
+        view === 'weekletter' || view === 'moon') {
       url += '&sv=' + view;
     }
     if (_SA_SHARE_KEY[view]) url += '&sa=' + _SA_SHARE_KEY[view];
@@ -5115,7 +5116,8 @@ function showPosterModal(canvas, view, j) {
     var url = location.origin + '/?view=' + encodeURIComponent(
       _SHARE_VIEW_ALIAS[view] || view || 'home') + '&from=share';
     if (_SA_SHARE_KEY[view]) url += '&sa=' + _SA_SHARE_KEY[view];   /* R3475 */
-    if (view === 'monthrec' || view === 'yearrec') {
+    if (view === 'monthrec' || view === 'yearrec' ||
+        view === 'weekletter' || view === 'moon') {
       url += '&sv=' + view;
     }
     if (view === 'huangli') {
@@ -17962,6 +17964,9 @@ if (document.readyState === 'loading') {
           /* R3771：月/年复盘海报落地点名——不走通用「运势」兜底。 */
           monthrec: '朋友在晒她上月的小记：你的月记也攒一份 📮',
           yearrec: '朋友在晒这一年的小记：你的年记也攒一份 🏮',
+          /* R3806：weekletter/moon 同丢身份——sv= 参数位点名。 */
+          weekletter: '朋友在晒她上周的小满信：你的信周末也到 📮',
+          moon: '朋友在晒今晚的月亮：你今晚的也晒一张 🌙',
         };
         if (_sv === 'dream') {
           var _symT = (window.__shareSym ||
@@ -18104,6 +18109,8 @@ if (document.readyState === 'loading') {
         /* R3771：月/年复盘海报落地——sv= 参数位点名。 */
         monthrec: '朋友在晒她上月的小记——你的月记也攒一份 📮',
         yearrec: '朋友在晒这一年的小记——你的年记也攒一份 🏮',
+        weekletter: '朋友在晒她上周的小满信——你的信周末也到 📮',
+        moon: '朋友在晒今晚的月亮——你今晚的也晒一张 🌙',
       };
       if (_sv2 === 'dream') {
         var _symW = (window.__shareSym ||
