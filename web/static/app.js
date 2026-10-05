@@ -15741,19 +15741,40 @@ function initDivination() {
    * 手动指引（iOS 走分享菜单，Android 走浏览器菜单）。 */
   on('installPwa', function () {
     if (_deferredInstall && _deferredInstall.prompt) {
-      _deferredInstall.prompt();
+      /* R4441（直报）：Chrome 的 prompt() 只能用一次——弹过一次被关掉
+       * 后再点静默无响应（用户以为按钮坏了）。调完即置空，下一次点
+       * 改走手动步骤卡。 */
+      try { _deferredInstall.prompt(); } catch (ePr) {}
+      _deferredInstall = null;
       return;
     }
     var _ios = /iP(hone|ad|od)/.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var _wx = /MicroMessenger/i.test(navigator.userAgent);
     var _xhs = /xhsdiscover|XHSAPP|discover\//i.test(navigator.userAgent);
-    showToast(
+    var _how =
       _wx ? '点右上「···」→「在 Safari 打开」，再点分享→「添加到主屏幕」'
         : (_xhs ? '点右上「···」→「在浏览器打开」，再点分享→「添加到主屏幕」'
         : (_ios ? '点底部分享按钮→「添加到主屏幕」'
-        : '点浏览器菜单（右上 ⋮ 或 ⋯）→「添加到主屏幕 / 安装应用」')),
-      'info');
+        : '点浏览器菜单（右上 ⋮ 或 ⋯）→「添加到主屏幕 / 安装应用」'));
+    /* R4441（直报）：toast 一闪而过读完没处看——改渲染一条常驻、可关的
+     * 手动步骤小卡贴在按钮下面，点了有实在的东西出现。 */
+    var _wrap = el('installPwaWrap');
+    if (_wrap) {
+      var _how2 = el('installHowto');
+      if (_how2) _how2.remove();
+      var _d = document.createElement('div');
+      _d.id = 'installHowto';
+      _d.className = 'install-howto';
+      _d.innerHTML = '<span class="install-howto-t">' + esc(_how) + '</span>' +
+        '<button type="button" class="install-howto-x" aria-label="知道了">×</button>';
+      _d.querySelector('.install-howto-x').addEventListener('click', function () {
+        _d.remove();
+      });
+      _wrap.appendChild(_d);
+    } else {
+      showToast(_how, 'info');
+    }
   });
   /* R3415：已装成 app 就不该再露安装钮——standalone 态藏掉。 */
   try {

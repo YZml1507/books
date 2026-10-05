@@ -697,6 +697,16 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 /* R3264（R28）：显式 PWA 安装按钮 */
 .install-pwa-row{margin:12px 0 0; text-align:center;}
 .install-pwa-row .ghost{font-size:12px; padding:6px 14px;}
+/* R4441（直报）：手动步骤小卡——常驻可关，不再一闪而过。 */
+.install-howto{display:flex; align-items:center; justify-content:center;
+  gap:8px; margin-top:8px; font-size:12px; color:var(--muted);}
+.install-howto-x{border:none; background:none; color:var(--muted);
+  font-size:14px; cursor:pointer; padding:4px 8px; min-width:32px;
+  min-height:32px;}
+/* R4441（直报）：muyu-global 浅奶油胶囊在深底上糊成一团——
+ * 深档换深底浅字虚线。 */
+html[data-theme="dark"] .muyu-global{background:#352E33;
+  color:var(--text); border-color:rgba(173,158,140,.45);}
 /* R3264（R40）：久归深拥横幅 */
 .return-banner{display:flex; align-items:center; justify-content:center;
   gap:10px; padding:10px 16px; background:var(--card); color:var(--text);
