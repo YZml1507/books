@@ -6695,7 +6695,12 @@ async function loadDaily() {
               (localStorage.getItem('mood:' + todayIso()) === '0')
                 ? '挑给今天的你：' : '今日古话：';
           } catch (eM) {}
-          _pc2.push('<span class="e-week-low">📜 ' + _dqForYou +
+          /* R3746：点古话行抄走——「「原文」——出处」进剪贴板，
+           * 拿去贴便签/发消息（同日同句契约不动，只是抄走）。 */
+          _pc2.push('<span class="e-week-low dq-line" role="button"' +
+            ' tabindex="0" data-dq="' +
+            esc('「' + _dq.t + '」——' + _dq.s) +
+            '" title="点一下抄走这句">📜 ' + _dqForYou +
             '「' + esc(_dq.t) + '」（' + esc(_dq.s) + '）' +
             '——' + esc(_dq.g) + '</span>');
         }
@@ -6729,6 +6734,34 @@ async function loadDaily() {
           esc(_bdayTxt) + '</span>');
       }
       _dailyMetaItem('dailyPersonal', _pc2.join('<br>'));
+      /* R3746：古话行点按/回车抄走——委派挂一次在常驻容器上
+       * （行本身随重渲换新）。 */
+      var _dpEl = el('dailyPersonal');
+      if (_dpEl && !_dpEl._dqBound) {
+        _dpEl._dqBound = true;
+        var _dqCopy = function () {
+          var _v = this.dataset ? this.dataset.dq : '';
+          if (!_v) return;
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(_v).then(
+                function () { showToast('这句抄走啦，去贴哪儿都行', 'ok'); },
+                function () { showToast('长按那句手动复制', 'warn'); });
+            } else { throw new Error('no clipboard'); }
+          } catch (eDC) { showToast('长按那句手动复制', 'info'); }
+        };
+        _dpEl.addEventListener('click', function (e) {
+          var _t = e.target && e.target.closest
+            ? e.target.closest('.dq-line') : null;
+          if (_t) _dqCopy.call(_t);
+        });
+        _dpEl.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          var _t = e.target && e.target.closest
+            ? e.target.closest('.dq-line') : null;
+          if (_t) { e.preventDefault(); _dqCopy.call(_t); }
+        });
+      }
     } else {
       /* 没档案时轻引导——「存个生日这条就是你的了」（R73-P1-3）
        * R3243（用户实测）：补上「通版」标注——手误点开不再被当
