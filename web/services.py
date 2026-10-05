@@ -4544,6 +4544,17 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                   else (_d + timedelta(days=1) if _tmr else _d))
         _pfx = "大后天" if _dat3 \
             else ("后天" if _dat else ("明日" if _tmr else "今日"))
+        # R4001：「周五/下周三」问日族——解析到具体日期复用 _dd/_pfx
+        #（明/后优先；本周末日/当天已过都算下一个，下周再加 7）。
+        if not (_tmr or _dat or _dat3):
+            _wdm = re.search(r"(下)?周([一二三四五六日天])", _n)
+            if _wdm:
+                _twd = "一二三四五六日天".index(_wdm.group(2)) % 7
+                _dl = (_twd - _d.weekday()) % 7 or 7
+                if _wdm.group(1):
+                    _dl += 7
+                _dd = _d + timedelta(days=_dl)
+                _pfx = _wdm.group(0)
         if any(k in _n for k in ("水逆", "水星逆行")):
             _m = _mercury_state(_d)
             if _m.get("on"):
@@ -4743,9 +4754,7 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     out.append(f"{_pfx}节日：{'、'.join(_fn)}")
                 elif any(k in _n for k in ("什么节", "啥节日", "节日",
                                            "过节")):
-                    _nopf = "大后天" if _dat3 \
-                        else ("后天" if _dat else
-                              ("明天" if _tmr else "今天"))
+                    _nopf = _pfx if _pfx != "今日" else "今天"
                     out.append(f"{_pfx}节日：{_nopf}没排上节日名")
             except Exception:
                 pass
