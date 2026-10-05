@@ -461,6 +461,8 @@ function _paintSharePoster(s, W, H) {
                    /* R3598（审-P1）：monthrec 六数据行+口径=7 行——
                     * cap4 静默切尾（打卡/好运/称号全被吃掉）。 */
                    monthrec: 7,
+                   /* R3766：yearrec 六数据行+口径=7 行——同帽。 */
+                   yearrec: 7,
                    /* R3603：hype 五夸行+口径=6 行——cap4 会切尾。 */
                    hype: 6,
                    'year-wrap': 6, mochi: 6,
@@ -2198,6 +2200,24 @@ function buildShareData(view, j) {
       if (_mr.lines.length === 1) _mr.lines =
         [{ k: '结论', v: '上个月也辛苦啦' }];
       return _mr;
+    }
+    case 'yearrec': {
+      /* R3766 年度复盘海报：monthrec 同构年档，行集由前端
+       * 年信卡同源计算。 */
+      var _yr = base('这一年的小满', '');
+      _yr.big = _pStr(j && j._yrY) + ' 年的小记';
+      _yr.lines = [];
+      ((j && j._yrRows) || []).forEach(function (r) {
+        if (r && r.k && r.v) {
+          _yr.lines.push({ k: _pStr(r.k),
+                           v: _clauseCut(_pStr(r.v), 20) });
+        }
+      });
+      _yr.lines.push({ k: '口径',
+        v: '这一年的你，小满都替你记着' });
+      if (_yr.lines.length === 1) _yr.lines =
+        [{ k: '结论', v: '这一年也辛苦啦' }];
+      return _yr;
     }
     case 'moon': {
       /* R3592 月相海报：画家底=当晚真盈亏（s.art.moon.p），

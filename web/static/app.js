@@ -9505,6 +9505,7 @@ var _POSTER_TITLES = {
   weekletter: '小满的上周小记',
   /* R3596：月度复盘海报弹层标题/下载文件名。 */
   monthrec: '上个月的小满',
+  yearrec: '这一年的小满',
   /* R3603：夸夸海报弹层标题/下载文件名。 */
   hype: '小满狠狠夸你',
   /* R3592：月相海报弹层标题/下载文件名。 */
@@ -9552,6 +9553,7 @@ var _POSTER_BG_BY_VIEW = { tarot: 'lilac', xingzuo: 'lilac', birth: 'lilac',
   weekletter: 'warm',
   /* R3596：月复盘同归暖底——月度信件的延续款。 */
   monthrec: 'warm',
+  yearrec: 'warm',
   /* R3603：夸夸我归紫云梦底——玩乐态与同族名片/角色同族。 */
   hype: 'dream',
   /* R3381：默契挑战归暖底——两只熊干杯的奶杏感。 */
@@ -9627,6 +9629,7 @@ var _SHARE_TEXT = {
   weekletter: '小满给我写了封上周小记，你的呢 →',
   /* R3596：月度复盘——「上个月的我」接力晒。 */
   monthrec: '上个月的小满给我记了一笔账，看看你上月的 →',
+  yearrec: '小满替我记了这一年的账，看看你的 →',
   /* R3603：夸夸海报——「TA 的盘夸成这样」勾起来玩。 */
   hype: '小满把我的命盘夸成这样，你的呢 →',
   /* R3592：月相海报——「今晚的月亮一人一张」接力晒。 */
@@ -9649,6 +9652,7 @@ var _SHARE_VIEW_ALIAS = { soulmate: 'taohua', weekletter: 'home',
   moon: 'home',
   /* R3596：月复盘海报同口径归 home。 */
   monthrec: 'home',
+  yearrec: 'home',
   /* R3603：夸夸海报归 bazi——名片是排盘派生件。 */
   hype: 'bazi',
   'bazi-kline': 'bazi', hlcal: 'huangli', fortune_dir: 'bazi',
@@ -21627,7 +21631,24 @@ function renderCheckin(dateKey) {
           esc(_yParts.join('、')) + '，我都替你记着。' +
           (_yTitle ? '称号走到「' + esc(_yTitle) + '」。' : '') +
           '这一年辛苦啦，明年小满还在这儿等你。' +
-          esc(_yql) + '</div></div>';
+          esc(_yql) +
+          '<div class="wl-foot"><button type="button" class="wl-share" ' +
+          'id="ylShare">晒这年 🏮</button></div>' +
+          '</div></div>';
+        /* R3766：年复盘海报数据——与信内同组数字（monthrec 同构
+         * Wrapped-lite 年档）。 */
+        try {
+          var _yrRows = [];
+          if (_yCk) _yrRows.push({ k: '打卡', v: _yCk + ' 天' });
+          if (_yMd) _yrRows.push({ k: '记心情', v: _yMd + ' 天' });
+          if (_yJ) _yrRows.push({ k: '小记', v: _yJ + ' 篇' });
+          if (_yBest >= 7) _yrRows.push(
+            { k: '最长连签', v: _yBest + ' 天' });
+          if (_yHugI + _yHugO > 0) _yrRows.push(
+            { k: '好运', v: '收 ' + _yHugI + ' · 递 ' + _yHugO });
+          if (_yTitle) _yrRows.push({ k: '称号', v: _yTitle });
+          window.__ylShareData = { y: _ylYear, rows: _yrRows };
+        } catch (eYR) {}
       }
     }
   } catch (eYL) {}
@@ -22130,6 +22151,19 @@ function renderCheckin(dateKey) {
           _mrM: _msd.m }, 'monthrec');
         if (_pmo && _pmo.catch) _pmo.catch(function () {});
       } catch (eMS2) {}
+    });
+  }
+  /* R3766：晒这年——yearrec 海报链路与 mlShare 同构。 */
+  var _yls = box.querySelector('#ylShare');
+  if (_yls && !_yls.dataset.bound) {
+    _yls.dataset.bound = '1';
+    _yls.addEventListener('click', function () {
+      try {
+        var _ysd = window.__ylShareData || { y: 0, rows: [] };
+        var _ypo = downloadPoster({ _yrRows: _ysd.rows,
+          _yrY: _ysd.y }, 'yearrec');
+        if (_ypo && _ypo.catch) _ypo.catch(function () {});
+      } catch (eYS) {}
     });
   }
   /* R3497：本周小功课盖戳——wq:<周一> 落键后整卡重渲换「已盖戳」
