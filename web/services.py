@@ -4854,7 +4854,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                      # 「立冬那天冲什么」该出立冬的煞。
                      "值神", "冲煞", "冲什么", "煞哪", "彭祖", "百忌",
                      "建除", "黄道", "黑道", "吉神", "凶煞", "岁破",
-                     "日课", "宜", "忌", "适合")):
+                     "日课", "宜", "忌", "适合",
+                     # R4181：日档/吉时/财神/幸运数同享迁移——
+                     # 「立冬那天日子怎么样」出立冬的档。
+                     "日子", "吉时", "财神", "幸运数字", "幸运数",
+                     "吉时", "时辰")):
                 _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
                 if _ndn is not None:
                     _dd, _pfx = _ndn, _vn
@@ -5163,6 +5167,44 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     out.append(
                         f"{_pfx}宜忌：宜 {_hl_spoken(_dyi9) or '—'}｜"
                         f"忌 {_hl_spoken(_dji9) or '—'}")
+            except Exception:
+                pass
+        # R4181：日档/幸运数/财神方位/吉时活事实——日档与日签卡同源
+        # （bazi_calc + fortune_level），财神走 huangli_mod.caishen_fang，
+        # 吉时走黄历小时辰吉凶表。
+        if any(k in _n for k in ("日子怎么样", "什么日子", "吉日", "大吉",
+                                 "凶日", "日子好不", "日子如何", "什么档",
+                                 "幸运数字", "幸运数", "财神方位",
+                                 "财神在哪", "财神向哪", "吉时", "好时辰",
+                                 "几点好", "几点吉")):
+            try:
+                if any(k in _n for k in ("幸运数字", "幸运数")):
+                    _lk9 = _lucky_for(_dd)
+                    if _lk9.get("num"):
+                        out.append(
+                            f"{_pfx}幸运数字：{_lk9['num']}"
+                            f"（开运色{_lk9.get('color', '')}）")
+                if "财神" in _n or "方位" in _n:
+                    _cf9 = huangli_mod.caishen_fang(
+                        datetime(_dd.year, _dd.month, _dd.day, 12))
+                    out.append(f"{_pfx}财神方位：{_cf9}")
+                if any(k in _n for k in ("吉时", "好时辰", "几点好",
+                                         "几点吉")):
+                    _hrs = huangli(_dd.isoformat()).get("hours") or []
+                    _gs = [f"{h['branch']}时（{h['shen']}）"
+                           for h in _hrs if h.get("ji")]
+                    out.append(
+                        f"{_pfx}吉时：{'、'.join(_gs) if _gs else '没排上'}")
+                if any(k in _n for k in ("日子怎么样", "什么日子", "吉日",
+                                         "大吉", "凶日", "日子好不",
+                                         "日子如何", "什么档")):
+                    _b9 = bazi_compute(_dd.year, _dd.month, _dd.day, 12, "男")
+                    _lv9 = fortune_level(
+                        bazi_calc(_b9, ask_date=_dd.isoformat()),
+                        day=datetime(_dd.year, _dd.month, _dd.day, 12))
+                    _lvh = {"吉": "吉日", "小吉": "小吉日",
+                            "平": "平常日", "凶": "避雷日"}.get(_lv9, _lv9)
+                    out.append(f"{_pfx}日档：{_lvh}")
             except Exception:
                 pass
         # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
