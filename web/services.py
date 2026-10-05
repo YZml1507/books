@@ -2847,6 +2847,37 @@ def _week_sky(d: date) -> list:
                         evs.append({"d": lab, "t": "↩ " + nm + "起"})
                     if e == dd.isoformat():
                         evs.append({"d": lab, "t": "↩ " + nm + "止"})
+            # R3976：时令窗开/关也进预告——签窗×3+塔罗限定×2+跨年封愿。
+            try:
+                _wm = {(10, 25): "🎃 捣蛋签开窗",
+                       (11, 6): "🌸 桃花签开窗",
+                       (11, 11): "🌸 桃花签关窗",
+                       (10, 29): "🎃 万圣夜限定开窗",
+                       (12, 20): "🎄 圣诞心愿限定开窗",
+                       (12, 31): "🧨 跨年封愿关窗"}
+                if (dd.month, dd.day) in _wm:
+                    evs.append({"d": lab, "t": _wm[(dd.month, dd.day)]})
+                # 11/1 捣蛋签+万圣夜限定同天关窗；12/25 圣诞关+封愿开。
+                if (dd.month, dd.day) == (11, 1):
+                    evs.append({"d": lab, "t": "🎃 捣蛋签·万圣夜限定关窗"})
+                if (dd.month, dd.day) == (12, 25):
+                    evs.append({"d": lab, "t": "🎄 圣诞心愿限定关窗"})
+                    evs.append({"d": lab, "t": "🧨 跨年封愿开窗"})
+                from guji import lunar as _lm2
+                for _yy in (dd.year, dd.year + 1):
+                    try:
+                        if dd == _lm2.lunar_to_solar(
+                                _yy - 1, 12,
+                                _lm2.month_days(_yy - 1, 12)):
+                            evs.append(
+                                {"d": lab, "t": "🧧 福签开窗（除夕）"})
+                        if dd == _lm2.lunar_to_solar(_yy, 1, 15):
+                            evs.append(
+                                {"d": lab, "t": "🧧 福签关窗（元宵）"})
+                    except Exception:
+                        pass
+            except Exception:
+                pass
     except Exception:
         pass
     return evs[:6]
