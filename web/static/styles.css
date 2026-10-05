@@ -4801,3 +4801,8 @@ html[data-theme="dark"] .tr-liao-strip{
 /* R3451 满月复盘小结卡：挂月相行内，衬底弱化。 */
 .moon-recap{margin-top:6px; font-size:12.5px; line-height:1.6;
   color:var(--secondary); padding-left:2px;}
+
+/* R3762：信内年链——与信体同色系弱链 */
+.wl-yl{display:inline-block;margin-top:6px;color:#B98A3E;text-decoration:none;font-size:13px}
+.wl-yl:hover,.wl-yl:focus-visible{text-decoration:underline}
+[data-theme="dark"] .wl-yl{color:#D9B98A}

@@ -19790,6 +19790,17 @@ function _isoShift(dateKey, n) {
   return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) +
     '-' + ('0' + d.getDate()).slice(-2);
 }
+/* R3756/62：年信窗判定——12/26 起写当年、1/1–1/15 写去年；
+ * 周/月信尾链与年信块共用一份窗+落档判，防口径漂移。 */
+function _ylWindow() {
+  try {
+    var _t = new Date(todayIso() + 'T00:00:00');
+    var _mm = _t.getMonth() + 1, _dd = _t.getDate();
+    var _y = (_mm === 12 && _dd >= 26) ? _t.getFullYear()
+      : (_mm === 1 && _dd <= 15) ? _t.getFullYear() - 1 : 0;
+    return (_y && !localStorage.getItem('yearlyLetter:' + _y)) ? _y : 0;
+  } catch (e) { return 0; }
+}
 /* R3756：心情年汇总——mdY:YYYY JSON {m:n}，mood: 键 150 天 GC
  * 后年度小满信仍拿得到全年心情数与主心情。 */
 function _mdYBump(dateStr, m) {
@@ -21514,154 +21525,14 @@ function renderCheckin(dateKey) {
       }
     }
   } catch (ePS) {}
-  /* R3317-E：每周运势信——本周首个到访日给「上周小记」卡。
-   * 数据全在本地：上周 7 天的打卡天数 + 心情主色 + 一句本周祝词。
-   * 每周一封信完即收（wlKey 落档不再弹），零打扰零请求。 */
-  var _wlHtml = '';
-  try {
-    var _dow = (new Date(dateKey + 'T00:00:00').getDay() + 6) % 7;
-    var _mon = _isoShift(dateKey, -_dow);          // 本周一
-    var _wlKey = 'weeklyLetter:' + _mon;
-    if (!localStorage.getItem(_wlKey)) {
-      /* R3616：信文本抽公共 _wlTextFor——与周记「往期小记」
-       * 同一份判词；种子口径不变（'wl|<本周一>'）。 */
-      var _lwl = _wlTextFor(_isoShift(_mon, -7), 'wl|' + _mon);
-      if (_lwl) {
-        _wlHtml = '<div class="weekly-letter" id="weeklyLetter">' +
-          '<div class="wl-head">💌 小满的上周小记' +
-          /* R3379：周记信可晒——真实记录拼的小记上分享海报。 */
-          '<button type="button" class="wl-share" id="wlShare" ' +
-          'title="把这封小记晒成图">📸</button>' +
-          '<button type="button" class="wl-x" id="wlDismiss" ' +
-          'aria-label="收下了，不再显示">×</button></div>' +
-          '<div class="wl-body">' +
-          /* R3318（审-P3-4）：0 打卡纯心情路径——「打卡 0 天」开头
-           * 语气硬，改述成「来记下心情」。 */
-          (_lwl.n === 0
-            ? '上周你来记下 ' + _lwl.m + ' 天心情'
-            : '上周你打卡 ' + _lwl.n + ' 天') +
-          esc(_lwl.moodTxt) + '。' + esc(_lwl.line) + '</div></div>';
-      }
-    }
-  } catch (eWL) {}
-  /* R3319-F：月度小满信——月初首访日给「上月小信」卡，
-   * 与周信同构：本地聚合上月打卡/心情/小记/最长连签，
-   * 每月一封完即收（mlKey 落档不再弹）。 */
-  var _mlHtml = '';
-  try {
-    var _t0m = new Date(dateKey + 'T00:00:00');
-    var _pm = new Date(_t0m.getFullYear(), _t0m.getMonth() - 1, 1);
-    var _pmKey = _pm.getFullYear() + '-' +
-      String(_pm.getMonth() + 1).padStart(2, '0');
-    var _mlKey = 'monthlyLetter:' + _pmKey;
-    if (!localStorage.getItem(_mlKey)) {
-      var _pmDays = new Date(_pm.getFullYear(), _pm.getMonth() + 1, 0).getDate();
-      var _mCk = 0, _mMd = 0, _mJ = 0, _mBest = 0, _cur = 0;
-      var _mMdCnt = {};
-      for (var _md = 1; _md <= _pmDays; _md++) {
-        var _mdk = _pmKey + '-' + String(_md).padStart(2, '0');
-        if (_ckAll[_mdk]) { _mCk++; _cur++; if (_cur > _mBest) _mBest = _cur; }
-        else { _cur = 0; }
-        var _mmv = localStorage.getItem('mood:' + _mdk);
-        if (_mmv !== null && _mmv !== '') {
-          _mMd++; _mMdCnt[_mmv] = (_mMdCnt[_mmv] || 0) + 1;
-        }
-        if (localStorage.getItem('journal:' + _mdk)) _mJ++;
-      }
-      /* 上门槛：上月有点痕迹才值得写信（不打卡纯浏览不下信）。 */
-      if (_mCk >= 3 || _mMd >= 4 || _mJ >= 2) {
-        var _mDom = -1, _mDomN = 0;
-        Object.keys(_mMdCnt).forEach(function (k) {
-          if (_mMdCnt[k] > _mDomN) { _mDomN = _mMdCnt[k]; _mDom = +k; }
-        });
-        var _mParts = [];
-        if (_mCk) _mParts.push('打卡 ' + _mCk + ' 天');
-        if (_mMd) {
-          _mParts.push('记下 ' + _mMd + ' 天心情' +
-            (_mDom >= 0 && _MOOD_META[_mDom]
-              ? '（多是「' + _MOOD_META[_mDom].t + '」）' : ''));
-        }
-        if (_mJ) _mParts.push('写了 ' + _mJ + ' 篇小记');
-        if (_mBest >= 3) _mParts.push('最长连签 ' + _mBest + ' 天');
-        var _MSEASON = [
-          '一月开头，愿这一年待你温柔。',
-          '二月有立春也有花灯，好事成双。',
-          '三月花开，好运跟着一起发芽。',
-          '四月人间，适合把心愿再养一养。',
-          '五月风暖，想做的事趁现在。',
-          '六月过半，上半年的努力都算数。',
-          '七月流火，记得给自己留块阴凉。',
-          '八月有星河，也有属于你的好消息。',
-          '九月开学季，新节奏慢慢来。',
-          '十月金秋，愿你收获比付出多一点。',
-          '十一月转凉，记得添衣也记得添喜。',
-          '十二月收官，这一年的你都辛苦了。'];
-        /* R3511：月信尾带一条「小规律」观察——够格才附（阈值在
-         * _ckPatternFind 里），仍然只是观察不是断语。 */
-        var _mpf = null;
-        try { _mpf = _ckPatternFind(dateKey); } catch (ePF2) {}
-        /* R3731：月锚古话——月信尾带「这个月想对你说：「X」」，
-         * 与周记归档周锚同族不同盐（mq|YYYY-MM）。 */
-        var _mql = '';
-        try {
-          var _mqq = _hashPick(_DAY_QUOTES, 'mq|' + _pmKey);
-          if (_mqq && _mqq.t) {
-            _mql = '这个月小满想对你说：「' + _mqq.t + '」';
-          }
-        } catch (eMQ) {}
-        _mlHtml = '<div class="weekly-letter ml-letter" id="monthlyLetter">' +
-          '<div class="wl-head">📮 ' + (_pm.getMonth() + 1) +
-          ' 月的小满信' +
-          '<button type="button" class="wl-x" id="mlDismiss" ' +
-          'aria-label="收下了，不再显示">×</button></div>' +
-          '<div class="wl-body">上个月你' +
-          esc(_mParts.join('、')) + '，我都替你记着。' +
-          esc(_MSEASON[_pm.getMonth()]) +
-          (_mpf ? '还有个规律：' + esc(_mpf.txt) + '。' : '') +
-          esc(_mql) +
-          '<div class="wl-foot"><button type="button" class="wl-share" id="mlShare">晒这月 📮</button></div>' +
-          '</div></div>';
-        /* R3596：月度复盘海报数据——与信内口径同组数字摆上行
-         * （Wrapped-lite 可晒收线）。 */
-        try {
-          var _mrRows = [];
-          if (_mCk) _mrRows.push({ k: '打卡', v: _mCk + ' 天' });
-          if (_mMd) _mrRows.push({ k: '记心情',
-            v: _mMd + ' 天' + (_mDom >= 0 && _MOOD_META[_mDom]
-              ? '（多是「' + _MOOD_META[_mDom].t + '」）' : '') });
-          if (_mJ) _mrRows.push({ k: '小记', v: _mJ + ' 篇' });
-          if (_mBest >= 3) _mrRows.push({ k: '最长连签',
-            v: _mBest + ' 天' });
-          try {
-            var _mhi = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
-            var _mho = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
-            if (_mhi || _mho) {
-              _mrRows.push({ k: '好运',
-                v: (_mhi ? '收 ' + _mhi + ' 个' : '') +
-                   (_mhi && _mho ? ' · ' : '') +
-                   (_mho ? '递 ' + _mho + ' 次' : '') });
-            }
-          } catch (eMH) {}
-          if (_msTitle) _mrRows.push({ k: '称号',
-            v: '「' + _msTitle + '」' });
-          window.__mlShareData = {
-            m: _pm.getMonth() + 1, rows: _mrRows };
-        } catch (eMS) {}
-      }
-    }
-  } catch (eML) {}
   /* R3756：年度小满信——12/26–1/15 窗给「这一年小信」卡，一年
    * 一封（yearlyLetter:YYYY 落档收官不再弹）。本地聚合全年打卡/
    * 心情/小记/最长连签/好运收发/称号，门槛到了才写信。 */
-  var _ylHtml = '';
+  var _ylHtml = '', _ylShown = 0;
   try {
-    var _ty0 = new Date(dateKey + 'T00:00:00');
-    var _tmm = _ty0.getMonth() + 1, _tdd = _ty0.getDate();
-    var _ylYear = (_tmm === 12 && _tdd >= 26)
-      ? _ty0.getFullYear()
-      : (_tmm === 1 && _tdd <= 15) ? _ty0.getFullYear() - 1 : 0;
+    var _ylYear = _ylWindow();
     var _ylKey = _ylYear ? ('yearlyLetter:' + _ylYear) : '';
-    if (_ylYear && !localStorage.getItem(_ylKey)) {
+    if (_ylYear) {
       /* R3756-P1：checkin:/mood:/journal: 原始键 150 天 GC——
        * 年信读写时汇总（ckY:/mdY:/jrY:/ckBest:），原始键只作
        * 汇总前老数据的兜底（两者取大，不双计）。 */
@@ -21745,6 +21616,7 @@ function renderCheckin(dateKey) {
             _yql = ' 这一年小满想对你说：「' + _yqq.t + '」';
           }
         } catch (eYQ) {}
+        _ylShown = _ylYear;
         _ylHtml = '<div class="weekly-letter ml-letter" ' +
           'id="yearlyLetter" data-yl="' + _ylYear + '">' +
           '<div class="wl-head">🏮 ' + _ylYear +
@@ -21759,6 +21631,152 @@ function renderCheckin(dateKey) {
       }
     }
   } catch (eYL) {}
+  /* R3317-E：每周运势信——本周首个到访日给「上周小记」卡。
+   * 数据全在本地：上周 7 天的打卡天数 + 心情主色 + 一句本周祝词。
+   * 每周一封信完即收（wlKey 落档不再弹），零打扰零请求。 */
+  var _wlHtml = '';
+  try {
+    var _dow = (new Date(dateKey + 'T00:00:00').getDay() + 6) % 7;
+    var _mon = _isoShift(dateKey, -_dow);          // 本周一
+    var _wlKey = 'weeklyLetter:' + _mon;
+    if (!localStorage.getItem(_wlKey)) {
+      /* R3616：信文本抽公共 _wlTextFor——与周记「往期小记」
+       * 同一份判词；种子口径不变（'wl|<本周一>'）。 */
+      var _lwl = _wlTextFor(_isoShift(_mon, -7), 'wl|' + _mon);
+      if (_lwl) {
+        _wlHtml = '<div class="weekly-letter" id="weeklyLetter">' +
+          '<div class="wl-head">💌 小满的上周小记' +
+          /* R3379：周记信可晒——真实记录拼的小记上分享海报。 */
+          '<button type="button" class="wl-share" id="wlShare" ' +
+          'title="把这封小记晒成图">📸</button>' +
+          '<button type="button" class="wl-x" id="wlDismiss" ' +
+          'aria-label="收下了，不再显示">×</button></div>' +
+          '<div class="wl-body">' +
+          /* R3318（审-P3-4）：0 打卡纯心情路径——「打卡 0 天」开头
+           * 语气硬，改述成「来记下心情」。 */
+          (_lwl.n === 0
+            ? '上周你来记下 ' + _lwl.m + ' 天心情'
+            : '上周你打卡 ' + _lwl.n + ' 天') +
+          esc(_lwl.moodTxt) + '。' + esc(_lwl.line) +
+          /* R3762：年信窗挂「这一年」链——信族三级互链不孤立；
+           * _ylShown 由年信块先算（本块在其后渲染）。 */
+          (_ylShown
+            ? ' <a class="wl-yl" href="#yearlyLetter">' +
+              '🏮 这一年小满也想对你说几句 →</a>' : '') +
+          '</div></div>';
+      }
+    }
+  } catch (eWL) {}
+  /* R3319-F：月度小满信——月初首访日给「上月小信」卡，
+   * 与周信同构：本地聚合上月打卡/心情/小记/最长连签，
+   * 每月一封完即收（mlKey 落档不再弹）。 */
+  var _mlHtml = '';
+  try {
+    var _t0m = new Date(dateKey + 'T00:00:00');
+    var _pm = new Date(_t0m.getFullYear(), _t0m.getMonth() - 1, 1);
+    var _pmKey = _pm.getFullYear() + '-' +
+      String(_pm.getMonth() + 1).padStart(2, '0');
+    var _mlKey = 'monthlyLetter:' + _pmKey;
+    if (!localStorage.getItem(_mlKey)) {
+      var _pmDays = new Date(_pm.getFullYear(), _pm.getMonth() + 1, 0).getDate();
+      var _mCk = 0, _mMd = 0, _mJ = 0, _mBest = 0, _cur = 0;
+      var _mMdCnt = {};
+      for (var _md = 1; _md <= _pmDays; _md++) {
+        var _mdk = _pmKey + '-' + String(_md).padStart(2, '0');
+        if (_ckAll[_mdk]) { _mCk++; _cur++; if (_cur > _mBest) _mBest = _cur; }
+        else { _cur = 0; }
+        var _mmv = localStorage.getItem('mood:' + _mdk);
+        if (_mmv !== null && _mmv !== '') {
+          _mMd++; _mMdCnt[_mmv] = (_mMdCnt[_mmv] || 0) + 1;
+        }
+        if (localStorage.getItem('journal:' + _mdk)) _mJ++;
+      }
+      /* 上门槛：上月有点痕迹才值得写信（不打卡纯浏览不下信）。 */
+      if (_mCk >= 3 || _mMd >= 4 || _mJ >= 2) {
+        var _mDom = -1, _mDomN = 0;
+        Object.keys(_mMdCnt).forEach(function (k) {
+          if (_mMdCnt[k] > _mDomN) { _mDomN = _mMdCnt[k]; _mDom = +k; }
+        });
+        var _mParts = [];
+        if (_mCk) _mParts.push('打卡 ' + _mCk + ' 天');
+        if (_mMd) {
+          _mParts.push('记下 ' + _mMd + ' 天心情' +
+            (_mDom >= 0 && _MOOD_META[_mDom]
+              ? '（多是「' + _MOOD_META[_mDom].t + '」）' : ''));
+        }
+        if (_mJ) _mParts.push('写了 ' + _mJ + ' 篇小记');
+        if (_mBest >= 3) _mParts.push('最长连签 ' + _mBest + ' 天');
+        var _MSEASON = [
+          '一月开头，愿这一年待你温柔。',
+          '二月有立春也有花灯，好事成双。',
+          '三月花开，好运跟着一起发芽。',
+          '四月人间，适合把心愿再养一养。',
+          '五月风暖，想做的事趁现在。',
+          '六月过半，上半年的努力都算数。',
+          '七月流火，记得给自己留块阴凉。',
+          '八月有星河，也有属于你的好消息。',
+          '九月开学季，新节奏慢慢来。',
+          '十月金秋，愿你收获比付出多一点。',
+          '十一月转凉，记得添衣也记得添喜。',
+          '十二月收官，这一年的你都辛苦了。'];
+        /* R3511：月信尾带一条「小规律」观察——够格才附（阈值在
+         * _ckPatternFind 里），仍然只是观察不是断语。 */
+        var _mpf = null;
+        try { _mpf = _ckPatternFind(dateKey); } catch (ePF2) {}
+        /* R3731：月锚古话——月信尾带「这个月想对你说：「X」」，
+         * 与周记归档周锚同族不同盐（mq|YYYY-MM）。 */
+        var _mql = '';
+        try {
+          var _mqq = _hashPick(_DAY_QUOTES, 'mq|' + _pmKey);
+          if (_mqq && _mqq.t) {
+            _mql = '这个月小满想对你说：「' + _mqq.t + '」';
+          }
+        } catch (eMQ) {}
+        _mlHtml = '<div class="weekly-letter ml-letter" id="monthlyLetter">' +
+          '<div class="wl-head">📮 ' + (_pm.getMonth() + 1) +
+          ' 月的小满信' +
+          '<button type="button" class="wl-x" id="mlDismiss" ' +
+          'aria-label="收下了，不再显示">×</button></div>' +
+          '<div class="wl-body">上个月你' +
+          esc(_mParts.join('、')) + '，我都替你记着。' +
+          esc(_MSEASON[_pm.getMonth()]) +
+          (_mpf ? '还有个规律：' + esc(_mpf.txt) + '。' : '') +
+          esc(_mql) +
+          /* R3762：年信窗「这一年」链——与周信同一件内链。 */
+          (_ylShown
+            ? ' <a class="wl-yl" href="#yearlyLetter">' +
+              '🏮 这一年小满也想对你说几句 →</a>' : '') +
+          '<div class="wl-foot"><button type="button" class="wl-share" id="mlShare">晒这月 📮</button></div>' +
+          '</div></div>';
+        /* R3596：月度复盘海报数据——与信内口径同组数字摆上行
+         * （Wrapped-lite 可晒收线）。 */
+        try {
+          var _mrRows = [];
+          if (_mCk) _mrRows.push({ k: '打卡', v: _mCk + ' 天' });
+          if (_mMd) _mrRows.push({ k: '记心情',
+            v: _mMd + ' 天' + (_mDom >= 0 && _MOOD_META[_mDom]
+              ? '（多是「' + _MOOD_META[_mDom].t + '」）' : '') });
+          if (_mJ) _mrRows.push({ k: '小记', v: _mJ + ' 篇' });
+          if (_mBest >= 3) _mrRows.push({ k: '最长连签',
+            v: _mBest + ' 天' });
+          try {
+            var _mhi = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
+            var _mho = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
+            if (_mhi || _mho) {
+              _mrRows.push({ k: '好运',
+                v: (_mhi ? '收 ' + _mhi + ' 个' : '') +
+                   (_mhi && _mho ? ' · ' : '') +
+                   (_mho ? '递 ' + _mho + ' 次' : '') });
+            }
+          } catch (eMH) {}
+          if (_msTitle) _mrRows.push({ k: '称号',
+            v: '「' + _msTitle + '」' });
+          window.__mlShareData = {
+            m: _pm.getMonth() + 1, rows: _mrRows };
+        } catch (eMS) {}
+      }
+    }
+  } catch (eML) {}
   /* R3325-D：写给未来的信——本地留存（futureLetters JSON 数组，
    * 清盘不丢）；到日信卡浮出，与周/月信同版式。 */
   var _flHtml = '';
