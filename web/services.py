@@ -4652,14 +4652,19 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 _htd = (date(_d.year, 10, 29) - _d).days
                 if (_d.month == 10 and _d.day >= 29) or \
                    (_d.month == 11 and _d.day <= 1):
-                    _tw.append("万圣夜限定：今天开着呢"
+                    _hts = "今天开张" if _d.month == 10 and _d.day == 29 \
+                        else "今晚截止" if _d.month == 11 and _d.day == 1 \
+                        else "今天开着呢"
+                    _tw.append(f"万圣夜限定：{_hts}"
                                "（10/29–11/1，翻一张不敢问的事）")
                 elif 1 <= _htd <= 5:
                     _tw.append(f"万圣夜限定：{_htd}天后开"
                                "（10/29–11/1）")
                 _xtd = (date(_d.year, 12, 20) - _d).days
                 if _d.month == 12 and 20 <= _d.day <= 25:
-                    _tw.append("圣诞心愿限定：今天开着呢"
+                    _xts = "今天开张" if _d.day == 20 \
+                        else "今晚截止" if _d.day == 25 else "今天开着呢"
+                    _tw.append(f"圣诞心愿限定：{_xts}"
                                "（12/20–12/25，默念心愿翻一张）")
                 elif 1 <= _xtd <= 5:
                     _tw.append(f"圣诞心愿限定：{_xtd}天后开"
@@ -4732,7 +4737,9 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
             try:
                 _nyd = (date(_d.year, 12, 25) - _d).days
                 if _d.month == 12 and 25 <= _d.day <= 31:
-                    out.append("跨年封愿：今天开着呢"
+                    _nys = "今天开张" if _d.day == 25 \
+                        else "今晚截止" if _d.day == 31 else "今天开着呢"
+                    out.append(f"跨年封愿：{_nys}"
                                "（12/25–12/31，封了元旦才开）")
                 elif 1 <= _nyd <= 5:
                     out.append(f"跨年封愿：{_nyd}天后开"
