@@ -2376,6 +2376,33 @@ _FEST_LUNAR = {
 # R4106：命名日下一发生日反查——「X什么时候」与「X那天穿什么」
 # 共用一条解析。返回 (date, 名称)，没认出来的名字给 (None, "")。
 # 顺序：节气全表 → 跨年/新年口语词 → 公历节 → 除夕 → 农历节。
+def _sanfu(year: int):
+    """三伏日对：(初伏首日, 末伏末日=出伏)；算法同 _festival_for 庚日计。"""
+    try:
+        from guji import bazi as bazi_mod
+        xz = (bazi_mod.term_time(year, "夏至") + timedelta(hours=8)).date()
+        lq = (bazi_mod.term_time(year, "立秋") + timedelta(hours=8)).date()
+        ru = mo = None
+        cnt = 0
+        for _k in range(0, 60):
+            _dd = xz + timedelta(days=_k)
+            if bazi_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day))[0][0] == "庚":
+                cnt += 1
+                if cnt == 3:
+                    ru = _dd
+                    break
+        for _k in range(0, 20):
+            _dd = lq + timedelta(days=_k)
+            if bazi_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day))[0][0] == "庚":
+                mo = _dd + timedelta(days=9)
+                break
+        return ru, mo
+    except Exception:
+        return None, None
+
+
 def _bday_next(today: date, mo: int, d: int) -> date | None:
     """生日的下一发生日；2/29 非闰年按 3/1 过（与档案倒数同口径）。"""
     for _yy in (today.year, today.year + 1):
@@ -2441,6 +2468,37 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
             if cand < today:
                 cand = _nth_weekday(today.year + 1, _hm3, _wd3, _nth3)
             return cand, _hn
+    # 三伏/数九——_festival_for 认得的时令节点，反查也该有。
+    if any(k in msg for k in ("入伏", "三伏", "头伏", "初伏", "出伏")):
+        _ru2, _mo2 = _sanfu(today.year)
+        if "出伏" in msg:
+            if _mo2 is not None and _mo2 >= today:
+                return _mo2, "出伏"
+            _ru3, _mo3 = _sanfu(today.year + 1)
+            if _mo3 is not None:
+                return _mo3, "出伏"
+        elif _ru2 is not None:
+            # 正在三伏内→给今年入伏日；过了→给明年的。
+            if _mo2 is not None and _ru2 <= today <= _mo2:
+                return _ru2, "入伏"
+            if _ru2 >= today:
+                return _ru2, "入伏"
+            _ru3, _m3 = _sanfu(today.year + 1)
+            if _ru3 is not None:
+                return _ru3, "入伏"
+    if "数九" in msg:
+        from guji.bazi import term_time as _tt9
+        _end9 = any(k in msg for k in ("结束", "完", "出九"))
+        for _yy9 in (today.year - 1, today.year, today.year + 1):
+            _dz9 = (_tt9(_yy9, "冬至") + timedelta(hours=8)).date()
+            _d99 = _dz9 + timedelta(days=80)
+            if _dz9 <= today <= _d99:
+                return (_d99, "出九") if _end9 else (_dz9, "数九")
+        for _yy9 in (today.year, today.year + 1):
+            _dz9 = (_tt9(_yy9, "冬至") + timedelta(hours=8)).date()
+            _d99 = _dz9 + timedelta(days=80)
+            if _dz9 > today:
+                return (_d99, "出九") if _end9 else (_dz9, "数九")
     if "除夕" in msg:
         from guji import lunar as _lx
         for yy in (today.year, today.year + 1):
@@ -4983,7 +5041,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     out.append(
                         f"{_v}：{_nd.month}月{_nd.day}日"
                         + ("（就是今天）" if _dl3 == 0
-                           else f"（还有{_dl3}天）"))
+                           else f"（还有{_dl3}天）" if _dl3 > 0
+                           else "（今年已过）"))
             except Exception:
                 pass
         # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
