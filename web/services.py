@@ -4945,7 +4945,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                      # R4181：日档/吉时/财神/幸运数同享迁移——
                      # 「立冬那天日子怎么样」出立冬的档。
                      "日子", "吉时", "财神", "幸运数字", "幸运数",
-                     "时辰", "贵人", "五行", "干支")):
+                     "时辰", "贵人", "五行", "干支",
+                     # R4226：今日牌同享迁移——「立冬那天的牌」出立冬牌。
+                     "塔罗", "日签", "今日牌", "每日一牌", "的牌",
+                     "抽什么牌")):
                 _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
                 if _ndn is not None:
                     _dd, _pfx = _ndn, _vn
@@ -5428,6 +5431,20 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     _mn = _per.get("mine") or {}
                     if _mn.get("line") and _mn.get("tone") != "flat":
                         out.append(f"{_pfx}你的盘：{_mn['line']}")
+            except Exception:
+                pass
+        # R4226：今日牌问句——与卡面「🃏 今日牌」同源（daily 确定性
+        # 日 seed，同日全站同一张大阿卡纳）。
+        if any(k in _n for k in ("塔罗", "日签", "今日牌", "每日一牌",
+                                 "的牌", "抽到什么牌", "抽什么牌")):
+            try:
+                _dc9 = daily(_dd.isoformat()).get("daily_card") or {}
+                if _dc9.get("name"):
+                    out.append(
+                        f"{_pfx}塔罗牌：{_dc9['name']}"
+                        f"（{'正位' if _dc9['upright'] else '逆位'}）"
+                        f"——{_dc9.get('keywords') or ''}；"
+                        f"{_dc9.get('meaning') or ''}")
             except Exception:
                 pass
         # R4216：时令日内坐标+农历行——「今天几九/几伏/农历几号」。
