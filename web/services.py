@@ -5510,12 +5510,46 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 pass
         # R4236：「现在几点/几点了」——中国时区时钟真值。
         if any(k in _n for k in ("几点了", "几点钟", "现在几点",
-                                 "现在时间", "什么时候了")):
+                                 "现在时间", "什么时候了",
+                                 "上午还是下午", "早上还是晚上")):
             try:
                 _now9 = now or _now_cn()
                 out.append(
                     f"现在：{_now9.hour}点{_now9.minute:02d}分"
                     f"（{_d.month}月{_d.day}日）")
+            except Exception:
+                pass
+        # R4256：「现在什么时辰/子时到了吗」——十二时辰可真算：
+        # 点映射（子 23-1 / 丑 1-3 / 寅 3-5 / 卯 5-7 / 辰 7-9 /
+        # 巳 9-11 / 午 11-13 / 未 13-15 / 申 15-17 / 酉 17-19 /
+        # 戌 19-21 / 亥 21-23），问「X时到了吗」点名时给还差几小时。
+        if any(k in _n for k in ("时辰", "子时", "丑时", "寅时",
+                                 "卯时", "辰时", "巳时", "午时",
+                                 "未时", "申时", "酉时", "戌时",
+                                 "亥时")):
+            try:
+                _now9 = now or _now_cn()
+                _SH9 = "子丑寅卯辰巳午未申酉戌亥"
+                _h9 = _now9.hour
+                _sh9 = _SH9[((_h9 + 1) // 2) % 12]
+                _sw9 = f"{(2 * ((_h9 + 1) // 2) - 1) % 24}点到" \
+                       f"{(2 * ((_h9 + 1) // 2) + 1) % 24}点"
+                _ask9 = next(
+                    (_s for _s in _SH9
+                     if f"{_s}时" in _n and _s != _sh9),
+                    None)
+                _vd9 = ""
+                if _ask9 and any(k in _n for k in
+                                 ("到了吗", "到没", "来了吗", "过了吗",
+                                  "几点到", "几点是")):
+                    _ia9 = _SH9.index(_ask9)
+                    _st9 = (2 * _ia9 - 1) % 24
+                    _gap9 = (_st9 - _h9) % 24
+                    _vd9 = (f"；{_ask9}时（{_st9}点起）"
+                            f"还有{_gap9}小时"
+                            if _gap9 else f"；{_ask9}时马上")
+                out.append(
+                    f"现在：{_sh9}时（{_sw9}）{_vd9}")
             except Exception:
                 pass
         # R4231：「做什么好/吃点什么/有什么建议」——日课白话行
