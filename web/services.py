@@ -2376,9 +2376,19 @@ _FEST_LUNAR = {
 # R4106：命名日下一发生日反查——「X什么时候」与「X那天穿什么」
 # 共用一条解析。返回 (date, 名称)，没认出来的名字给 (None, "")。
 # 顺序：节气全表 → 跨年/新年口语词 → 公历节 → 除夕 → 农历节。
-def _next_named_day(msg: str, today: date):
+def _next_named_day(msg: str, today: date, allow_ambi: bool = False):
     from guji.bazi import TERM_LONGITUDE, term_time
-    tname = next((t for t in TERM_LONGITUDE if t in msg), "")
+    # 「小满」是本应用吉祥物名、「大雪/小雪/大寒/小寒」常是天气
+    # 语境——隐式调用（命名日迁移）不许它们挪日子；显式反查
+    # （allow_ambi）放行后三个，但「小满」哪怕显式问也只在
+    # 句里带「节气」时才按节气解，否则是在叫小满本人。
+    _ambi = {"大雪", "小雪", "大寒", "小寒"}
+    tname = next(
+        (t for t in TERM_LONGITUDE
+         if t in msg and t != "小满"
+         and (allow_ambi or t not in _ambi)), "")
+    if not tname and "小满" in msg and "节气" in msg:
+        tname = "小满"
     if tname:
         for yy in (today.year, today.year + 1):
             cand = (term_time(yy, tname) + timedelta(hours=8)).date()
@@ -4909,7 +4919,7 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 # R4106：反查解析抽成 _next_named_day——「什么时候」
                 # 反查与「X那天穿什么」命名日偏移共用一条，顺序
                 # 节气→跨年/新年→公历节→除夕→农历节。
-                _nd, _v = _next_named_day(_n, _d)
+                _nd, _v = _next_named_day(_n, _d, allow_ambi=True)
                 # R4101：节日/节气名都没命中时，「星期几/周几/几号/什么
                 # 日子」要的是日期本身——按日偏移链的 _dd/_pfx 回声。
                 # （「生日几号」留给 profile_facts 的生日倒数答，别抢话。）
