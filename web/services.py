@@ -4568,14 +4568,19 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     pass
         if any(k in _n for k in ("穿搭", "穿什么", "穿啥", "幸运色",
                                  "幸运颜色", "开运色", "什么颜色", "配色")):
-            _lk = _lucky_for(_d)
-            _of = _outfit_for(_d)
+            # R3896：「明天穿什么」同式给明日数据——日签卡明天预告
+            # 族已有同款，聊天不该只会报今天。
+            _tmr = any(k in _n for k in ("明天", "明日", "第二天"))
+            _dd = _d + timedelta(days=1) if _tmr else _d
+            _pfx = "明日" if _tmr else "今日"
+            _lk = _lucky_for(_dd)
+            _of = _outfit_for(_dd)
             if _lk.get("color"):
-                out.append(f"今日开运色：{_lk['color']}"
+                out.append(f"{_pfx}开运色：{_lk['color']}"
                            f"（{_lk.get('color_word', '')}）")
             _t0 = (_of.get("tiers") or [{}])[0]
             if _t0.get("colors"):
-                out.append(f"今日穿搭大吉档：{_t0['colors']}"
+                out.append(f"{_pfx}穿搭大吉档：{_t0['colors']}"
                            f"（{_t0.get('tip', '')}）")
         if any(k in _n for k in ("咒语", "好运语", "转运语", "今日一句",
                                  "口号", "许愿语")):
