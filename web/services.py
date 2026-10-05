@@ -6176,6 +6176,72 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         pass
             except Exception:
                 pass
+        # R4321：流月十神——「这个月我怎么样/下个月运势/今年哪个月
+        # 顺」在档生日给月干×日主真值（与八字盘年度块 12 流月同源）。
+        if ("这个月" in _n or "本月" in _n or "下个月" in _n
+                or "下月" in _n or "哪个月" in _n
+                or "几月" in _n) and any(
+                k in _n for k in ("运", "怎么样", "如何", "顺",
+                                  "好不好", "我")):
+            try:
+                _m9c = next(
+                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                     for _fp in facts or []
+                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                    None)
+                if _m9c:
+                    _dmz9c, _ = _bazi_day_ganzhi(
+                        datetime(int(_m9c.group(1)),
+                                 int(_m9c.group(2)),
+                                 int(_m9c.group(3))))
+                    _dmg9 = _dmz9c[0]
+                    _TT9c = {"比肩": "同行者多，互助也分力",
+                             "劫财": "财来财去，守为上",
+                             "食神": "产出顺，宜展示宜享受",
+                             "伤官": "想法多也易顶撞，收着点",
+                             "偏财": "外财流动，宜副业宜社交",
+                             "正财": "实干进账，稳打稳扎",
+                             "七杀": "压力大但出活，扛住就赢",
+                             "正官": "名分正位，宜求稳宜上进",
+                             "偏印": "偏门学问旺，想多做少",
+                             "正印": "贵人帮扶，宜学宜养"}
+                    _EASY9 = {"正财", "偏财", "正官", "正印",
+                              "食神", "比肩"}
+                    if "哪个月" in _n or "几月" in _n:
+                        _ez9, _hd9 = [], []
+                        for _mm9 in range(1, 13):
+                            _mg9 = bazi_compute(
+                                _dd.year, _mm9, 15, 12, "").month
+                            _rg9 = ten_god(_dmg9, _mg9[0])
+                            (_ez9 if _rg9 in _EASY9 else _hd9).append(
+                                f"{_mm9}月{_rg9}")
+                        out.append(
+                            f"今年你的顺月：{'、'.join(_ez9[:5])}"
+                            + (f"；硬月：{'、'.join(_hd9[:4])}"
+                               if _hd9 else ""))
+                    else:
+                        _nb9m = 1 if ("下个月" in _n
+                                      or "下月" in _n) else 0
+                        if _nb9m:
+                            _ym9, _mm9 = _dd.year, _dd.month + 1
+                            if _mm9 > 12:
+                                _mm9, _ym9 = 1, _ym9 + 1
+                            _md9 = date(_ym9, _mm9, 15)
+                        else:
+                            # 「这个月」按当日真柱——节气换月点前后的
+                            # 公历月头几天其实还属上一节气月。
+                            _md9 = _dd
+                        _mg9 = bazi_compute(
+                            _md9.year, _md9.month, _md9.day,
+                            12, "").month
+                        _rg9 = ten_god(_dmg9, _mg9[0])
+                        _lb9m = "下个月" if _nb9m else "这个月"
+                        out.append(
+                            f"{_lb9m}你的流月十神：{_mg9}月（{_rg9}）"
+                            + (f"——{_TT9c.get(_rg9, '')}"
+                               if _rg9 in _TT9c else ""))
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
