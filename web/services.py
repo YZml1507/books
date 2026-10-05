@@ -5102,8 +5102,22 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 elif not _fn and any(
                         k in _n for k in ("什么节", "啥节日", "节日",
                                           "过节")):
-                    _nopf = _pfx if _pfx != "今日" else "今天"
-                    out.append(f"{_pfx}节日：{_nopf}没排上节日名")
+                    # R4196b：「重阳是什么节」点的是重阳不是今天——
+                    # 能解出点名日就给它的真日期，别答「今天没节」。
+                    _nd3, _v3 = _next_named_day(_n, _d,
+                                                personal=_personal)
+                    if _nd3 is not None:
+                        _dl5 = (_nd3 - _d).days
+                        _tip5 = _fest_tip(_v3)
+                        out.append(
+                            f"{_v3}：{_nd3.month}月{_nd3.day}日"
+                            + ("（就是今天）" if _dl5 == 0
+                               else f"（还有{_dl5}天）" if _dl5 > 0
+                               else "")
+                            + (f"（{_tip5}）" if _tip5 else ""))
+                    else:
+                        _nopf = _pfx if _pfx != "今日" else "今天"
+                        out.append(f"{_pfx}节日：{_nopf}没排上节日名")
             except Exception:
                 pass
         # R4171：黄历坐标活事实——值神/冲煞/彭祖百忌/建除/日课，
@@ -5332,6 +5346,31 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                            else "（今年已过）"))
             except Exception:
                 pass
+        # R4196：点名节日回声——「重阳节快乐/双十一/520」不带
+        # 问题词也认得它：给真实日期+倒数+节日tip（与 _FEST_TIP
+        # 同源）；带问题/值域词的走各自块，不抢话。
+        try:
+            _nd2, _v2 = _next_named_day(_n, _d, personal=_personal)
+            if (_nd2 is not None
+                    and not any(k in _n for k in (
+                        "什么", "几号", "哪天", "几时", "还有几",
+                        "怎么", "穿", "运势", "运气", "星座", "月亮",
+                        "满月", "新月", "月相", "值神", "冲", "煞",
+                        "宜", "忌", "日子", "吉时", "财神", "幸运",
+                        "贵人", "五行", "干支", "放假", "假期",
+                        "适合", "生日"))):
+                _dl4 = (_nd2 - _d).days
+                _tip4 = _fest_tip(_v2)
+                out.append(
+                    f"{_v2}："
+                    + (f"{_nd2.year}年" if _nd2.year != _d.year else "")
+                    + f"{_nd2.month}月{_nd2.day}日"
+                    + ("（就是今天）" if _dl4 == 0
+                       else f"（还有{_dl4}天）" if _dl4 > 0 else "")
+                    # 当天节日块已给 tip，回声只挂倒计时日的。
+                    + (f"（{_tip4}）" if _tip4 and _dl4 != 0 else ""))
+        except Exception:
+            pass
         # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
         # 有今日值宫+点名星座的那句（daily_horoscope 与星座卡
         # 同源，不再让她对着十二星座名干想）。
