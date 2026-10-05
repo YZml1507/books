@@ -2468,6 +2468,17 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
             if cand < today:
                 cand = _nth_weekday(today.year + 1, _hm3, _wd3, _nth3)
             return cand, _hn
+    # 口语别名→正式节日名——「光棍节/520/双11」嘴上这么说。
+    _FEST_ALIAS = {"光棍节": "双十一", "双11": "双十一",
+                   "520": "网络情人节"}
+    for _al9, _disp9 in _FEST_ALIAS.items():
+        if _al9 in msg and _disp9 not in msg:
+            for (_am, _ad), _fv9 in _FEST_SOLAR.items():
+                if _fv9 == _disp9:
+                    cand = date(today.year, _am, _ad)
+                    if cand < today:
+                        cand = date(today.year + 1, _am, _ad)
+                    return cand, _disp9
     # 三伏/数九——_festival_for 认得的时令节点，反查也该有。
     if any(k in msg for k in ("入伏", "三伏", "头伏", "初伏", "出伏")):
         _ru2, _mo2 = _sanfu(today.year)
