@@ -22319,9 +22319,15 @@ function renderCheckin(dateKey) {
       } else if (typeof _wishNySealWin === 'function' &&
                  _wishNySealWin() &&
                  !(typeof _wishNyGet === 'function' && _wishNyGet())) {
+        /* R3931：封愿末日（12/31）点名——「今晚截止」。 */
+        var _nyLast = _inBothDates(function (oNy) {
+          return oNy.m === 12 && oNy.d === 31;
+        });
         _xmasHtml += '<div class="ck-quest ck-nytease">' +
-          '🧨 跨年许愿开着呢——写给明年的话，' +
-          '封口存到元旦才启封' +
+          (_nyLast ? '🧨 跨年许愿今晚截止——写给明年的话，' +
+           '封口存到元旦才启封' :
+           '🧨 跨年许愿开着呢——写给明年的话，' +
+           '封口存到元旦才启封') +
           '<button type="button" class="ck-quest-btn ck-xwish">' +
           '去封一个 →</button></div>';
       }
