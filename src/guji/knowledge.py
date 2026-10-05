@@ -512,6 +512,37 @@ class KnowledgeBase:
         shared = sorted(a & b, reverse=True)
         return {"shared": shared[:120], "shared_total": len(shared)}
 
+    def counter_add(self, name: str, n: int) -> int:
+        """匿名全局计数器（R3424 敲木鱼「全铺子一起敲」共敲数）。
+
+        name 形如 'muyu:2026-10-04'——只有日期键，不记身份。与
+        couple_days 同款惰性建表（_SCHEMA_OK 快路径跳过老库升级）。
+        """
+        _has = self.db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='counters'").fetchone()
+        if not _has:
+            self.db.execute(
+                "CREATE TABLE IF NOT EXISTS counters ("
+                "name TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)")
+        self.db.execute(
+            "INSERT INTO counters (name, n) VALUES (?, ?) "
+            "ON CONFLICT(name) DO UPDATE SET n = n + excluded.n",
+            (name, n))
+        self.db.commit()
+        return int(self.db.execute(
+            "SELECT n FROM counters WHERE name=?", (name,)).fetchone()[0])
+
+    def counter_get(self, name: str) -> int:
+        _has = self.db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='counters'").fetchone()
+        if not _has:
+            return 0
+        r = self.db.execute(
+            "SELECT n FROM counters WHERE name=?", (name,)).fetchone()
+        return int(r[0]) if r else 0
+
     def _del_derived(self, did: int, claim: str) -> None:
         """删一条 derived 及其 evidence/FTS。contentless derived_fts 不能
         直接 DELETE（sqlite 报 'cannot DELETE from contentless fts5

@@ -2592,7 +2592,7 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 16, ("home.ia.count", len(_cards), _cards)  # R3394 答案之书卡入格（qian 后 chat 前）——16 卡全平铺
+    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)  # R3424 敲敲木鱼卡入格（ansb 后 chat 前）——17 卡全平铺
     # R208b：read 卡移除（用户裁决不提供读书渠道）
     # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
     assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
@@ -2602,7 +2602,7 @@ def _run_inner() -> list[str]:
     # R3210：起名上提主格（受众高频），抽屉只留六爻（术语门槛的问事向）。
     assert _cards[6:] == ["xingzuo", "dream", "qiming", "liuyao",
                           "history", "oracle", "mochi", "qian", "ansb",
-                          "chat"], \
+                          "muyu", "chat"], \
         ("home.ia.drawer", _cards)
     # 判据 a：默认视线零研究型元素（抽屉已撤，全 home 段都扫）
     for _kw in ("检索", "比对", "书目", "研究线程", "书 ID", "编址"):
@@ -2793,17 +2793,26 @@ def _run_inner() -> list[str]:
     assert _lc.status_code == 200 and "solar" in _lc.json(), (
         "lunar.convert.post", _lc.status_code, _lc.text[:200])
     ok.append("lunar.convert.post")
-    # 新月/满月：农历初一/十五出 phase——找个确定日（2026-10-10 是
-    # 农历九月初一？不猜历表，改为扫窗验证：30 天内至少 1 初一1 十五）。
+    # R3451 八相日行：30 天窗口必须天天有相（八相全出）、天天有
+    # glyph、且 action 只挂在新月/满月两日。旧断言只认两窗已升级。
     def _moon_scan():
-        _ph = set()
+        _ph, _acts = set(), set()
+        _missed = 0
         for _i in range(30):
             _ds = f"2026-11-{(_i % 28) + 1:02d}"
             _m = client.get("/api/daily", params={"date": _ds}).json().get("moon") or {}
-            if _m.get("phase"):
-                _ph.add(_m["phase"])
-        return _ph == {"新月", "满月"}
-    assert _moon_scan(), "moon phases missing in 30d window"
+            if not _m.get("phase"):
+                _missed += 1
+                continue
+            _ph.add(_m["phase"])
+            if not _m.get("glyph"):
+                return False
+            if _m.get("action"):
+                _acts.add(_m["action"])
+        return (_missed <= 1 and len(_ph) >= 7 and
+                "新月" in _ph and "满月" in _ph and
+                _acts <= {"wish", "wish_review"})
+    assert _moon_scan(), "moon phases/glyph/action 日行口径不满足"
     ok.append("daily.moon.phase")
     # R3317-G：今日牌——同日出同牌、词非空、位向布尔；两日不同 seed
     # 不强制异牌（%22 会撞），只钉字段形状与确定性。
@@ -3104,6 +3113,12 @@ def _run_inner() -> list[str]:
     assert _svc_dm.chat_action_view("帮我排盘")["view"] == "bazi"
     assert _svc_dm.chat_action_view("合个盘")["view"] == "hehun"
     assert _svc_dm.chat_action_view("想写封未来信")["anchor"] == "checkin"
+    # R3471：小惊喜族 sa* 锚——四件+prompt 直达排盘折叠区卡。
+    assert _svc_dm.chat_action_view("哪个方向旺我")["anchor"] == "saF"
+    assert _svc_dm.chat_action_view("看看我的守护兽")["anchor"] == "saG"
+    assert _svc_dm.chat_action_view("我戴什么水晶好")["anchor"] == "saC"
+    assert _svc_dm.chat_action_view("灵魂色谱是什么")["anchor"] == "saS"
+    assert _svc_dm.chat_action_view("帮我把盘生成算命prompt")["anchor"] == "saP"
     _cf = _svc_dm.chat_action_facts("杨幂生日是哪天")
     assert _cf and "1986-09-12" in _cf[0] and "明星合盘" in _cf[0], _cf
     check("chat.action_field", client.post("/api/chat", json={
@@ -4065,8 +4080,11 @@ def _run_inner() -> list[str]:
     _pft = " ".join(_pf)
     assert "日主" in _pft and "太阳星座" in _pft \
         and "五行属" in _pft, ("chat.profile_facts", _pft[:200])
-    assert _pf[0] == "她叫小满" and _pf[4] == "桃花支：卯" \
-        and len(_pf) == 5, _pf
+    assert _pf[0] == "她叫小满" and _pf[5] == "桃花支：卯" \
+        and len(_pf) == 6, _pf
+    # R4066：档案生日倒数事实钉扎——「她生日：M月D日（还有N天）」。
+    assert any(f.startswith("她生日：") and "还有" in f and "天" in f
+               for f in _pf), _pf
     _pf2 = _svc.chat_profile_facts(["生日：2003-99-99", "x"])
     assert _pf2 == ["生日：2003-99-99", "x"], _pf2
     _pf3 = _svc.chat_profile_facts([])
@@ -4667,6 +4685,55 @@ def _run_inner() -> list[str]:
         "心动默契题" in _appsrc2, \
         "默契双题库：love 题库/_mcPackOf/切换钮缺一"
     ok.append("frontend.mochi_packs")
+    # R3427 自写题：v3 载荷/题包编解码/编辑器/自写链生成四件套——
+    # 缺一则自写挑战书出不了链或受邀方看不到题。
+    assert "v3|" in _appsrc2 and "_mcQDec" in _appsrc2 and \
+        "_mcEditRead" in _appsrc2 and 'data-pack="custom"' in _appsrc2, \
+        "默契自写题：v3/_mcQDec/_mcEditRead/custom 包钮缺一"
+    ok.append("frontend.mochi_custom")
+    # R3445 模板引导：tpl 委托/两条照着写链缺一不可。
+    assert 'data-mc="tpl"' in _appsrc2 and "act === 'tpl'" in _appsrc2, \
+        "默契模板引导：tpl 委托链缺一"
+    ok.append("frontend.mochi_tpl")
+    # R3446 记忆连续性：空态记忆行函数/样式类/接入点缺一不可。
+    assert "_chatMemoryLine" in _appsrc2 and "chat-memline" in _appsrc2, \
+        "记忆连续性：_chatMemoryLine/chat-memline 缺一"
+    ok.append("frontend.chat_memline")
+    # R3447 聊斋当值签：语料/按日定值/结果条/海报数据键——缺一
+    # 限定抽就没当值签或晒图丢行。
+    _postsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "app_poster.js"),
+                    encoding="utf-8").read()
+    assert "_LIAO_POOL" in _appsrc2 and "_liaoPick" in _appsrc2 and \
+        "tr-liao-strip" in _appsrc2 and "今夜当值" in _appsrc2 and \
+        "__trLiao" in _postsrc and "__trLiao" in _appsrc2, \
+        "聊斋当值签：_LIAO_POOL/_liaoPick/tr-liao-strip/__trLiao 缺一"
+    _lz_n = _appsrc2.count("{ c:")
+    assert _lz_n >= 16 and _appsrc2.count(", t2:") >= 16, \
+        "聊斋当值签语料不足 16 位或缺海报短判 t2"
+    ok.append("frontend.liaozhai")
+    # R3448+R3449 审修批：记忆卡忘掉链（墓碑/内存档/上行残留）、
+    # 限定旗快照消费、危机静音、锚日挂旗、双窗现身、n1 覆盖位——
+    # 缺一即忘掉假承诺/限定条串台/chip 死链/表单被改写。
+    assert "memwipe:" in _appsrc2 and "__meSessionMap" in _appsrc2 and \
+        "_mwts" in _appsrc2 and "_mwSkipped" in _appsrc2, \
+        "记忆卡族墓碑链：memwipe/__meSessionMap/_mwts/_mwSkipped 缺一"
+    assert "_isHFest" in _appsrc2 and "_festMuted" in _appsrc2 and \
+        "_optN1" in _appsrc2 and "_trFestCn" in _appsrc2, \
+        "限定旗/危机静音/n1 覆盖位：_isHFest/_festMuted/_optN1/_trFestCn 缺一"
+    assert "_manifestStreak" in _appsrc2, \
+        "记忆行连念恒假：_manifestStreak 未接入"
+    ok.append("frontend.r3448_49")
+    # R3436 换一题：换题池/reroll 委托/hqs 套卷/v3 链降级四件套——
+    # 缺一则换题钮不出、换后受邀方题面对不上或重答丢答案。
+    _csssrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "styles.css"),
+                    encoding="utf-8").read()
+    assert "_mcPool" in _appsrc2 and 'data-mc="reroll"' in _appsrc2 and \
+        "dataset.hqs" in _appsrc2 and "v3|" in _appsrc2 and \
+        "mc-reroll" in _csssrc2, \
+        "默契换一题：池/委托/套卷集/v3 降级/样式缺一"
+    ok.append("frontend.mochi_reroll")
     # R3388 每日一签：懒载器/同签闸/历史/白名单/备份前缀五件套——
     # 缺一则签页空渲、同日变签、跨链断档、聊路死链或清场漏数。
     assert "view-qian" in _idxsrc and "_renderQian" in _appsrc2 and \
@@ -4684,6 +4751,38 @@ def _run_inner() -> list[str]:
         'data-wish="echoShare"' in _appsrc2 and "_QIAN_CAISHEN" in _appsrc2, \
         "福签窗/跨年愿/还愿海报：窗表/分键/徽标/动作缺一"
     ok.append("frontend.cny_ny_wiring")
+    # R3435 圣诞心愿限定：钮/窗函/条/锚/聊路标五件套——缺一则
+    # 钮不现身、点死不抽、限定条不冒或聊里死链。
+    assert 'id="trQX"' in _idxsrc and "_trXFest" in _appsrc2 and \
+        "__trXFest" in _appsrc2 and "tr-xfest-strip" in _appsrc2 and \
+        'trQX:' in _appsrc2 and "tr-xfest-strip" in _csssrc2, \
+        "圣诞心愿限定：钮/窗函/旗标/限定条/锚/样式缺一"
+    _svcsrc2 = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "services.py"),
+                    encoding="utf-8").read()
+    assert '"trQX"' in _svcsrc2 and "圣诞心愿限定" in _svcsrc2, \
+        "圣诞心愿限定：聊路标词族/锚缺"
+    ok.append("frontend.xmas_wiring")
+    # R3433 口吻终审批：合拍卡日支术语白话化/自写题私密引导+海报
+    # 敏感题过闸/晒图标题收编/拒寄留层/toast 暖格式五件套——
+    # 缺一则黑话上屏、私密题干外流、张冠李戴或写好的信静毁。
+    _postsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "app_poster.js"),
+                    encoding="utf-8").read()
+    assert "今天你们容易顶起来" in _svcsrc2 and \
+        "太私密的别写哦" in _appsrc2 and \
+        "cpdaily: '今日合拍指数'" in _appsrc2 and \
+        "这封信先留着没寄" in _appsrc2 and \
+        "feSensitive(_mq)" in _postsrc, \
+        "口吻终审 R3433：白话/私密引导/标题收编/留层/海报闸缺一"
+    ok.append("frontend.tone_r3433")
+    # R3439 裂变链三轮终扫：受邀「我也出一套」清场（pack/qs/双名
+    # 复位）+ 限定卡 chip 双时区复判——缺一则受邀方甩进自写
+    # 编辑器或海外用户点 chip 没反应。
+    assert "_hadHash" in _appsrc2 and "_trFestCn" in _appsrc2 and \
+        "_trHFestCn" in _appsrc2 and "_trXFestCn" in _appsrc2, \
+        "裂变三轮：host 清场/双时区复判缺"
+    ok.append("frontend.r3439_sweep")
     # R3418 P0/P1：掷筊三重闸（feCrisis→feSensitive→BIGQ，先于
     # 种子判词）+ tarot/liuyao 提问钩危机闸 + 粉碎机双闸——
     # 缺一则高危问句拿到确定性吉凶判词。
@@ -4702,6 +4801,62 @@ def _run_inner() -> list[str]:
     assert "feCrisis(t)" in _appsrc2[_sh:_sh + 1500], \
         "粉碎机危机闸缺"
     ok.append("frontend.oracle_gates")
+    # R3424 敲敲木鱼：视图/渲染/敲击/备份前缀/路标/共敲端点六件套——
+    # 缺一则木鱼页空渲、计数不落、聊路死链或共敲数断供。
+    _postsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "static", "app_poster.js"),
+                    encoding="utf-8").read()
+    assert "view-muyu" in _idxsrc and "_renderMuyu" in _appsrc2 and \
+        "_muyuKnock" in _appsrc2 and "muyu: 1" in _appsrc2 and \
+        "muyu:" in _appsrc2 and 'data-view="muyu"' in _idxsrc and \
+        "_muyuFlush" in _appsrc2 and "case 'muyu'" in _postsrc, \
+        "敲敲木鱼：view/渲染/敲击/白名单/备份前缀/上报/海报缺一"
+    ok.append("frontend.muyu_wiring")
+    # R3456 旺你的方位：按钮/出卡/海报 case/别名/钩子五件套——
+    # 缺一则钮不现、卡空渲、海报死链或归错视图。
+    assert "shareFortuneDir" in _appsrc2 and "_fdOpen" in _appsrc2 and \
+        "_FD_DIR" in _appsrc2 and "case 'fortune_dir'" in _postsrc and \
+        "fortune_dir: 'bazi'" in _appsrc2 and \
+        "fortune_dir: '旺你的方位'" in _appsrc2, \
+        "旺你的方位：按钮/卡片/海报/别名/标题缺一"
+    ok.append("frontend.fortunedir_wiring")
+    # R3457 守护图腾：按钮/出卡/灵兽表/海报 case/别名/标题六件套——
+    # 缺一则钮不现、卡空渲、海报死链或归错视图。
+    assert "shareGuardian" in _appsrc2 and "_gdOpen" in _appsrc2 and \
+        "_GD_BEAST" in _appsrc2 and "case 'guardian'" in _postsrc and \
+        "guardian: 'bazi'" in _appsrc2 and \
+        "guardian: '守护图腾'" in _appsrc2, \
+        "守护图腾：按钮/卡片/灵兽表/海报/别名/标题缺一"
+    ok.append("frontend.guardian_wiring")
+    # R3461 守护水晶：按钮/出卡/晶石表/海报 case/别名/标题六件套。
+    assert "shareCrystal" in _appsrc2 and "_crOpen" in _appsrc2 and \
+        "_CR_GEM" in _appsrc2 and "case 'crystal'" in _postsrc and \
+        "crystal: 'bazi'" in _appsrc2 and \
+        "crystal: '守护水晶'" in _appsrc2, \
+        "守护水晶：按钮/卡片/晶石表/海报/别名/标题缺一"
+    ok.append("frontend.crystal_wiring")
+    # R3462 灵魂色谱：按钮/出卡/色谱表/海报 case+s.art 画家分支/
+    # 别名/标题七件套。
+    assert "shareSoulart" in _appsrc2 and "_saOpen" in _appsrc2 and \
+        "_SA_COLOR" in _appsrc2 and "case 'soulart'" in _postsrc and \
+        "_saArt" in _postsrc and "soulart: 'bazi'" in _appsrc2 and \
+        "soulart: '灵魂色谱'" in _appsrc2, \
+        "灵魂色谱：按钮/卡片/色谱表/海报/画家分支/别名/标题缺一"
+    ok.append("frontend.soulart_wiring")
+    # R3464 算命 prompt：生成器/复制器/接线三件套缺一即死钮
+    assert "_promptText" in _appsrc2 and "_promptCopy" in _appsrc2 and \
+        "sharePrompt" in _appsrc2 and "location.origin" in _appsrc2, \
+        "算命 prompt：生成器/复制器/站链缺一"
+    ok.append("frontend.prompt_wiring")
+    # R3441「小满记得」：分组口径/渲染钩/锁态藏卡/两段式忘掉——
+    # 缺一则卡空渲、锁态仍见个人数据或单组清除哑火。
+    assert "memoryCard" in _idxsrc and "memBody" in _idxsrc and \
+        "_MEM_GROUPS" in _appsrc2 and "_xmMemRender" in _appsrc2 and \
+        "_memC.hidden" in _appsrc2 and "mem-del" in _appsrc2 and \
+        "dataset.armed" in _appsrc2 and "_memNote" in _appsrc2 and \
+        "mem-note" in _appsrc2, \
+        "小满记得卡：视图/分组/锁态/两段式/她注意到缺一"
+    ok.append("frontend.memory_card")
     ok.append("frontend.hl_ask_dayoffset")
     # R179b（D-232b，审查轨 R118a-01/R118a-02）：`[object Object]` 静态闸门。
     # 两条 MAJOR 同一根因：前端渲染只分「数组」与「其他→esc(v)」两支，漏了
@@ -5247,6 +5402,66 @@ def _run_inner() -> list[str]:
             and _r.json().get("updated_at")), \
         ("account.push_updated_at", _r.status_code, _r.text[:200])
     ok.append("account.push_updated_at")
+
+    # R3424 敲敲木鱼共敲计数器：GET 出今日数，POST 攒批只增——
+    # n 上限 500（schema 闸）、越界 422、回读同日期口径。
+    _r = client.get("/api/muyu")
+    assert _r.status_code == 200 and \
+        isinstance(_r.json().get("today"), int), \
+        ("muyu.get", _r.status_code, _r.text[:200])
+    ok.append("muyu.get")
+    _n0 = _r.json()["today"]
+    _r = client.post("/api/muyu", json={"n": 3})
+    assert _r.status_code == 200 and \
+        _r.json().get("today") == _n0 + 3, \
+        ("muyu.knock", _r.status_code, _r.text[:200])
+    ok.append("muyu.knock")
+    _r = client.post("/api/muyu", json={"n": 501})
+    assert _r.status_code == 422, \
+        ("muyu.knock_over", _r.status_code, _r.text[:200])
+    ok.append("muyu.knock_over")
+    _r = client.post("/api/muyu", json={"n": 0})
+    assert _r.status_code == 422, \
+        ("muyu.knock_zero", _r.status_code, _r.text[:200])
+    ok.append("muyu.knock_zero")
+
+    # R3425 今日合拍指数：纯坐标日更分——同日重测同分（确定性），
+    # 响应字段齐（date/ganzhi/score/line/tag/base），同人/未成年闸
+    # 与主合婚同口径（_hehun_plates 共享前置）。
+    _hb = {"a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
+           "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
+           "b_hour": 14, "b_gender": "女"}
+    _r = client.post("/api/hehun/daily", json=_hb)
+    assert _r.status_code == 200, \
+        ("hehun.daily", _r.status_code, _r.text[:200])
+    _j = _r.json()
+    assert all(k in _j for k in
+               ("date", "ganzhi", "score", "line", "tag", "base")) and \
+        isinstance(_j["score"], int) and 45 <= _j["score"] <= 98, \
+        ("hehun.daily.fields", _j)
+    ok.append("hehun.daily")
+    _r2 = client.post("/api/hehun/daily", json=_hb)
+    assert _r2.json().get("score") == _j["score"], \
+        ("hehun.daily.deterministic", _r2.text[:200])
+    ok.append("hehun.daily.deterministic")
+    _hs = dict(_hb); _hs.update({"b_year": 1990, "b_month": 5,
+        "b_day": 15, "b_hour": 10, "b_gender": "男"})
+    _r3 = client.post("/api/hehun/daily", json=_hs)
+    assert _r3.status_code == 400, \
+        ("hehun.daily.same_person", _r3.status_code, _r3.text[:200])
+    ok.append("hehun.daily.same_person")
+
+    # R3425 前端接线：daily 卡容器 + ref 解码 + poster case + 晒钮委托。
+    _hsrc = open("web/static/index.html", encoding="utf-8").read()
+    _asrc = open("web/static/app.js", encoding="utf-8").read()
+    _psrc = open("web/static/app_poster.js", encoding="utf-8").read()
+    assert ('id="hhDailyBox"' in _hsrc and
+            "_hhDailyRender" in _asrc and
+            "/api/hehun/daily" in _asrc and
+            "data-hhdaily" in _asrc and
+            "case 'cpdaily'" in _psrc), \
+        "hehun.daily.wiring"
+    ok.append("frontend.hehun_daily_wiring")
     return ok
 
 

@@ -455,8 +455,13 @@ def _hehun_score(h) -> int:
     return int(max(35, min(_cap, round(sc))))
 
 
-def hehun(req) -> dict:
-    """八字合婚：六冲/六合/日主五行/桃花支 + 大运冲合应期，全纯坐标。"""
+def _hehun_plates(req):
+    """合婚共享前置（R3425 抽取）：双侧生辰→农历换算→成年/同人闸
+    →双盘+hehun 坐标+大运应期。hehun() 与 hehun_daily() 共用，
+    闸口径改一处两边同步。
+    抛 ValidationError（农历换算失败/未成年/同一人）/ComputeError。
+    返回 (ba, bb, h, dayun, a_ymd, b_ymd)——后两项是换算后的公历
+    坐标（农历输入下与 req.a_*/b_* 原值不同，判星座须用这组）。"""
     req.validate_ranges()
     # R2349s（R84-P0-1）：未成年边界——1900–2100 只验「是不是日期」，
     # 实测 8 岁盘正常出「并肩作战型情侣」配对文案，敏感失守。
@@ -502,6 +507,74 @@ def hehun(req) -> dict:
         dayun = hehun_mod.dayun_relation(ba, _ay, bb, _by)
     except Exception as exc:
         raise ComputeError(f"排盘失败：{_friendly_calc_err(exc)}") from exc
+    return ba, bb, h, dayun, (_ay, _am, _ad), (_by, _bm, _bd)
+
+
+def hehun_daily(req) -> dict:
+    """R3425 今日合拍指数：已存 CP 的「今天你们怎么样」日更留存钩。
+
+    纯坐标确定性输出（同日重测同分）：今日日柱 vs 双方日支的合/冲/
+    半合/害/刑信号 + 底子分（_hehun_score）混成 45–98 的当日分。
+    判词按分档换句，附加日支信号标签（合→适合表态、冲→别翻旧账）。"""
+    ba, bb, h, _dayun, _aymd, _bymd = _hehun_plates(req)
+    base = _hehun_score(h)
+    # R3431-P2（审）：锚浏览器本地日——缺省回退服务器 CST（旧端/
+    # 直调兼容），海外用户零点前后不再错位一天。
+    _cd = getattr(req, "client_date", None)
+    _today = date.fromisoformat(_cd) if _cd else _today_cn()
+    _tp, _ = _bazi_day_ganzhi(
+        datetime(_today.year, _today.month, _today.day))
+    _tz = _tp[1]
+
+    def _sig(dz):
+        if hehun_mod.SIX_COMBINE.get(_tz) == dz:
+            return 7, "合"
+        if hehun_mod.SIX_CLASH.get(_tz) == dz:
+            return -9, "冲"
+        if hehun_mod.half_combine(_tz, dz):
+            return 3, "半合"
+        if hehun_mod.is_harm(_tz, dz):
+            return -4, "害"
+        if hehun_mod.is_xing(_tz, dz):
+            return -4, "刑"
+        if hehun_mod.is_break(_tz, dz):
+            return -3, "破"
+        return 0, ""
+
+    _sa, _ta = _sig(ba.day[1])
+    _sb, _tb = _sig(bb.day[1])
+    # 抖动盐：日期+双方日柱——同一对每天不同、同一天重测不变，
+    # ±4 不破确定性也不让分数天天撞整数带。
+    _jit = int(hashlib.md5(
+        f"{_today.isoformat()}|{ba.day}{bb.day}".encode()
+    ).hexdigest()[:4], 16) % 9 - 4
+    score = int(max(45, min(98, round(
+        0.55 * base + 24 + (_sa + _sb) * 1.5 + _jit))))
+    _tag = ""
+    # R3433-P1-1（审）：「日支逢冲/逢合」内码术语裸奔上屏——
+    # 术语翻成感受，与全站随行翻译口径一致。
+    if _ta == "冲" or _tb == "冲":
+        _tag = "今天你们容易顶起来，别翻旧账"
+    elif _ta == "合" or _tb == "合":
+        _tag = "今天你们格外对味，适合把话说开"
+    elif _ta == "半合" or _tb == "半合":
+        _tag = "今天有点小合意，顺手撒个娇"
+    if score >= 85:
+        line = "今天你们频道特别对——想腻就腻着，想把话说开也顺。"
+    elif score >= 70:
+        line = "今天合拍在线，日常小事都顺，适合一起做点啥。"
+    elif score >= 55:
+        line = "今天平平也挺好，各忙各的、晚上唠两句就够。"
+    else:
+        # R3433-P2-5（审）：「有点顶」歧义（顶着/顶撞读不出）。
+        line = "今天容易小顶牛——少讲道理多给台阶，晚点再说正事。"
+    return {"date": _today.isoformat(), "ganzhi": _tp,
+            "score": score, "line": line, "tag": _tag, "base": base}
+
+
+def hehun(req) -> dict:
+    """八字合婚：六冲/六合/日主五行/桃花支 + 大运冲合应期，全纯坐标。"""
+    ba, bb, h, dayun, (_ay, _am, _ad), (_by, _bm, _bd) = _hehun_plates(req)
     h_dict = {
         # R2350b（R98-P2-13）：补 render——pro 模式「A 四柱」pill 读
         # a_bazi.render，此前键缺席恒 undefined（死 pill）；甲乙卡也
@@ -2530,6 +2603,21 @@ _MERCURY_RETRO: tuple[tuple[str, str], ...] = (
 )
 
 
+# R3502：金星/火星逆行历表（公开天文历 station 到 station 日粒度，
+# UTC；Swiss Ephemeris 计算源多源交叉核验 2025–2029）。金逆周期
+# 约 18 个月一次、火逆约 26 个月一次——表外年份静默无状态。
+_VENUS_RETRO: tuple[tuple[str, str], ...] = (
+    ("2025-03-01", "2025-04-12"),
+    ("2026-10-03", "2026-11-14"),
+    ("2028-05-10", "2028-06-22"),
+)
+_MARS_RETRO: tuple[tuple[str, str], ...] = (
+    ("2024-12-06", "2025-02-23"),
+    ("2027-01-10", "2027-04-01"),
+    ("2029-02-14", "2029-05-05"),
+)
+
+
 # R2349l（R73-P2-10）：节气民俗一句池——交节日的首页仪式感。
 _TERM_FOLK: dict[str, str] = {
     "立春": "打春吃春饼，新一年的开头宜立个小愿望",
@@ -2595,10 +2683,11 @@ def _liunian(d: date) -> tuple[str, int]:
 
 
 def _moon_for(d: date) -> dict:
-    """R2349l（R73-P1-8）：农历初一/十五（±1天）→ 新月/满月仪式行。
+    """R2349l（R73-P1-8）+ R3451：农历日 → 月相仪式行。
 
     不发明天文月相，只认农历日——黄历产品的「新月许愿/满月复盘」
-    本来按农历节律走。非初一十五窗口返回 {}。
+    本来按农历节律走。R3451 起全月八相常驻（业界月相应用验证过
+    月相日行是留存主钩），初一十五窗口仍挂许愿/复盘 action。
     """
     try:
         from guji import lunar as lunar_mod
@@ -2611,40 +2700,72 @@ def _moon_for(d: date) -> dict:
         _rot = d.toordinal()
         if ld == 1:
             return {"phase": "新月", "label": "新月许愿",
-                    "action": "wish",
+                    "glyph": "🌑", "action": "wish",
                     "line": (
                         "今天新月：适合把愿望写下来，老话说「月初起念，月末收成」。",
                         "新月初一：写下来就算数——愿望落到字上比放心里转圈实在。",
                     )[_rot % 2]}
         if ld == 2:
             return {"phase": "新月", "label": "新月次日",
-                    "action": "wish",
+                    "glyph": "🌑", "action": "wish",
                     "line": (
                         "新月刚过，许愿的劲儿还在，想写愿望现在还来得及。",
                         "新月次日：昨天没写下的愿望今天补上，月初的念儿还没散。",
                     )[_rot % 2]}
         if ld == 15:
             return {"phase": "满月", "label": "满月复盘",
-                    "action": "wish_review",
+                    "glyph": "🌕", "action": "wish_review",
                     "line": (
                         "今天满月：适合回头看看这半个月，上次许的愿望有进展吗？",
                         "月圆十五：愿望不急着都兑现，翻出来看看哪条还在路上。",
                     )[_rot % 2]}
         if ld == 16:
             return {"phase": "满月", "label": "满月次日",
-                    "action": "wish_review",
+                    "glyph": "🌕", "action": "wish_review",
                     "line": (
                         "满月刚落，收尾盘点的好日子，没收完的尾巴今天清一清。",
                         "满月次日：半个月的努力盘一盘，该收的收、该续的续。",
                     )[_rot % 2]}
+        # R3451：八相日行——每一天都有一句月相话（无 action 时行
+        # 只读不点）。相位划分按农历日段 [lo,hi]，不求天文精度。
+        _tab = [
+            (3, 7, "娥眉月", "🌒",
+             ("月牙冒尖儿了：想做的事起个头，今天只开个小口。",
+              "娥眉月初上：新念头正冒芽，先轻轻记着就好。")),
+            (8, 10, "上弦月", "🌓",
+             ("上弦月半圆：往上走的日子，适合往前拱一小步。",
+              "弦月半满：该使劲的事这两天别松手。")),
+            (11, 14, "盈凸月", "🌔",
+             ("月亮一天天鼓起来了——攒着的劲儿快圆了。",
+              "盈凸月：快到顶的日子，收个尾冲一冲。")),
+            (17, 22, "亏凸月", "🌖",
+             ("月亮开始慢慢收了——该放的事松一松，不必都扛着。",
+              "亏凸月：从满到收，盘点盘点手里这半月。")),
+            (23, 25, "下弦月", "🌗",
+             ("下弦月挂半边：收拾收拾上半月的尾巴，轻装走。",
+              "弦月向西：旧事先清一清，别带进下个月。")),
+            (26, 30, "残月", "🌘",
+             ("残月将尽：这个月快到头了，歇口气等新月再来。",
+              "月末残月：把没做完的轻轻放下，新月再开一页。")),
+        ]
+        for lo, hi, name, gl, lines in _tab:
+            if lo <= ld <= hi:
+                # R3452（审-P2-5）：凸月术语不直出——label 换白话，
+                # phase 留术语给内部判据。
+                _lbl = {"盈凸月": "月亮渐圆",
+                        "亏凸月": "月亮渐收"}.get(name, name)
+                return {"phase": name, "label": _lbl,
+                        "glyph": gl, "action": None,
+                        "line": lines[_rot % 2]}
     except Exception:
         pass
     return {}
 
 
-def _mercury_state(d: date) -> dict:
-    """d 这天的水逆状态：{on, day_no, until} / {on:False, next, days_to}。"""
-    for s, e in _MERCURY_RETRO:
+def _retro_state(
+        table: tuple[tuple[str, str], ...], d: date) -> dict:
+    """d 这天的逆行状态：{on, day_no, until} / {on:False, next, days_to}。"""
+    for s, e in table:
         ds, de = date.fromisoformat(s), date.fromisoformat(e)
         if ds <= d <= de:
             return {"on": True, "day_no": (d - ds).days + 1,
@@ -2653,6 +2774,113 @@ def _mercury_state(d: date) -> dict:
             return {"on": False, "next": s,
                     "days_to": (ds - d).days}
     return {"on": False, "next": "", "days_to": 0}
+
+
+def _mercury_state(d: date) -> dict:
+    return _retro_state(_MERCURY_RETRO, d)
+
+
+# R3502：金逆（旧情复盘/审美重置话题）与火逆（行动力慢拍）同构状态。
+def _venus_state(d: date) -> dict:
+    return _retro_state(_VENUS_RETRO, d)
+
+
+def _mars_state(d: date) -> dict:
+    return _retro_state(_MARS_RETRO, d)
+
+
+def mooncal(month: str | None) -> dict:
+    """R3611 本月月历：整月逐日月相行——glyph/label/action/line
+    全走 _moon_for 同源口径，闰月日缺省不标节点。"""
+    try:
+        y, m = int(month[:4]), int(month[5:7])
+        base = date(y, m, 1)
+    except Exception:
+        base = date.today().replace(day=1)
+    nxt = date(base.year + (1 if base.month == 12 else 0),
+               1 if base.month == 12 else base.month + 1, 1)
+    days = []
+    dd = base
+    while dd < nxt:
+        mo = _moon_for(dd)
+        days.append({
+            "d": dd.isoformat(),
+            "glyph": mo.get("glyph") or "🌙",
+            "label": mo.get("label") or "",
+            "action": mo.get("action") or "",
+            "line": mo.get("line") or "",
+        })
+        dd += timedelta(days=1)
+    return {"month": base.strftime("%Y-%m"), "days": days}
+
+
+def _week_sky(d: date) -> list:
+    """R3601：未来 7 天天象预告——初一/十五节点、逆行起止、节气日。
+
+    全走确定性历表（lunar 农历日/逆行窗表/节气天文算法），
+    表外年份/异常日静默略过该项。「下周早知道」行数据源。
+    """
+    evs = []
+    try:
+        for i in range(1, 8):
+            dd = d + timedelta(days=i)
+            lab = ("周" + _WEEKDAY[dd.weekday()] + " " + str(dd.month) +
+                   "/" + str(dd.day))
+            try:
+                m = _moon_for(dd)
+                # 只预告初一/十五两个仪式节点（次日不重复列）。
+                if m.get("label") in ("新月许愿", "满月复盘"):
+                    evs.append({"d": lab, "t": m["glyph"] + m["label"]})
+            except Exception:
+                pass
+            try:
+                tn = _term_name_for(dd)
+                if tn:
+                    evs.append({"d": lab, "t": "🍂 " + tn})
+            except Exception:
+                pass
+            for tbl, nm in ((_MERCURY_RETRO, "水逆"),
+                            (_VENUS_RETRO, "金逆"),
+                            (_MARS_RETRO, "火逆")):
+                for s, e in tbl:
+                    if s == dd.isoformat():
+                        evs.append({"d": lab, "t": "↩ " + nm + "起"})
+                    if e == dd.isoformat():
+                        evs.append({"d": lab, "t": "↩ " + nm + "止"})
+            # R3976：时令窗开/关也进预告——签窗×3+塔罗限定×2+跨年封愿。
+            try:
+                _wm = {(10, 25): "🎃 捣蛋签开窗",
+                       (11, 6): "🌸 桃花签开窗",
+                       (11, 11): "🌸 桃花签关窗",
+                       (10, 29): "🎃 万圣夜限定开窗",
+                       (12, 20): "🎄 圣诞心愿限定开窗",
+                       (12, 31): "🧨 跨年封愿关窗"}
+                if (dd.month, dd.day) in _wm:
+                    evs.append({"d": lab, "t": _wm[(dd.month, dd.day)]})
+                # 11/1 捣蛋签+万圣夜限定同天关窗；12/25 圣诞关+封愿开。
+                if (dd.month, dd.day) == (11, 1):
+                    evs.append({"d": lab, "t": "🎃 捣蛋签·万圣夜限定关窗"})
+                if (dd.month, dd.day) == (12, 25):
+                    evs.append({"d": lab, "t": "🎄 圣诞心愿限定关窗"})
+                    evs.append({"d": lab, "t": "🧨 跨年封愿开窗"})
+                from guji import lunar as _lm2
+                for _yy in (dd.year, dd.year + 1):
+                    try:
+                        if dd == _lm2.lunar_to_solar(
+                                _yy - 1, 12,
+                                _lm2.month_days(_yy - 1, 12)):
+                            evs.append(
+                                {"d": lab, "t": "🧧 福签开窗（除夕）"})
+                        if dd == _lm2.lunar_to_solar(_yy, 1, 15):
+                            evs.append(
+                                {"d": lab, "t": "🧧 福签关窗（元宵）"})
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return evs[:6]
 
 
 # R2349l（R73-P1-4）：开运色/幸运数——当日日干五行为主轴，确定性可复验。
@@ -3852,6 +4080,14 @@ _CHAT_ACTIONS = [
      "限定」卡，能抽「那件她一直不敢问的事」，让她去那儿抽，"
      "抽完回来接着聊",
      "tarot", "🎃 去抽万圣夜限定", "trQH"),
+    # R3435：圣诞心愿窗（12/20–12/25）词族挂限定入口——「圣诞
+    # 节/平安夜/圣诞树/圣诞愿望」原无路标。窗口外落塔罗族。
+    (("圣诞节", "平安夜", "圣诞快乐", "merry christmas",
+      "圣诞树", "圣诞愿望", "圣诞心愿"),
+     "她在圣诞心愿窗上——铺子里有圣诞心愿限定：塔罗页有「🎄 "
+     "圣诞心愿限定」卡，默念心愿翻一张看它怎么来，让她去那儿"
+     "抽，抽完回来接着聊",
+     "tarot", "🎄 去抽圣诞心愿", "trQX"),
     # R3370-P2-8：「占卜」是塔罗的高频自然说法（「想占卜」
     # 「占卜一下感情」），此前全无路标。
     (("塔罗", "抽牌", "抽张牌", "抽一张", "抽个牌", "帮我抽",
@@ -3911,6 +4147,15 @@ _CHAT_ACTIONS = [
      "百签真本——默念想问的事摇一支，今天的签不会变，签面可晒图；"
      "让她去那儿摇，抽完回来接着聊签上怎么说",
      "qian", "🎋 去摇今日签", None),
+    # R3702：每日古话路标——日行 📜 行已落地。「古话/名言/古文」
+    # 词族指到首页日行那条；与答案之书（翻页出答案）分开，这是
+    # 看一句不是求一句。
+    (("古话", "每日古话", "今日古话", "名言", "名人名言", "一句古文",
+      "一句古话", "古语", "古文名句"),
+     "她想看句古话，铺子里有真入口：首页日行有一条「今日古话」"
+     "——每天换一句经典原文配一句人话注，今天是哪句、讲的什么"
+     "去那儿看；看完回来接着聊",
+     "home", "📜 去看今日古话", None),
     # R3394：答案之书路标——「书/翻一页/给句准话」族。与 oracle 分开：
     # oracle 是掷筊出吉凶，答案之书是翻页出一句话+提示+小动作。
     (("答案之书", "翻书", "翻一页", "书上", "给句准话", "给句答案",
@@ -3919,6 +4164,16 @@ _CHAT_ACTIONS = [
      "心里默念问题翻一页，出一句答案+一句提示+一个小动作，"
      "页可晒图；让她去那儿翻，翻完回来接着聊那句什么意思",
      "ansb", "📖 去翻一页", None),
+    # R3424：敲敲木鱼——解压敲击词族。功德/木鱼/静不下这类自然
+    # 说法此前全无路标；木鱼是真能敲的入口，别在聊里替她假敲。
+    # 注：「心烦/烦死了」含「烦」子串归前面心情罐族管（先中先得），
+    # 不倒灌进木鱼——想倒情绪进罐子、想敲压进木鱼，分工成立。
+    (("敲木鱼", "敲敲木鱼", "敲一下木鱼", "电子木鱼", "功德",
+      "积功德", "攒功德", "静不下", "静不下来", "心里乱", "解压"),
+     "她心里烦想静一静，铺子里有真入口：首页宫格「敲敲木鱼」卡能"
+     "真敲——点木鱼一下一声，攒「心安」还有全铺子共敲数；"
+     "让她去那儿敲几下，敲完回来接着聊",
+     "muyu", "🪵 去敲敲木鱼", None),
     # R3418-P2-2：星座/星盘路标——该客群最熟的入口之一此前零词。
     # 顺序：必须在「今日运势」族前面——「天蝎座今日运势」带
     # 今日运势子串，后置会被日签族先吃掉。
@@ -3935,7 +4190,8 @@ _CHAT_ACTIONS = [
     # R3331（审-高）：壁纸路标——模型此前答「我这儿没有开运壁纸，
     # 去小红书找」把自家人导外流。首页日签卡下「开运壁纸」按钮
     # 每天出一张带幸运色+日签的图。
-    (("开运壁纸", "壁纸", "换壁纸", "幸运壁纸", "每日壁纸", "开运图"),
+    (("开运壁纸", "壁纸", "换壁纸", "幸运壁纸", "每日壁纸", "开运图",
+      "幸运色"),
      "她想换开运壁纸，铺子里有真入口：首页日签卡下面有"
      "「开运壁纸」按钮，每天一张带幸运色和日签的图，"
      "让她去那儿点，做好回来接着聊；别把她导去别处找",
@@ -3994,6 +4250,89 @@ _CHAT_ACTIONS = [
      "心情罐聚成小卡（点阵/主心情/连续天数，还有上周对比和周记"
      "海报）；没记过心情的跟她说打卡时顺手点一个就攒起来了",
      "moodweek", "📒 看看这周的你", None),
+    # R3523（亲审）：小规律路标——门槛如实说（记满 8 天心情才出声）。
+    (("小规律", "我的规律", "心情规律", "规律观察", "小发现"),
+     "她问小规律：首页打卡区会挂一条「📊 你的小规律」——她攒的"
+     "心情×星期/周末/打卡次日/月相交叉出来的真实观察；记满 8 天"
+     "心情才够出声，周记里也有同一行",
+     "moodweek", "📒 去周记看小规律", None),
+    # R3523：本周小功课路标。
+    (("小功课", "本周功课", "这周功课", "每周功课"),
+     "她问小功课：打卡区周一自动换一件够得着的小事，"
+     "「做到了」盖戳攒功课章，打卡分享海报也会带上它",
+     "home", "📜 去看本周小功课", "checkin"),
+    # R3533：本周旺运/心情月历路标——新件入聊可查。
+    (("本周旺运", "旺运", "本周幸运", "这周旺什么"),
+     "她问旺运：打卡区每周换一套「本周旺运」——色·随身小物·吃口啥，"
+     "图个乐呵的仪式感小抄，周记里也能翻到",
+     "home", "🍀 去看本周旺运", "checkin"),
+    (("心情月历", "心情日历", "上个月的心情", "以前记的心情"),
+     "她问心情月历：周记里有当月热力格，记过的天按心情色染格、"
+     "点格子能回看那天记的是啥，←→ 还能翻上个月",
+     "moodweek", "📅 去翻心情月历", None),
+    # R3543：连签对擂台路标。
+    (("比连签", "连签对擂", "比打卡", "对擂", "比一比连签"),
+     "她想跟朋友比连签：打卡区有「⚔️ 喊 TA 比连签」，"
+     "点一下复制带自己天数的链接发给 TA——TA 点开就看到"
+     "俩人的比分，不用注册不用加好友",
+     "home", "⚔️ 去喊 TA 比连签", "checkin"),
+    # R3597：月度复盘/晒月亮路标——新件入聊可查。
+    (("晒这月", "上月复盘", "月度复盘", "月总结", "上个月的小满",
+      "上个月过得怎么样"),
+     "她问上月复盘：月初的打卡卡里有「📮 N 月的小满信」——"
+     "上月的打卡/心情/小记都替你记成一封信，信尾「晒这月」"
+     "能出一张上月小记海报",
+     "home", "📮 去翻上月小满信", "checkin"),
+    (("晒月亮", "今晚的月亮", "月相海报", "今天月亮", "晒今晚"),
+     "她想晒月亮：首页月相行有「晒今晚 🌙」——"
+     "今晚的盈亏直接画成一张月相海报，每天的月亮都不一样",
+     "home", "🌙 去晒今晚", None),
+    # R3609：R3601-3607 新件路标——下周早知道/补记心情/牌的记性。
+    (("下周早知道", "下周怎么样", "下周天象", "接下来的日子",
+      "下周有什么", "这礼拜有什么"),
+     "她问接下来有什么：首页日行下方挂了「🔮 下周早知道」——"
+     "未来 7 天的仪式节点、节气、逆行起止都替你排好了",
+     "home", "🔮 去看下周", None),
+    (("补记心情", "昨天的心情", "昨天忘了记", "补心情",
+      "心情补打卡"),
+     "她问昨天没记心情怎么办：心情历尾巴有「补记昨天 →」，"
+     "点一下就地给昨天补个档，不用翻设置",
+     "home", "🌈 去补记昨天", None),
+    (("牌的记性", "重复抽到", "同一张牌", "老熟人", "第几次抽",
+      "总抽到同一张"),
+     "她问老抽到同一张牌：塔罗结果页有「🃏 牌的记性」——"
+     "近 45 天同名的牌再来会点名「第 N 次来找你」，"
+     "分享图上也有这一行",
+     "tarot", "🃏 去抽一抽", None),
+    # R3622：捣蛋签路标——万圣窗口 10/25–11/1（窗口外如实说没到）。
+    (("捣蛋签", "万圣签", "万圣节", "南瓜签", "先疯"),
+     "她问万圣活动：签页有「🎃 万圣·捣蛋签」——10/25 到 11/1 开，"
+     "只出「宜动」的签，给生活放个小疯；窗口外就说还没到日子",
+     "home", "🎋 去签页看看", "qian"),
+    # R3621：今日能量分路标——「今天运势几分」类问句指向日签个人块。
+    (("能量分", "今日能量", "今天能量", "今日电量", "今天电量",
+      "运势几分", "今天几分", "今天运势怎么样", "今天运气怎么样",
+      "本周能量", "这周能量", "能量曲线", "这周哪天", "哪天状态好",
+      "哪天运气", "哪天能量", "TA 今天", "TA今天", "他今天",
+      "她今天", "哪天都电满", "一起的好日子"),
+     "她问能量：日签里有「⚡ 今日能量 N 分」+本周走向条（峰值日标峰）"
+     "——按她的日主×当日干支对位推（存过生日的才出，没存先让她存）；"
+     "存过另一半还出「TA 今天 N 分」，俩峰日撞一起挂双满电行",
+     "home", "☀️ 去看今日日签", None),
+    # R3618：目标日倒数路标——考研/面试/纪念日上岸倒计时。
+    (("目标日", "倒数日", "倒计时", "考研还有", "离考研", "上岸倒计时",
+      "还有几天到", "纪念日还有"),
+     "她想数着一个要紧的日子：打卡区有「🎯 目标日」行——"
+     "定一个日子小满每天陪你数「离「X」还有 N 天」，"
+     "考研/面试/见面/纪念日都行",
+     "home", "🎯 去定目标日", "checkin"),
+    # R3567：递好运路标——温柔社交件（跟「比」互补）。
+    (("递个好运", "递好运", "送好运", "送个好运", "给朋友好运",
+      "为 TA 加油", "给 TA 打气"),
+     "她想给朋友递个好运：打卡区有「🤗 递个好运给 TA」，"
+     "点一下复制链接发过去——TA 点开就收到一句好运，"
+     "不用注册不用加好友",
+     "home", "🤗 去递个好运", "checkin"),
     # R3352（审-高）：合拍打卡——需先把 TA 生日存档案才出交集行。
     (("一起打卡", "跟对象打卡", "合拍打卡", "双人打卡", "和ta打卡",
       "和TA打卡", "情侣打卡"),
@@ -4039,6 +4378,55 @@ _CHAT_ACTIONS = [
      "到日子在打卡区浮出来；年末还有跨年信（写给明年的自己），"
      "让她去打卡区找",
      "home", "✉️ 去写未来信", "checkin"),
+    # R3471：小惊喜族路标——sa* 锚直达排盘结果折叠区对应卡
+    # （已出盘直开，未出盘存待启标记出盘自动展开）。
+    (("旺我的方位", "旺我的方向", "哪个方向旺", "旺运方位", "幸运方位",
+      "有利方位", "旺你的方位"),
+     "她想看旺她的方位：铺子的排盘结果卡「✨ 盘里小惊喜」里有"
+     "「🧭 旺你的方位」——喜用神推东南西北+城市气质+出行贴士；"
+     "让她先去排盘，出盘自动展开那张卡",
+     "bazi", "🧭 看旺我的方位", "saF"),
+    (("守护兽", "守护灵兽", "守护图腾", "灵兽", "我的图腾",
+      "灵魂动物", "灵魂图腾"),
+     "她想看守护图腾：排盘结果卡「✨ 盘里小惊喜」里有「🐉 守护图腾」"
+     "——日主+五行推灵兽原型+守护语；先排盘，出盘自动展开",
+     "bazi", "🐉 看守护图腾", "saG"),
+    (("守护水晶", "幸运水晶", "我的水晶", "戴什么水晶", "什么水晶旺"),
+     "她想看守护水晶：排盘结果卡「✨ 盘里小惊喜」里有「🔮 守护水晶」"
+     "——喜用神配色系晶石+佩戴贴士；先排盘，出盘自动展开",
+     "bazi", "🔮 看守护水晶", "saC"),
+    (("灵魂色谱", "命盘颜色", "我的色谱", "五行颜色", "盘是什么颜色"),
+     "她想看灵魂色谱：排盘结果卡「✨ 盘里小惊喜」里有「🎨 灵魂色谱」"
+     "——五行权重画成一人一版的星云图；先排盘，出盘自动展开",
+     "bazi", "🎨 看灵魂色谱", "saS"),
+    # R3490：灵魂角色路标——saR 锚直达。
+    (("灵魂角色", "我的角色", "灵魂人物", "灵魂原型", "神话角色",
+      "哪个神", "灵魂icon", "灵魂Icon", "soul icon"),
+     "她想看灵魂角色：排盘结果卡「✨ 盘里小惊喜」里有「🎭 灵魂角色」"
+     "——日主五行推她盘里住着的神话角色（女娲/祝融/后土/刑天/洛神）；"
+     "先排盘，出盘自动展开",
+     "bazi", "🎭 看灵魂角色", "saR"),
+    # R3491：灵魂纹样路标——saE 锚直达。
+    (("灵魂纹样", "我的纹样", "守护纹样", "纹样", "灵魂tattoo",
+      "灵魂 tattoo", "soul tattoo", "几何纹", "印章纹"),
+     "她想看灵魂纹样：排盘结果卡「✨ 盘里小惊喜」里有「🧿 灵魂纹样」"
+     "——日主定纹样族、五行当种子画出一人一纹的徽章，可存原图当"
+     "头像或锁屏；先排盘，出盘自动展开",
+     "bazi", "🧿 看灵魂纹样", "saE"),
+    # R3494：灵魂名片路标——saN 锚直达。
+    (("灵魂名片", "我的名片", "灵魂名卡", "盘里都有什么",
+      "六件小惊喜", "soul card", "灵魂汇总"),
+     "她想看灵魂名片：排盘结果卡「✨ 盘里小惊喜」里有「📇 灵魂名片」"
+     "——方位/图腾/晶石/色谱/纹样/角色六件派生件汇总一卡，可晒"
+     "一张图的海报；先排盘，出盘自动展开",
+     "bazi", "📇 看灵魂名片", "saN"),
+    (("算命prompt", "算命 prompt", "贴给AI", "喂给AI", "给AI算",
+      "deepseek算命", "DeepSeek算命", "prompt算命"),
+     "她想把盘生成 prompt 贴给别的 AI：排盘结果卡「✨ 盘里小惊喜」里"
+     "有「📋 算命 prompt」——生辰+命盘+五行摘要一键复制；先排盘，"
+     # R3484-P1（审）：无手势环境承诺「自动复制好」兑不了现。
+     "出盘后折叠区里那颗 📋 钮一键复制",
+     "bazi", "📋 复制算命 prompt", "saP"),
 ]
 
 
@@ -4071,9 +4459,16 @@ def _chat_action(message: str):
         if anchor == "trQH":
             # R3370-P1-2：万圣限定卡只在 10/29–11/1 现身——窗口外
             # 指路隐藏钮=死 chip，跳过落回塔罗族。
-            _nd = date.today()
+            # R3434（审）：裸 date.today() 是 UTC 日——窗口首日 0-8 点
+            # CN 用户看不到卡、末日 CN 20-24 点多给 8h。改 _today_cn。
+            _nd = _today_cn()
             if not ((_nd.month == 10 and _nd.day >= 29)
                     or (_nd.month == 11 and _nd.day <= 1)):
+                continue
+        if anchor == "trQX":
+            # R3435：圣诞心愿限定卡只在 12/20–12/25 现身。
+            _nd = _today_cn()
+            if not (_nd.month == 12 and 20 <= _nd.day <= 25):
                 continue
         if any(k in _n for k in keys):
             return line, view, label, anchor
@@ -4139,6 +4534,54 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
     _d = (now or _now_cn()).date()
     out: list[str] = []
     try:
+        # R3991/R3996：「明天/明日/第二天/后天」问句族——穿搭/月相/
+        # 节日/星座共用一次判定，各块取 _dd/_pfx 出对应日数据。
+        _tmr = any(k in _n for k in ("明天", "明日", "第二天"))
+        _dat3 = "大后天" in _n
+        _dat = "后天" in _n
+        # R4011/R4056：反向问日——「昨天/前天/大前天」回溯也有真值
+        #（大前天先判：它是「前天」的超集词）。
+        _yst = "昨天" in _n
+        _dbt3 = "大前天" in _n
+        _dbt = "前天" in _n
+        _dd = _d + timedelta(days=3) if _dat3 \
+            else (_d + timedelta(days=2) if _dat
+                  else (_d + timedelta(days=1) if _tmr
+                        else (_d - timedelta(days=3) if _dbt3
+                              else (_d - timedelta(days=1) if _yst
+                                    else (_d - timedelta(days=2) if _dbt
+                                          else _d)))))
+        _pfx = "大后天" if _dat3 \
+            else ("后天" if _dat else ("明日" if _tmr
+                  else ("大前天" if _dbt3 else ("昨天" if _yst
+                        else ("前天" if _dbt else "今日")))))
+        # R4001/R4056：「周五/下周三/上周五」问日族——上=回上一周，
+        # 下=再往后推一周；当天已过都算下一个。
+        if not (_tmr or _dat or _dat3 or _yst or _dbt or _dbt3):
+            _wdm = re.search(r"(上|下)?周([一二三四五六日天])", _n)
+            if _wdm:
+                _twd = "一二三四五六日天".index(_wdm.group(2)) % 7
+                if _wdm.group(1) == "上":
+                    _dl = -((_d.weekday() - _twd) % 7 or 7)
+                else:
+                    _dl = (_twd - _d.weekday()) % 7 or 7
+                    if _wdm.group(1):
+                        _dl += 7
+                _dd = _d + timedelta(days=_dl)
+                _pfx = _wdm.group(0)
+            elif "周末" in _n:
+                # R4006：周末=周六；今天周六即今天，周日说下周末
+                # 指下个周六；「下周末」固定下个周六。
+                if "下周末" in _n:
+                    _dl = (5 - _d.weekday()) % 7 + 7
+                    if _d.weekday() == 6:
+                        _dl = 13
+                else:
+                    _dl = (5 - _d.weekday()) % 7
+                    if _d.weekday() == 6:
+                        _dl = 6
+                _dd = _d + timedelta(days=_dl)
+                _pfx = "下周末" if "下周末" in _n else "周末"
         if any(k in _n for k in ("水逆", "水星逆行")):
             _m = _mercury_state(_d)
             if _m.get("on"):
@@ -4151,21 +4594,339 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     f"{_m['next']}起（还有{_m['days_to']}天）")
             else:
                 out.append("今日水逆态：今天不在水逆期")
+        # R3502：金逆/火逆问句——同构状态行随问随行。
+        if any(k in _n for k in ("金逆", "金星逆行")):
+            _v = _venus_state(_d)
+            if _v.get("on"):
+                out.append(
+                    f"今日金逆态：正在金星逆行，第{_v['day_no']}天，"
+                    f"一直到{_v['until']}（日粒度历表）")
+            elif _v.get("next"):
+                out.append(
+                    f"今日金逆态：今天不在金逆期，下一次"
+                    f"{_v['next']}起（还有{_v['days_to']}天）")
+            else:
+                out.append("今日金逆态：今天不在金逆期")
+        if any(k in _n for k in ("火逆", "火星逆行")):
+            _r = _mars_state(_d)
+            if _r.get("on"):
+                out.append(
+                    f"今日火逆态：正在火星逆行，第{_r['day_no']}天，"
+                    f"一直到{_r['until']}（日粒度历表）")
+            elif _r.get("next"):
+                out.append(
+                    f"今日火逆态：今天不在火逆期，下一次"
+                    f"{_r['next']}起（还有{_r['days_to']}天）")
+            else:
+                out.append("今日火逆态：今天不在火逆期")
+        # R3661：节气问句——当日交节给名+tip，非交节日给下一节气
+        # （此前「立冬吃什么」零供给，小满靠常识答易与卡面 tip 打架）。
+        if ("节气" in _n or "交节" in _n or
+                any(k in _n for k in _SOLAR_TERMS)):
+            _tb = _term_banner(_d)
+            if _tb.get("name"):
+                out.append(f"今日节气：{_tb['name']}"
+                           + (f"（{_tb['time']}交节）" if _tb.get("time")
+                              else "")
+                           + (f"——{_tb['tip']}" if _tb.get("tip") else ""))
+            else:
+                try:
+                    from guji.bazi import TERM_LONGITUDE, term_time
+                    _nx = None
+                    for _tn in TERM_LONGITUDE:
+                        for _yy in (_d.year, _d.year + 1):
+                            _tt = term_time(_yy, _tn) + timedelta(hours=8)
+                            if _tt.date() > _d and (
+                                    _nx is None or _tt.date() < _nx[0]):
+                                _nx = (_tt.date(), _tn)
+                    if _nx:
+                        out.append(f"今日节气：今天不是交节日，"
+                                   f"下一节气{_nx[1]}"
+                                   f"（{_nx[0].month}月{_nx[0].day}日）")
+                except Exception:
+                    pass
         if any(k in _n for k in ("穿搭", "穿什么", "穿啥", "幸运色",
                                  "幸运颜色", "开运色", "什么颜色", "配色")):
-            _lk = _lucky_for(_d)
-            _of = _outfit_for(_d)
+            # R3896：「明天穿什么」同式给明日数据——日签卡明天预告
+            # 族已有同款，聊天不该只会报今天（_tmr/_dd/_pfx 共用于块首）。
+            _lk = _lucky_for(_dd)
+            _of = _outfit_for(_dd)
             if _lk.get("color"):
-                out.append(f"今日开运色：{_lk['color']}"
+                out.append(f"{_pfx}开运色：{_lk['color']}"
                            f"（{_lk.get('color_word', '')}）")
             _t0 = (_of.get("tiers") or [{}])[0]
             if _t0.get("colors"):
-                out.append(f"今日穿搭大吉档：{_t0['colors']}"
+                out.append(f"{_pfx}穿搭大吉档：{_t0['colors']}"
                            f"（{_t0.get('tip', '')}）")
         if any(k in _n for k in ("咒语", "好运语", "转运语", "今日一句",
                                  "口号", "许愿语")):
             out.append(f"今日咒语：{_day_mantra(_d.isoformat())}"
                        "（与日签卡同句，可直接念）")
+        # R3872：季节签窗实时态——问签窗时手里有「开着呢/N 天后开」
+        # 活事实，不让她对着静态日期自己猜今天到没到。捣蛋/桃花
+        # 窗是固定公历段；新春福签窗=除夕→元宵走 lunar 表（与
+        # 前端 _QIAN_CNY_WIN 同源核过 2027–2030 完全一致）。
+        if any(k in _n for k in ("捣蛋签", "万圣签", "桃花签", "福签",
+                                 "新春签", "新年签", "每日一签", "求签",
+                                 "抽签", "摇签", "观音签", "灵签")):
+            try:
+                _qw = []
+                _hwd = (date(_d.year, 10, 25) - _d).days
+                if (_d.month == 10 and _d.day >= 25) or \
+                   (_d.month == 11 and _d.day <= 1):
+                    # R3951：开张日/末日点名——与卡面同档。
+                    _hws = "今天开张" if _d.month == 10 and _d.day == 25 \
+                        else "今晚截止" if _d.month == 11 and _d.day == 1 \
+                        else "明天截止" if _d.month == 10 and _d.day == 31 \
+                        else "今天开着呢"
+                    _qw.append(f"捣蛋签窗：{_hws}"
+                               "（10/25–11/1，只出宜动的签）")
+                elif 1 <= _hwd <= 5:
+                    _qw.append(f"捣蛋签窗："
+                               f"{'明天开' if _hwd == 1 else str(_hwd) + '天后开'}"
+                               "（10/25–11/1）")
+                _tqd = (date(_d.year, 11, 6) - _d).days
+                if _d.month == 11 and 6 <= _d.day <= 11:
+                    _tqs = "今天开张" if _d.day == 6 \
+                        else "今晚截止" if _d.day == 11 \
+                        else "明天截止" if _d.day == 10 else "今天开着呢"
+                    _qw.append(f"桃花签窗：{_tqs}（11/6–11/11）")
+                elif 1 <= _tqd <= 5:
+                    _qw.append(f"桃花签窗："
+                               f"{'明天开' if _tqd == 1 else str(_tqd) + '天后开'}"
+                               "（11/6–11/11）")
+                from guji import lunar as _lm
+                _cwin = []
+                for _yy in (_d.year, _d.year + 1):
+                    _co = _lm.lunar_to_solar(
+                        _yy - 1, 12, _lm.month_days(_yy - 1, 12))
+                    _cc = _lm.lunar_to_solar(_yy, 1, 15)
+                    _cwin.append((_co, _cc))
+                _cin = [w for w in _cwin if w[0] <= _d <= w[1]]
+                if _cin:
+                    # R3961：除夕开张/元宵截止单日点名。
+                    _cys = "除夕开张" if _d == _cin[0][0] \
+                        else "元宵截止" if _d == _cin[0][1] \
+                        else "明天截止" if _d == _cin[0][1] - timedelta(days=1) \
+                        else "今天开着呢"
+                    _qw.append(
+                        f"新春福签窗：{_cys}"
+                        f"（{_cin[0][0].month}月{_cin[0][0].day}日–"
+                        f"{_cin[0][1].month}月{_cin[0][1].day}日，"
+                        f"除夕开到元宵）")
+                else:
+                    _cnext = [w for w in _cwin if w[0] > _d]
+                    if _cnext:
+                        _cd5 = (_cnext[0][0] - _d).days
+                        if 1 <= _cd5 <= 5:
+                            _qw.append(
+                                f"新春福签窗："
+                                f"{'明天开' if _cd5 == 1 else str(_cd5) + '天后开'}"
+                                f"（{_cnext[0][0].month}月"
+                                f"{_cnext[0][0].day}日–"
+                                f"{_cnext[0][1].month}月"
+                                f"{_cnext[0][1].day}日）")
+                out.extend(_qw)
+            except Exception:
+                pass
+        # R3873：塔罗限定窗实时态——万圣夜(10.29–11.1)/圣诞心愿
+        # (12.20–12.25) 同窗机制，问「限定/不敢问的/圣诞心愿」时
+        # 手里有开着呢/N 天后开。
+        if any(k in _n for k in ("万圣夜限定", "万圣限定", "不敢问",
+                                 "圣诞心愿", "圣诞限定", "心愿限定",
+                                 "塔罗限定")):
+            try:
+                _tw = []
+                _htd = (date(_d.year, 10, 29) - _d).days
+                if (_d.month == 10 and _d.day >= 29) or \
+                   (_d.month == 11 and _d.day <= 1):
+                    _hts = "今天开张" if _d.month == 10 and _d.day == 29 \
+                        else "今晚截止" if _d.month == 11 and _d.day == 1 \
+                        else "明天截止" if _d.month == 10 and _d.day == 31 \
+                        else "今天开着呢"
+                    _tw.append(f"万圣夜限定：{_hts}"
+                               "（10/29–11/1，翻一张不敢问的事）")
+                elif 1 <= _htd <= 5:
+                    _tw.append(
+                        f"万圣夜限定："
+                        f"{'明天开' if _htd == 1 else str(_htd) + '天后开'}"
+                               "（10/29–11/1）")
+                _xtd = (date(_d.year, 12, 20) - _d).days
+                if _d.month == 12 and 20 <= _d.day <= 25:
+                    _xts = "今天开张" if _d.day == 20 \
+                        else "今晚截止" if _d.day == 25 \
+                        else "明天截止" if _d.day == 24 else "今天开着呢"
+                    _tw.append(f"圣诞心愿限定：{_xts}"
+                               "（12/20–12/25，默念心愿翻一张）")
+                elif 1 <= _xtd <= 5:
+                    _tw.append(
+                        f"圣诞心愿限定："
+                        f"{'明天开' if _xtd == 1 else str(_xtd) + '天后开'}"
+                               "（12/20–12/25）")
+                out.extend(_tw)
+            except Exception:
+                pass
+        # R3881：今日月相活事实——问「月亮/满月/新月」手里有
+        # 当日相位+那句月相话（与日签卡 _moon_for 同源）。
+        if any(k in _n for k in ("月亮", "月相", "满月", "新月",
+                                 "月圆", "月缺", "今晚的月亮")):
+            try:
+                _mo = _moon_for(_dd)
+                if _mo.get("label"):
+                    out.append(f"{_pfx}月相：{_mo['label']}"
+                               f"（{_mo.get('line', '')}）")
+            except Exception:
+                pass
+        # R3886：当日节日名活事实——问「今天什么节/X节快乐」手里
+        # 有真节日名（_festival_for 公历+月周+农历三源，与日签
+        # 卡节日行同源），当天没节也说清，不让她瞎编。
+        if any(k in _n for k in ("什么节", "啥节日", "节日", "过节",
+                                 "国庆", "中秋", "端午", "七夕", "重阳",
+                                 "腊八", "感恩", "圣诞", "平安夜", "万圣",
+                                 "情人节", "妇女节", "植树", "愚人节",
+                                 "劳动节", "青年节", "儿童节", "建党",
+                                 "建军", "教师节", "母亲节", "父亲节",
+                                 "中元", "下元", "寒衣", "元旦", "春节",
+                                 "元宵", "清明", "小年", "除夕", "跨年",
+                                 "双十一", "光棍", "黑五", "七夕节")):
+            try:
+                _fn = _festival_for(_dd, "")
+                if _fn:
+                    out.append(f"{_pfx}节日：{'、'.join(_fn)}")
+                elif any(k in _n for k in ("什么节", "啥节日", "节日",
+                                           "过节")):
+                    _nopf = _pfx if _pfx != "今日" else "今天"
+                    out.append(f"{_pfx}节日：{_nopf}没排上节日名")
+            except Exception:
+                pass
+        # R4061：「X什么时候/几号」反查＋「今年还剩几天」——节气走
+        # term_time 天文表（与节气横幅同源），节日走公历/农历双表，
+        # 除夕走腊月末日；已过自动取明年。
+        if "今年还剩" in _n or ("今年" in _n and "几天" in _n):
+            try:
+                out.append(
+                    f"今年还剩{(date(_d.year, 12, 31) - _d).days}天")
+            except Exception:
+                pass
+        if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天")):
+            try:
+                from guji.bazi import TERM_LONGITUDE, term_time
+                # 问「什么时候」语境无歧义（清明这类双节也按节气答日
+                # 期），直接全表匹配，不走 _SOLAR_TERMS 白名单。
+                _tname = next(
+                    (t for t in TERM_LONGITUDE if t in _n), "")
+                _nd = None
+                _v = ""
+                if _tname:
+                    for _yy2 in (_d.year, _d.year + 1):
+                        _cand = (term_time(_yy2, _tname)
+                                 + timedelta(hours=8)).date()
+                        if _cand >= _d:
+                            _nd = _cand
+                            _v = _tname
+                            break
+                else:
+                    for (_mm2, _dd2), _fv in _FEST_SOLAR.items():
+                        if any((p2 in _n or
+                                (p2.endswith("节") and p2[:-1] in _n))
+                               for p2 in _fv.split("·")):
+                            _cand = date(_d.year, _mm2, _dd2)
+                            if _cand < _d:
+                                _cand = date(_d.year + 1, _mm2, _dd2)
+                            _nd = _cand
+                            _v = _fv
+                            break
+                    if _nd is None and "除夕" in _n:
+                        from guji import lunar as _l3
+                        for _yy2 in (_d.year, _d.year + 1):
+                            _cand = _l3.lunar_to_solar(
+                                _yy2 - 1, 12,
+                                _l3.month_days(_yy2 - 1, 12))
+                            if _cand >= _d:
+                                _nd = _cand
+                                _v = "除夕"
+                                break
+                    if _nd is None:
+                        from guji import lunar as _l4
+                        for (_lm2, _ld2), _fv in _FEST_LUNAR.items():
+                            if any((p2 in _n or
+                                    (p2.endswith("节") and p2[:-1] in _n))
+                                   for p2 in _fv.split("·")):
+                                for _yy2 in (_d.year, _d.year + 1):
+                                    _cand = _l4.lunar_to_solar(
+                                        _yy2, _lm2, _ld2)
+                                    if _cand >= _d:
+                                        _nd = _cand
+                                        _v = _fv
+                                        break
+                                if _nd is not None:
+                                    break
+                if _nd is not None:
+                    _dl3 = (_nd - _d).days
+                    out.append(
+                        f"{_v}：{_nd.month}月{_nd.day}日"
+                        + ("（就是今天）" if _dl3 == 0
+                           else f"（还有{_dl3}天）"))
+            except Exception:
+                pass
+        # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
+        # 有今日值宫+点名星座的那句（daily_horoscope 与星座卡
+        # 同源，不再让她对着十二星座名干想）。
+        _XZ = ("白羊", "金牛", "双子", "巨蟹", "狮子", "处女",
+               "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼")
+        if any(k in _n for k in ("星座运势", "星座日运", "今日星座",
+                                 "今天星座", "明日星座", "明天星座",
+                                 "运势", "运气")) or \
+           any((s + "座") in _n or (s + "今天") in _n or
+               (s + "明天") in _n for s in _XZ):
+            try:
+                _b0 = bazi_compute(_dd.year, _dd.month, _dd.day, 12, "男")
+                _hz = xingzuo_mod.daily_horoscope(_b0.day)
+                _ts = _hz.get("today_sign", "")
+                _tn = _hz.get("today_note", "")
+                if _ts and _tn:
+                    out.append(f"{_pfx}星座值宫：{_ts}座当班——{_tn}")
+                for _s in _XZ:
+                    if ((_s + "座") in _n or (_s + "今天") in _n or
+                            (_s + "明天") in _n):
+                        _row = [x for x in (_hz.get("signs") or [])
+                                if x.get("sign") == _s]
+                        if _row:
+                            out.append(
+                                f"{_pfx}{_s}座：{_row[0].get('sign_note', '')}"
+                                f"（{_row[0].get('note', '')}）")
+                        break
+            except Exception:
+                pass
+        # R3876：跨年封愿实时态——12/25–31 封口窗（前端
+        # _wishNySealWin 同段），问「跨年许愿/封愿」时给活态。
+        if any(k in _n for k in ("跨年许愿", "跨年愿", "封愿",
+                                 "新年愿望", "明年的愿", "新年愿望瓶")):
+            try:
+                _nyd = (date(_d.year, 12, 25) - _d).days
+                if _d.month == 12 and 25 <= _d.day <= 31:
+                    _nys = "今天开张" if _d.day == 25 \
+                        else "今晚截止" if _d.day == 31 \
+                        else "明天截止" if _d.day == 30 else "今天开着呢"
+                    out.append(f"跨年封愿：{_nys}"
+                               "（12/25–12/31，封了元旦才开）")
+                elif 1 <= _nyd <= 5:
+                    out.append(
+                        f"跨年封愿："
+                        f"{'明天开' if _nyd == 1 else str(_nyd) + '天后开'}"
+                               "（12/25–12/31）")
+            except Exception:
+                pass
+        # R3981：「下周有什么」前瞻——同源 _week_sky（天象+时令窗）。
+        if any(k in _n for k in ("下周", "这周", "本周", "接下来几天",
+                                 "过几天", "未来几天", "这周有")):
+            try:
+                _ws = _week_sky(_d)
+                if _ws:
+                    out.append("未来七天：" + "、".join(
+                        f"{w['d']} {w['t']}" for w in _ws))
+            except Exception:
+                pass
     except Exception:
         pass
     return out
@@ -4293,6 +5054,26 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                        + (f"（五行属{wx}）" if wx else ""))
             if sign:
                 out.append(f"{_who}的太阳星座：{sign}")
+            # R4066：生日倒数事实——问「我生日还有几天」手里有真值；
+            # 2/29 非闰年按 3/1 过。
+            try:
+                _t4 = _now_cn().date()
+                _nx = None
+                for _yy4 in (_t4.year, _t4.year + 1):
+                    try:
+                        _c4 = date(_yy4, mo, d)
+                    except ValueError:
+                        _c4 = date(_yy4, 3, 1)
+                    if _c4 >= _t4:
+                        _nx = _c4
+                        break
+                if _nx is not None:
+                    _dleft = (_nx - _t4).days
+                    out.append(f"{_who}生日：{_nx.month}月{_nx.day}日"
+                               + ("（就是今天）" if _dleft == 0
+                                  else f"（还有{_dleft}天）"))
+            except Exception:
+                pass
         except (ValueError, TypeError):
             continue
     return out
@@ -5180,7 +5961,10 @@ def fortune_summary(calc_out: dict, day: "datetime | None" = None) -> str:
 def daily(date_str: str | None = None,
           # R2349l（R73-P1-3）：bday=YYYY-MM-DD 用户生日——
           # 返回 personal 字段（日主×当日十神），不进缓存。
-          bday: str | None = None) -> dict:
+          bday: str | None = None,
+          # R3633：pbday=另一半生日 → partner_energy（已存 CP 的
+          # 「TA 今天 N 分」；不传不算不耗时）。
+          pbday: str | None = None) -> dict:
     """每日运势卡片：等级 + 一句话 + 贵人属相 + 宜忌，命中 daily_cache 表。
 
     R178b（D-229b）：`date` 现在是**查询参数**。重构前它声明为请求体模型
@@ -5298,6 +6082,106 @@ def daily(date_str: str | None = None,
                     "verdict": "无冲无合",
                     "line": f"今天{_dzz}日跟你的盘不冲不合，通判照样走",
                     "tone": "flat"}
+            # R3621/R3624：个人能量分（与合拍分同套合冲表）——十神底分 ×
+            # 日支对位修正 × 日期|日柱确定性抖动，钳 42–96：分是「你的盘和
+            # 那天的对位」，不给满分也不给谷底。收闭包一份算法，今天/明天
+            # 同一算式，R3624 晚间预告不再复制逻辑。
+            # 闭包→显参：R3633 合婚另一半同式算分，不再借外层变量。
+            def _energy_for(_ds: str, _edg: str, _edzz: str,
+                            _eug: str, _eudb: str, _euyb: str,
+                            _euday: str) -> dict:
+                _eg = ten_god(_eug, _edg) if _eug else ""
+                _eb = {
+                    "正印": 72, "偏印": 68, "比肩": 66, "劫财": 62,
+                    "食神": 70, "伤官": 64, "正财": 62, "偏财": 60,
+                    "正官": 58, "七杀": 50,
+                }.get(_eg, 60)
+                _em_verdict = ""
+                for _ezb, _ekk in ((_eudb, "日支"), (_euyb, "年支")):
+                    if _ezb and _edzz:
+                        _erp = _rel_pair(_edzz, _ezb)
+                        if _erp:
+                            _em_verdict = {
+                                "六冲": "小凶" if _ekk == "日支" else "轻冲",
+                                "相刑": "小挫" if _ekk == "日支" else "小绊",
+                                "相害": "小绊",
+                                "六合": "合缘" if _ekk == "日支" else "岁合",
+                            }.get(_erp[0], "")
+                            break
+                        if _san_he([_edzz, _ezb]):
+                            _em_verdict = "半合"
+                            break
+                        if _ezb == _edzz:
+                            _em_verdict = "伏吟" if _ekk == "日支" else "岁吟"
+                            break
+                if not _em_verdict and _edzz:
+                    _em_verdict = "无冲无合"
+                _em = {
+                    "合缘": 12, "岁合": 10, "半合": 8, "无冲无合": 4,
+                    "伏吟": -4, "岁吟": -2,
+                    "轻冲": -8, "小绊": -8, "小挫": -10, "小凶": -12,
+                }.get(_em_verdict, 0)
+                _ej = int(hashlib.md5(
+                    f"{_ds}|{_euday}".encode()).hexdigest()[:4],
+                    16) % 7 - 3
+                return {"score": int(max(42, min(96, _eb + _em + _ej))),
+                        "god": _eg}
+
+            _e_score = _energy_for(date_str, _dg, _dzz,
+                                   _ug, _u_db, _u_yb, _ub.day)["score"]
+            if _e_score >= 85:
+                _e_line = "今天你的电量很足——想做的事尽管上手"
+            elif _e_score >= 70:
+                _e_line = "今天电量在线，稳稳推进就好"
+            elif _e_score >= 55:
+                _e_line = "今天电量中等，按部就班不硬扛"
+            else:
+                _e_line = "今天电量偏低，慢一点、多给自己留空"
+            _personal["energy"] = {"score": _e_score, "line": _e_line}
+            # R3624：明日能量预告——同算式对明日日干支再算一遍，
+            # 晚间（前端 20 点后）挂「明天 N 分」的回访钩。
+            _nd = date.fromisoformat(date_str) + timedelta(days=1)
+            _dg2, _dzz2 = huangli_mod.day_ganzhi(
+                datetime(_nd.year, _nd.month, _nd.day, 12))
+            _personal["tomorrow_energy"] = _energy_for(
+                _nd.isoformat(), _dg2, _dzz2,
+                _ug, _u_db, _u_yb, _ub.day)
+            # R3626：本周能量曲线——同算式滚未来 6 天（今+明后 7 点），
+            # 前端画迷你走向条；同一次 POST 出，零新请求。Timing
+            # energy-curve 品类同构（我们单维，守诚实口径不拆假维度）。
+            _wk = []
+            _d0 = date.fromisoformat(date_str)
+            for _i in range(7):
+                _dd = _d0 + timedelta(days=_i)
+                _wg, _wz = huangli_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day, 12))
+                _ew = _energy_for(_dd.isoformat(), _wg, _wz,
+                                  _ug, _u_db, _u_yb, _ub.day)
+                _wk.append({"d": _dd.isoformat(), "s": _ew["score"],
+                            "g": _ew["god"]})
+            _personal["week_energy"] = _wk
+            # R3633：已存 CP 的「TA 今天 N 分」——另一半生日同式算出；
+            # pbday 不传不耗这次计算（绝大多数请求无此参）。
+            if pbday:
+                _pb = bazi_compute(*_parse_iso_date(pbday).timetuple()[:3],
+                                   12, "女")
+                _pg = (_pb.day or "")[0]
+                _pdb, _pyb = (_pb.day or "")[1:2], (_pb.year or "")[1:2]
+                _pe = _energy_for(date_str, _dg, _dzz, _pg,
+                                  _pdb, _pyb, _pb.day)
+                # R3638：TA 本周峰日——同式滚 7 天只留峰值
+                # （前端与我的曲线对照出「双满电日」）。
+                _p_pk = {"d": "", "s": -1}
+                for _pi in range(7):
+                    _pd = _d0 + timedelta(days=_pi)
+                    _pwg, _pwz = huangli_mod.day_ganzhi(
+                        datetime(_pd.year, _pd.month, _pd.day, 12))
+                    _pws = _energy_for(_pd.isoformat(), _pwg, _pwz,
+                                       _pg, _pdb, _pyb, _pb.day)["score"]
+                    if _pws > _p_pk["s"]:
+                        _p_pk = {"d": _pd.isoformat(), "s": _pws}
+                _personal["partner_energy"] = {
+                    "score": _pe["score"], "week_peak": _p_pk}
             # R3314（R3311-高2）：流年最小确定性卡——
             # ① 年度签：流年干支 + 五行基调（干支元素直读）；
             # ② 犯太岁：流年支 × 用户年支 值/冲/刑/害/破（传统五档）；
@@ -5360,6 +6244,10 @@ def daily(date_str: str | None = None,
                       "lucky": _c.get("lucky") or _lucky_for(_d0),
                       "mercury": (_c.get("mercury")
                                   or _mercury_state(_d0)),
+                      "venus": (_c.get("venus")
+                                or _venus_state(_d0)),
+                      "mars": (_c.get("mars")
+                               or _mars_state(_d0)),
                       # R3261：财神方位同为 per-date 派生键——旧缓存行
                       # 现算随包回，不抬 cv 代次。
                       "money_dir": (_c.get("money_dir")
@@ -5373,6 +6261,9 @@ def daily(date_str: str | None = None,
                       # 无 outfit——命中即永无穿搭包。同口径现算回填。
                       "outfit": (_c.get("outfit")
                                  or _outfit_for(_d0)),
+                      # R3601：week_sky 同口径 per-date 现算——旧缓存行随包补。
+                      "week_sky": (_c.get("week_sky")
+                                   or _week_sky(_d0)),
                       # R3318：cv<6 时代存的行没有 lunar 锚——同口径现算
                       "lunar": (_c.get("lunar")
                                 or _daily_lunar_str(_d0))}
@@ -5498,7 +6389,12 @@ def daily(date_str: str | None = None,
             "money_dir": huangli_mod.caishen_fang(
                 datetime(d.year, d.month, d.day, 12)),
             "mercury": _mercury_state(d),
+            # R3502：金逆/火逆同构状态（表外年份静默）
+            "venus": _venus_state(d),
+            "mars": _mars_state(d),
             "moon": _moon_for(d),
+            # R3601：未来 7 天天象预告（确定性历表）
+            "week_sky": _week_sky(d),
             # R3317-G：今日牌——同日全站同一张大阿卡纳
             "daily_card": _daily_card_for(d),
             "term": _term_banner(d),
@@ -5537,6 +6433,7 @@ def daily(date_str: str | None = None,
                 # R2349l：降级路径同构常驻键（契约探针）
                 "lunar": "",
                 "festival": [], "lucky": {}, "mercury": {}, "moon": {},
+                "venus": {}, "mars": {}, "week_sky": [],
                 "outfit": {},
                 "daily_card": {},
                 "term": {}}
@@ -5689,6 +6586,22 @@ def couple_checkin(req) -> dict:
     days≤400 且逐项真实日期）——到这里的都是干净值。"""
     with deps.knowledge() as kb:
         return kb.couple_sync(req.pair_id, req.member, req.days)
+
+
+def muyu_state() -> dict:
+    """敲敲木鱼（R3424）：今天的「全铺子一起敲」共敲数。
+
+    匿名计数器——只按日累计数字，不记任何身份/指纹。"""
+    _t = _today_cn().isoformat()
+    with deps.knowledge() as kb:
+        return {"date": _t, "today": kb.counter_get("muyu:" + _t)}
+
+
+def muyu_knock(n: int) -> dict:
+    """敲一下：把 n 记进今天的共敲数并返回新值。n 在 schema 已收 1..500。"""
+    _t = _today_cn().isoformat()
+    with deps.knowledge() as kb:
+        return {"date": _t, "today": kb.counter_add("muyu:" + _t, n)}
 
 
 def external_news() -> dict:

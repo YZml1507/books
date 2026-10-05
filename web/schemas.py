@@ -501,6 +501,8 @@ class DailyRequest(BaseModel):
     GET 端点保留（无 bday 的低敏调用与旧客户端兼容）。"""
     date: str | None = Field(None, max_length=10)
     bday: str = Field("", max_length=10)
+    # R3633：pbday=已存另一半生日 → personal.partner_energy 同式出分。
+    pbday: str = Field("", max_length=10)
 
 
 class LunarConvertRequest(BaseModel):
@@ -571,8 +573,13 @@ class HehunRequest(BaseModel):
     # R3313（审-P1-5）：邀请态下读者是乙侧（受邀者）——判词里「我」的
     # 指称要贴乙侧；缺省 False 兼容旧前端与台账回放。
     reader_is_b: bool = False
+    # R3431-P2（审）：合拍指数卡此前全站唯一不锚浏览器本地日——
+    # 海外时区零点前后按服务器 CST 翻篇，与用户「今天」错位。
+    client_date: str | None = Field(None, max_length=10,
+                                    description="浏览器本地日 YYYY-MM-DD，可选")
 
     def validate_ranges(self) -> None:
+        _check_client_date(self.client_date)
         _check_ymdh("甲", self.a_year, self.a_month, self.a_day, self.a_hour)
         _check_ymdh("乙", self.b_year, self.b_month, self.b_day, self.b_hour)
         for _who, _cal, _ly, _lm, _ld in (
@@ -697,3 +704,11 @@ class AccountBackupPushRequest(AccountAuthRequest):
     供乐观并发比对；缺省=无条件覆盖（首次推送）。"""
     payload: str = Field(..., min_length=2, max_length=1_200_000)
     base_updated_at: str | None = Field(default=None, max_length=40)
+
+
+class MuyuKnockRequest(BaseModel):
+    """敲敲木鱼共敲上报（R3424）：n=这一批敲了几下。
+
+    上限 500——客户端按批上报（攒 N 下才发一次），单批 500 已留足；
+    无身份字段，服务端只累加日期计数。"""
+    n: int = Field(..., ge=1, le=500)

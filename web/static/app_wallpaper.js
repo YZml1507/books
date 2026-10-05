@@ -91,6 +91,114 @@ function _wapWrap(ctx, text, maxW, maxLines) {
   return lines;
 }
 
+/* R3479 灵魂色谱壁纸：全幅星云（与 soulart 海报底同一画家算法、
+ * 同一 seed/ bands 口径）+ 色谱名 + 气质行——无日期无烘焙底图，
+ * 720×1280 锁屏比例。 */
+function _wapNebula(j) {
+  var cv = document.createElement('canvas');
+  cv.width = 720; cv.height = 1280;
+  var ctx = cv.getContext('2d');
+  /* R3484-P2（审）：空 bands 硬编木带会让判词印错行——回落
+   * 带不带 wx 标记，判词行借此静默缺席。 */
+  var _bands = (j && j.art && Array.isArray(j.art.bands)
+    && j.art.bands.length) ? j.art.bands
+    : [{ c: '#B8A5E8', frac: 0.6, wx: '' }];
+  var _seed = (+((j && j.art && j.art.seed) || 0)) >>> 0;
+  var g = ctx.createLinearGradient(0, 0, 0, 1280);
+  g.addColorStop(0, '#1A1430'); g.addColorStop(1, '#0E0B1F');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 720, 1280);
+  var _rnd = function () {
+    _seed = (_seed * 1664525 + 1013904223) >>> 0;
+    return _seed / 4294967296;
+  };
+  _bands.forEach(function (b) {
+    var _cx = 120 + _rnd() * 480, _cy = 200 + _rnd() * 880;
+    var _r = 170 + b.frac * 380;
+    var _g = ctx.createRadialGradient(_cx, _cy, 0, _cx, _cy, _r);
+    _g.addColorStop(0, b.c + 'CC');
+    _g.addColorStop(0.55, b.c + '55');
+    _g.addColorStop(1, b.c + '00');
+    ctx.fillStyle = _g; ctx.fillRect(0, 0, 720, 1280);
+  });
+  ctx.fillStyle = 'rgba(255,246,232,0.7)';
+  for (var _sp = 0; _sp < 70; _sp++) {
+    var _sx = _rnd() * 720, _sy = _rnd() * 1280,
+        _sr = _rnd() * 1.6 + 0.4;
+    ctx.beginPath(); ctx.arc(_sx, _sy, _sr, 0, 6.3); ctx.fill();
+  }
+  /* 文字区：店招 + 色谱名 + 最浓气 + 色带图例。 */
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,246,232,0.92)';
+  ctx.font = '600 28px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+  ctx.fillStyle = '#FFF6E8';
+  ctx.font = '700 54px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText(_pStr(j && j._saName) || '我的五行色谱', 360, 1160);
+  var _top = _bands.slice().sort(function (a, b2) {
+    return b2.frac - a.frac; })[0];
+  ctx.font = '400 26px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillStyle = 'rgba(255,246,232,0.85)';
+  /* 「土气」在目标语境=老土——五行行名直拼会读成自贬，
+   * 用「土行」避开歧义。空 bands（回落带 wx=''）不印判词，
+   * 改中性「一人一幅」（与卡内无 top 静默缺席同口径）。 */
+  ctx.fillText(_top && _top.wx
+               ? '你盘里最浓的是' + _top.wx + '行'
+               : '一人一幅，按五行权重画',
+               360, 1212);
+  /* 色带图例：小圆点排排。 */
+  var _lw = _bands.length * 34, _lx = 360 - _lw / 2 + 17;
+  _bands.forEach(function (b, i) {
+    ctx.beginPath(); ctx.arc(_lx + i * 34, 1060, 9, 0, 6.3);
+    ctx.fillStyle = b.c; ctx.fill();
+  });
+  return cv;
+}
+/* R3491 灵魂纹样原图：720×720 方形（可当头像）+竖放中央，
+ * 夜底 + 大徽章 + 店招 + 纹名 + 纹意 + 落款。纹样本体交给
+ * app.js 全局 _emblemDraw（本文件惰载时它一定在场）。 */
+function _wapEmblem(j) {
+  var cv = document.createElement('canvas');
+  cv.width = 720; cv.height = 1280;
+  var ctx = cv.getContext('2d');
+  var _em = (j && j.emblem) || {};
+  var _wx = _pStr(_em.wx) || '木';
+  var _seed = (+_em.seed) >>> 0;
+  var g = ctx.createLinearGradient(0, 0, 0, 1280);
+  g.addColorStop(0, '#1E1834'); g.addColorStop(1, '#0E0B1F');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 720, 1280);
+  /* 星点散斑（与星云同款 LCG 种子推进——同纹同点）。 */
+  var _rnds = function () {
+    _seed = (_seed * 1664525 + 1013904223) >>> 0;
+    return _seed / 4294967296;
+  };
+  ctx.fillStyle = 'rgba(255,246,232,0.55)';
+  for (var _sp = 0; _sp < 80; _sp++) {
+    var _sx = _rnds() * 720, _sy = _rnds() * 1280,
+        _sr = _rnds() * 1.6 + 0.4;
+    ctx.beginPath(); ctx.arc(_sx, _sy, _sr, 0, 6.3); ctx.fill();
+  }
+  /* 大徽章居中。种子单独推流：散斑消耗掉一段，徽章吃后段。 */
+  if (typeof _emblemDraw === 'function') {
+    _emblemDraw(ctx, 360, 560, 250, _wx,
+                (+((j && j.emblem && j.emblem.seed) || 0)) >>> 0);
+  }
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,246,232,0.92)';
+  ctx.font = '600 28px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+  ctx.fillStyle = '#FFF6E8';
+  ctx.font = '700 54px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillText(_pStr(_em.name) || '灵魂纹样', 360, 940);
+  ctx.font = '400 28px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillStyle = 'rgba(255,246,232,0.85)';
+  var _vb = _pStr(_em.vibe);
+  ctx.fillText(_vb ? _vb.slice(0, 20) : '一人一纹，按五行生',
+               360, 996);
+  ctx.font = '400 24px "LXGW WenKai","PingFang SC",sans-serif';
+  ctx.fillStyle = 'rgba(255,246,232,0.72)';
+  ctx.fillText('@小满的解忧铺 · 仅供娱乐', 360, 1242);
+  return cv;
+}
 function _wapComposite(j, bg, variant) {
   /* R3325-B：variant.square → 1:1 开运头像（720×720，底图中裁，
    * 版心下移适配圆裁展示）。 */
@@ -241,7 +349,145 @@ function _wapComposite(j, bg, variant) {
   return cv;
 }
 
+/* R3486：守护图腾锁屏画家——烘焙灵兽底图（gd-<wx>.jpg）+ 店招 +
+ * 灵兽名 + 守护语。与 _wapNebula 同款独立合成器路径：
+ * 底图是 Agnes 离线烘焙资产，无日期锚（图腾不按日换）。 */
+function _wapBeast(j) {
+  return new Promise(function (res, rej) {
+    var _b = (j && j.beast) || {};
+    var _img = new Image();
+    _img.onload = function () {
+      var cv = document.createElement('canvas');
+      cv.width = 720; cv.height = 1280;
+      var ctx = cv.getContext('2d');
+      /* cover：1536×1024→720×1280 中裁 */
+      var _iw = _img.width, _ih = _img.height;
+      var _sc = Math.max(720 / _iw, 1280 / _ih);
+      var _dw = _iw * _sc, _dh = _ih * _sc;
+      ctx.drawImage(_img, (720 - _dw) / 2, (1280 - _dh) / 2, _dw, _dh);
+      /* 上下暗角保文字可读（与 _wapComposite 同口径 scrim）。 */
+      var g1 = ctx.createLinearGradient(0, 0, 0, 400);
+      g1.addColorStop(0, 'rgba(38,30,22,0.60)');
+      g1.addColorStop(1, 'rgba(38,30,22,0)');
+      ctx.fillStyle = g1; ctx.fillRect(0, 0, 720, 400);
+      var g2 = ctx.createLinearGradient(0, 940, 0, 1280);
+      g2.addColorStop(0, 'rgba(38,30,22,0)');
+      g2.addColorStop(1, 'rgba(38,30,22,0.74)');
+      ctx.fillStyle = g2; ctx.fillRect(0, 940, 720, 340);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,246,232,0.92)';
+      ctx.font = '600 28px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+      /* 灵兽名大字（带暗衬椭圆） */
+      ctx.fillStyle = 'rgba(38,30,22,0.42)';
+      ctx.beginPath();
+      ctx.ellipse(360, 1060, 235, 100, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = '700 96px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = '#FFF6E8';
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = 18; ctx.shadowOffsetY = 4;
+      ctx.fillText(_pStr(_b.name) || '守护图腾', 360, 1088);
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      /* 守护语小字 */
+      ctx.font = '400 30px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = 'rgba(255,246,232,0.95)';
+      var _gl = _wapWrap(ctx, _pStr(_b.guard) || '', 560, 2);
+      _gl.forEach(function (ln, i) {
+        ctx.fillText(ln, 360, 1150 + i * 44); });
+      ctx.font = '400 24px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = 'rgba(255,246,232,0.72)';
+      ctx.fillText('@小满的解忧铺 · 知命·仅供娱乐', 360, 1242);
+      res(cv);
+    };
+    _img.onerror = function () { rej(new Error('beast img')); };
+    _img.src = _pStr(j && j.beast && j.beast.img) ||
+      '/static/wallpapers/gd-earth.jpg';
+  });
+}
+
 function downloadWallpaper(j, variant) {
+  /* R3491：灵魂纹样原图变体——方形大图独立合成器（可当头像）。 */
+  if (variant && variant.emblem) {
+    try {
+      var _cvE = _wapEmblem(j);
+      var _tE = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      if (_tE && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+        showPosterModal(_cvE, 'emblem-wap', j);
+        return Promise.resolve();
+      }
+      _cvE.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-灵魂纹样.png';
+        document.body.appendChild(a);
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
+      }, 'image/png');
+      showPosterModal(_cvE, 'emblem-wap', j);
+      return Promise.resolve();
+    } catch (eEM) {
+      showToast('纹样没画好，再点一次', 'warn');
+      return null;
+    }
+  }
+  /* R3486：守护图腾壁纸变体——烘焙灵兽底图独立画家。 */
+  if (variant && variant.beast) {
+    return _wapBeast(j).then(function (cv) {
+      var _tB = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      if (_tB && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+        showPosterModal(cv, 'guardian-wap', j);
+        return;
+      }
+      cv.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-守护图腾壁纸.png';
+        document.body.appendChild(a);
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
+      }, 'image/png');
+      showPosterModal(cv, 'guardian-wap', j);
+    }).catch(function () {
+      showToast('壁纸没做好，再点一次', 'warn');
+    });
+  }
+  /* R3479：灵魂色谱壁纸变体——无日期/无烘焙底图，走独立合成器。 */
+  if (variant && variant.nebula) {
+    try {
+      var _cvN = _wapNebula(j);
+      var _tN = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      if (_tN && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+        showPosterModal(_cvN, 'soulart-wap', j);
+        return Promise.resolve();
+      }
+      _cvN.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-灵魂色谱壁纸.png';
+        document.body.appendChild(a);
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
+      }, 'image/png');
+      showPosterModal(_cvN, 'soulart-wap', j);
+      return Promise.resolve();
+    } catch (eNB) {
+      showToast('壁纸没做好，再点一次', 'warn');
+      return null;
+    }
+  }
   if (!j || !j.date) {
     showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
     return null;

@@ -140,6 +140,9 @@ FIXTURES: dict[str, dict] = {
     # R2349l（R73-P1-7/P1-12）：星座速配 + 塔罗图鉴收集端点。
     "/api/xzmatch":          {"method": "GET",
                               "params": {"a": "白羊", "b": "射手"}},
+    # R3611：本月月历——前端读 j.days[].d/label/action/line/glyph。
+    "/api/mooncal":          {"method": "GET",
+                              "params": {"month": "2026-10"}},
     "/api/paipan/tarot_collection": {"method": "GET"},
     "POST /api/bazi":    {"method": "POST", "json": {
         "year": 1990, "month": 5, "day": 15, "hour": 10, "gender": "男",
@@ -155,6 +158,11 @@ FIXTURES: dict[str, dict] = {
     "POST /api/taohua":    {"method": "POST", "json": {
         "year": 1995, "month": 8, "day": 8, "hour": 10, "gender": "男"}},
     "POST /api/hehun":    {"method": "POST", "json": {
+        "a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
+        "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
+        "b_hour": 14, "b_gender": "女"}},
+    # R3425：今日合拍指数——同 hehun 请求形，纯坐标确定性响应。
+    "POST /api/hehun/daily": {"method": "POST", "json": {
         "a_year": 1990, "a_month": 5, "a_day": 15, "a_hour": 10,
         "a_gender": "男", "b_year": 1992, "b_month": 7, "b_day": 20,
         "b_hour": 14, "b_gender": "女"}},
@@ -251,6 +259,10 @@ FIXTURES: dict[str, dict] = {
         "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
     "POST /api/account/backup/pull": {"method": "POST",
         "json": {"nickname": "probe不存在的账号", "passcode": "246810"}},
+    # R3424：共敲计数器——GET 纯读；POST 攒批 +n（与 account register
+    # 建行同先例——探针跑的本机/CI 库，+2 攒批不入生产真计数）。
+    "/api/muyu":              {"method": "GET"},
+    "POST /api/muyu":         {"method": "POST", "json": {"n": 2}},
     "POST /api/account/backup/push": {"method": "POST",
         "json": {"nickname": "probe不存在的账号", "passcode": "246810",
                  "payload": "{}"}},

@@ -560,6 +560,53 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
   background:transparent; border:none; padding:2px 4px; cursor:pointer;
   text-decoration:none; border-radius:6px;}
 .mood-week-link:hover{color:var(--accent); background:rgba(201,145,74,.10);}
+/* R3611：本月月历 overlay——深色底+格历，节点日标圆点。 */
+.mcal-ov{position:fixed; inset:0; background:rgba(30,20,10,.45);
+  z-index:90; display:flex; align-items:center; justify-content:center;
+  padding:16px;}
+/* R3613（自审-P1）：作者 display:flex 会盖 UA [hidden]——
+ * 关掉后 overlay 仍在屏挡住整页，补显式隐藏规则。 */
+.mcal-ov[hidden]{display:none;}
+.mcal-panel{background:var(--card,#FFFDFB); border-radius:18px;
+  padding:18px 16px; max-width:420px; width:100%;
+  box-shadow:0 12px 40px rgba(60,30,10,.25);
+  max-height:80vh; overflow-y:auto;}
+.mcal-t{font-size:17px; font-weight:600; color:var(--accent-ink);
+  margin:0 0 10px; text-align:center;}
+.mcal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+.mcal-cell{display:flex; flex-direction:column; align-items:center;
+  gap:2px; padding:6px 2px; border-radius:10px; position:relative;
+  cursor:pointer;}
+.mcal-cell:hover{background:rgba(201,145,74,.12);}
+.mcal-cell.today{background:rgba(201,145,74,.18);
+  outline:1px solid var(--accent-ink);}
+.mcal-g{font-size:18px; line-height:1;}
+.mcal-d{font-size:10px; color:var(--secondary);}
+.mcal-cell.node .mcal-d{color:var(--accent-ink); font-weight:600;}
+.mcal-node{position:absolute; top:3px; right:4px; width:5px; height:5px;
+  border-radius:50%; background:var(--accent-ink);}
+.mcal-sub{font-size:11.5px; color:var(--secondary); text-align:center;
+  margin:10px 0 0;}
+.mcal-close{display:block; margin:10px auto 0; padding:8px 22px;
+  border-radius:999px; border:1px solid var(--accent-ink);
+  background:transparent; color:var(--accent-ink); font-size:13px;
+  cursor:pointer; min-height:var(--tap);}
+/* R3610：回看闪回行——副色小行，月历/周记尾的轻怀旧。 */
+.mw-flash{font-size:12px; color:var(--secondary); line-height:1.6;
+  margin:2px 0;}
+/* R3616：往期小记归档——历史周信列表，淡卡叠行。 */
+.mw-archives{margin-top:10px; border-top:1px dashed var(--line,rgba(120,100,80,.25));
+  padding-top:8px;}
+.mw-arch-h{font-size:11px; color:var(--muted); margin:0 0 4px;}
+.mw-arch{margin:0 0 8px; padding:8px 10px; border-radius:10px;
+  background:var(--card,#FFFDFB); border:1px solid var(--line,rgba(120,100,80,.18));}
+.mw-arch-t{font-size:11.5px; color:var(--secondary); margin:0 0 2px;}
+.mw-arch-b{font-size:12px; color:var(--secondary); line-height:1.6; margin:0;}
+/* R3607：补记昨天——与周记小链同型的低调链。 */
+.mood-backfill{font-size:11.5px; color:var(--secondary);
+  background:transparent; border:none; padding:2px 4px; cursor:pointer;
+  text-decoration:none; border-radius:6px; min-height:var(--tap);}
+.mood-backfill:hover{color:var(--accent); background:rgba(201,145,74,.10);}
 /* 心情周记卡（view-moodweek）——点阵+判词+统计，暖而不评判 */
 .mw-body{display:flex; flex-direction:column; gap:14px;}
 .mw-dots{display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;}
@@ -585,6 +632,29 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
   border:1px solid var(--border); border-radius:999px; padding:4px 10px;
   line-height:1.5;}
 .mw-prev{color:var(--muted);}
+/* R3524：这个月的心情日历——7 列网格，记过的天按心情色染格。 */
+.mw-month{margin-top:12px;}
+.mw-month-t{font-size:12px;color:var(--secondary);margin:0 0 6px;}
+.mw-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.mw-cal-h{font-size:10.5px;color:var(--muted);text-align:center;}
+.mw-cal-cell{position:relative;font-size:10.5px;color:var(--secondary);
+  text-align:center;padding-top:18px;min-height:36px;border-radius:8px;
+  background:var(--bg);}
+.mw-cal-cell i{position:absolute;top:5px;left:50%;transform:translateX(-50%);
+  width:10px;height:10px;border-radius:50%;background:var(--border);}
+.mw-cal-cell.dim{color:var(--muted);}
+.mw-cal-cell.pad{background:transparent;}
+.mw-cal-cell.hit{cursor:pointer;}
+.mw-cal-cell.hit:active{background:var(--border);}
+.mw-cal-cell.today{box-shadow:0 0 0 1.5px var(--accent) inset;}
+.mw-month-s{font-size:11.5px;color:var(--secondary);margin:6px 0 0;}
+.mw-navs{float:right;}
+.wl-dot{display:inline-block;width:11px;height:11px;
+  border-radius:50%;margin:0 4px 0 2px;vertical-align:-1px;
+  border:1px solid var(--border);}
+.mw-nav{background:var(--bg);border:1px solid var(--border);
+  color:var(--secondary);border-radius:8px;min-width:44px;
+  min-height:44px;font-size:14px;cursor:pointer;padding:0 8px;}
 .mw-note{font-size:11px; color:var(--muted); line-height:1.6;
   margin-top:2px; text-align:center;}
 .mw-actions{display:flex; justify-content:center; margin-top:14px;}
@@ -671,6 +741,26 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 html[data-theme="dark"] .daily-mine{background:rgba(255,255,255,.10); color:#e8ddd0;}
 html[data-theme="dark"] .daily-mine.down{background:rgba(216,120,102,.18); color:#e29a8d;}
 html[data-theme="dark"] .daily-mine.up{background:rgba(120,180,132,.16); color:#9fd0a8;}
+/* R3621：今日能量分芯片——与 .daily-mine 同款胶囊，暖金底
+ * 区分于对位判词的色阶（分是「电量」，不是吉凶）。 */
+.daily-energy{display:inline-block; padding:2px 10px; margin-right:8px;
+  border-radius:999px; font-weight:600; font-size:12.5px;
+  background:rgba(196,142,42,.14); color:#9a6f1e;}
+html[data-theme="dark"] .daily-energy{background:rgba(228,180,96,.16); color:#e0bb6e;}
+/* R3626：本周能量迷你走向条——7 列柱+峰值标，今天描边。 */
+.e-week{display:flex; align-items:flex-end; gap:5px; margin:8px 0 2px;}
+.e-col{display:flex; flex-direction:column; align-items:center; gap:2px;}
+.e-bar{width:9px; border-radius:3px; background:rgba(196,142,42,.42);}
+.e-today .e-bar{background:#c48e2a; outline:1px solid rgba(196,142,42,.7);}
+.e-lbl{font-size:10px; line-height:1; color:var(--muted);}
+.e-week-note{font-size:11.5px; margin-left:6px; padding-bottom:2px;
+  color:var(--muted);}
+.e-week-low{font-size:12px; margin-top:4px; color:var(--muted);}
+.dq-line{cursor:pointer}
+.dq-line:hover,.dq-line:focus-visible{opacity:.75}
+
+html[data-theme="dark"] .e-bar{background:rgba(228,180,96,.35);}
+html[data-theme="dark"] .e-today .e-bar{background:#e0bb6e;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);
   border-color:var(--accent); color:var(--primary-ink);}
 /* R3248b：个人判词独立块——多行自然换行，不再被胶囊行裁切。 */
@@ -812,10 +902,24 @@ html[data-theme="dark"] .daily-mantra b{
   /* R3368（审-P1-1）：wrap 让按钮排不下时掉行不压字 */
   flex-wrap:wrap;}
 .daily-card-line .dc-text{flex:1 1 140px; min-width:0;}
-.daily-card-line .dc-thumb{width:22px; height:36px; object-fit:cover;
+.daily-card-line .dc-thumb{width:32px; height:52px; object-fit:cover;
   border-radius:4px; border:1px solid var(--border); flex:none;
-  box-shadow:0 1px 3px rgba(90,60,30,.18);}
+  box-shadow:0 1px 3px rgba(90,60,30,.18); display:block;}
 .daily-card-line .dc-thumb.is-reversed{transform:rotate(180deg);}
+/* R3426：缩略图改可点钮——点开牌意卡看大图；脱壳 img 的 button 壳。 */
+.daily-card-line .dc-thumb-btn{/* R3432-P2-8（审）：32×52 触摸目标
+   * 不足 44px——透明 padding+负 margin 扩命中，视觉分毫不动。 */
+  padding:0 12px 0 0; margin:0 -12px 0 0; border:0; background:none;
+  cursor:pointer; flex:none; line-height:0; border-radius:4px;
+  min-width:44px; min-height:52px;}
+.daily-card-line .dc-thumb-btn:active{transform:scale(.95);}
+.daily-card-line .dc-thumb-btn:focus-visible{
+  outline:2px solid var(--primary); outline-offset:1px;}
+/* R3426：牌意卡内大图——完整牌面可看清。 */
+.sign-card .tc-img{width:150px; height:auto; border-radius:10px;
+  border:1px solid var(--border); display:block; margin:0 auto 10px;
+  box-shadow:0 4px 14px rgba(90,60,30,.18);}
+.sign-card .tc-img.is-reversed{transform:rotate(180deg);}
 .daily-card-line b{color:var(--primary-ink); font-weight:600;}
 .daily-card-line i{font-style:normal; opacity:.85;}
 .daily-card-line .dc-more{margin-left:auto; flex:none; cursor:pointer;
@@ -1011,7 +1115,12 @@ html[data-theme="dark"] .daily-mantra b{
   overscroll-behavior:contain;
   /* R218a-01：聊天侧栏挡主区——宽度封顶 ≤320px 且 82vw，留出 ≥18vw 主区可点 */
   width:min(320px, 82vw);
-  background:var(--card); border-left:1px solid var(--border);
+  /* 用户直报：侧栏底背景画在 .side-chat 上——聊天内容超过一屏时
+   * 溢出部分（气泡/输入行）落到 aside 的 var(--card) 浅底，
+   * 滚到下面像「背景断开了」。渐变上提到 aside 本身（滚动容器
+   * 背景永远铺满可视区），.side-chat 变透明——怎么滚都是一整块。 */
+  background:linear-gradient(180deg,#FDF9F2,#FBF3E7);
+  border-left:1px solid var(--border);
   box-shadow:6px 0 24px rgba(0,0,0,.12);
   /* R2349m（R76-P1-4a）：顶部并上刘海安全区（关钮不被状态栏盖） */
   padding:calc(18px + env(safe-area-inset-top, 0px)) 16px 24px;
@@ -1109,7 +1218,7 @@ html[data-theme="dark"] .daily-mantra b{
   /* R2349m（R76-P1-4b）：底 padding 并上 home 条安全区 */
   margin:12px -16px -24px;
   padding:12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
-  background:linear-gradient(180deg,#FDF9F2,#FBF3E7);
+  background:transparent;
   border-top:1px solid var(--border);
 }
 .side-chat .chat-flow{flex:1; min-height:120px;}
@@ -2140,6 +2249,56 @@ button:active{transform:scale(.96);}
   cursor:pointer;}
 .ck-goal-opt.active{background:var(--accent-ink); color:#fff; border-color:var(--accent-ink);}
 .ck-goal-txt{flex:1; min-width:120px;}
+/* R3497：本周小功课行——周更仪式件，盖戳钮+章数。 */
+.ck-quest{display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:12px; color:var(--muted); margin:6px 0 2px;
+  padding:6px 10px; border-radius:10px;
+  background:var(--accent-soft); border:1px dashed var(--border);}
+.ck-quest-btn{font-size:12px; padding:3px 12px; border-radius:999px;
+  border:1px solid var(--accent-ink); background:transparent;
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
+.ck-quest-btn:active{background:var(--accent-ink); color:#fff;}
+/* R3569：递好运回递钮——与 ck-quest-btn 同族（描边小丸）。 */
+.ck-hug-back{font-size:12px; padding:3px 12px; border-radius:999px;
+  border:1px solid var(--accent-ink); background:transparent;
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
+.ck-hug-back:active{background:var(--accent-ink); color:#fff;}
+/* R3618：目标日倒数——行内定/改/抹小表单。dday-form 不设
+ * display 规则，[hidden] 由 UA 管（作者规则会吃掉 hidden）。 */
+.dday-set{font-size:11.5px; padding:2px 10px; border-radius:999px;
+  border:1px solid var(--accent-ink); background:transparent;
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
+.dday-set:active{background:var(--accent-ink); color:#fff;}
+.dday-hint{color:var(--muted); font-size:12px;}
+.dday-form{display:inline-flex; align-items:center; gap:6px;
+  flex-wrap:wrap;}
+.dday-form[hidden]{display:none;}
+.dday-form input{font-size:12px; padding:4px 8px; border-radius:8px;
+  border:1px solid var(--border); background:var(--card,#FFFDFB);
+  color:var(--primary-ink); max-width:110px;}
+.dday-form input.dday-d{max-width:140px;}
+.dday-save,.dday-clear{font-size:12px; padding:3px 12px;
+  border-radius:999px; border:1px solid var(--accent-ink);
+  background:transparent; color:var(--accent-ink);
+  cursor:pointer; min-height:var(--tap);}
+.dday-save:active,.dday-clear:active{background:var(--accent-ink);
+  color:#fff;}
+/* R3596：月信「晒这月」钮——与 ck-hug-back 同族描边小丸。 */
+.wl-foot{margin-top:8px;}
+.wl-share{font-size:12px; padding:3px 12px; border-radius:999px;
+  border:1px solid var(--accent-ink); background:transparent;
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
+.wl-share:active{background:var(--accent-ink); color:#fff;}
+/* R3602：小记识心情建议钮——描边小丸同族，淡一点别抢「记下」戏。 */
+.journal-mood-go{display:inline-block; margin-top:6px; font-size:12px;
+  padding:3px 12px; border-radius:999px;
+  border:1px dashed var(--accent-ink); background:transparent;
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
+.journal-mood-go:active{background:var(--accent-ink); color:#fff;}
+/* R3606：牌的记性回声行——副色小行，不抢牌阵戏。 */
+.tr-echo{font-size:12px; color:var(--secondary); margin:6px 0 2px;
+  line-height:1.6;}
+.ck-quest-n{margin-left:auto; font-size:11px; color:var(--muted);}
 .checkin-opts{display:flex; flex-wrap:wrap; gap:8px;}
 /* R3258（用户实测「日签往后有点乱」）：日签下四张签此前一签一
  * 行竖排拉 570px+——改 2×2 网格，翻面/锁定/徽标态全保留，
@@ -2182,6 +2341,20 @@ html[data-theme="dark"] .tr-quick-btn.tr-hfest{
 html[data-theme="dark"] .tr-hfest-strip{
   background:linear-gradient(135deg,#3a2a24,#453026);
   border-color:rgba(224,150,90,.45); color:#e8b98a;}
+/* R3435：圣诞心愿限定格/条——圣诞红绿，与 hfest 同构换色 */
+.tr-quick-btn.tr-xfest{grid-column:1 / -1;
+  border-color:rgba(196,60,60,.42);
+  background:linear-gradient(135deg,#fdeeee,#e8f4ec);}
+html[data-theme="dark"] .tr-quick-btn.tr-xfest{
+  background:linear-gradient(135deg,#3a2424,#243328);
+  border-color:rgba(214,120,120,.5);}
+.tr-xfest-strip{display:inline-block; margin-bottom:10px;
+  padding:4px 12px; border-radius:999px; font-size:12px;
+  background:linear-gradient(135deg,#fdeeee,#e8f4ec);
+  border:1px solid rgba(196,60,60,.38); color:#8a3232;}
+html[data-theme="dark"] .tr-xfest-strip{
+  background:linear-gradient(135deg,#3a2424,#243328);
+  border-color:rgba(214,120,120,.45); color:#e8a8a8;}
 .tr-quick-btn{padding:12px 6px; border-radius:14px;
   border:1.5px solid var(--border); background:#fff;
   color:var(--text); font-family:var(--font-sans); cursor:pointer;
@@ -2362,6 +2535,12 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   display:flex; align-items:center; justify-content:center;
   opacity:0; transition:opacity .2s ease;
   padding:16px;
+  /* R3485-P2-2（审子实锤）：全仓贴屏件都走 env 安全区，唯独
+   * 弹层没跟上——刘海机/横屏手势区贴脸。先纯 px 兜底再覆盖。 */
+  padding:calc(16px + env(safe-area-inset-top))
+          calc(16px + env(safe-area-inset-right))
+          calc(16px + env(safe-area-inset-bottom))
+          calc(16px + env(safe-area-inset-left));
 }
 .poster-modal-backdrop.open{opacity:1; background:rgba(0,0,0,.55);
   touch-action:none;   /* R3355：遮罩上拦滚动穿透 */}
@@ -2393,7 +2572,9 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   background:#F5EFE6;
 }
 .poster-modal-img{
-  max-width:100%; max-height:60vh; height:auto; display:block;
+  /* R3485-P2-2：弹层本体早已 90vh/90dvh 双写，img 漏改——
+   * iOS 动态工具栏展开态 dvh<vh，60vh 可超当前可视高。 */
+  max-width:100%; max-height:60vh; max-height:60dvh; height:auto; display:block;
   border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.15);
 }
 .poster-modal-tip{
@@ -2593,9 +2774,12 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 .hl-ji-t{font-weight:800;color:var(--rose-soft);margin-bottom:6px;}
 .hl-flag{font-size:12px;color:#a3542a;margin-top:6px;}
 /* R2350d（R100-P2-3）：当班金句是全卡唯一「可截封面」的句子却
- * 只有 13px 副行——提为判词级头行（金句体+居中）。 */
+ * 只有 13px 副行——提为判词级头行（金句体+居中）。
+ * R3406-P3→R3461s：csmsg 语料是典籍动态句（可含生僻字），
+ * 原来挂 Smiley Sans 996 字子集——灏/挑等字半路回落异体。
+ * 金句改挂全文楷栈（字形全覆盖，体感仍是金句体）。 */
 .hl-csmsg{font-size:18px;color:var(--primary-ink);margin-top:8px;
-  font-family:var(--font-display);font-weight:600;text-align:center;
+  font-family:var(--font-wenkai);font-weight:600;text-align:center;
   letter-spacing:.3px;line-height:1.6;}
 /* R2349k（R72-A2）：节日行 */
 .hl-festival{font-size:12px;color:#b5732f;margin-top:6px;font-weight:600;}
@@ -2687,6 +2871,9 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   .welcome-bar, .toast-stack, .ink-hero, .poster-modal-backdrop,
   .celeb-backdrop,   /* R2514：连签庆祝浮层漏进打印隐藏表 */
   .install-tip,
+  /* R3485-P2-4（审子实锤）：.sa-zone 空容器打印时留 ~6px 空盒
+   * 残渣——补进隐藏名单。 */
+  .sa-zone,
   .recent-sidebar, .recent-toggle, .ph-toolbar, .ph-share, .checkin-share,
   .chat-entry, .share-cta, .poster-modal-actions, .xz-grid,
   [class*="deco"], [class*="glow"] {
@@ -2696,7 +2883,9 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
   .wrap { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
   .view { display: none !important; }
   .view.active { display: block !important; }
-  .card, .result-card, .hl-result, .xz-result, .daily-card {
+  /* R3485-P2-4：.sm-card（小惊喜卡）并入防断行名单——
+   * 长卡跨页会被切断。 */
+  .card, .result-card, .hl-result, .xz-result, .daily-card, .sm-card {
     box-shadow: none !important; border: 1px solid #ccc !important;
     break-inside: avoid; page-break-inside: avoid;
   }
@@ -2805,6 +2994,18 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
 .daily-tomorrow:focus-visible{
   outline:3px solid var(--primary-ink); outline-offset:2px;
 }
+/* R3481：预告行下「晒明天的穿搭」小钮——日更件入口低调挂。 */
+.daily-tomorrow-share{
+  display:block; margin:6px 0 0 auto; padding:4px 12px;
+  /* R3482（移动端八审自审）：32px 低于本仓 40px 触控线。 */
+  font-size:12px; min-height:40px; border-radius:10px;
+  border:1px dashed #E3C79A; background:transparent;
+  color:var(--secondary); cursor:pointer; font-family:var(--font-sans);
+}
+.daily-tomorrow-share:hover{color:var(--primary-ink); border-style:solid;}
+.daily-tomorrow-share:focus-visible{
+  outline:3px solid var(--primary-ink); outline-offset:2px;
+}
 /* 昨天问过的事接续条 */
 .daily-recall{margin-top:8px;}
 .daily-recall-btn{
@@ -2867,9 +3068,13 @@ html{-webkit-text-size-adjust:100%;}
   background:transparent; color:var(--muted); cursor:pointer; font-size:13px;
 }
 @media (max-width:400px){ .install-tip{left:8px;
-  bottom:8px;
-  /* R2353（R110-P2-10）：同上 */
-  bottom:max(8px, env(safe-area-inset-bottom, 8px)); font-size:12px;} }
+  /* R3424-补（用户实测「FAB 时不时点不开」）：本查询原先把 tip
+   * 回落 bottom:8——≤400px 下 FAB 虽挪到右侧，但 tip 宽度 86vw
+   * 横跨全屏底行仍盖死 FAB 命中域（z180>z60）。与桌面同方案：
+   * 抬到 FAB 上方浮着。 */
+  bottom:82px;
+  /* R2353（R110-P2-10）：同上——max()/env() 双写法兜底 */
+  bottom:max(82px, calc(env(safe-area-inset-bottom, 0px) + 82px)); font-size:12px;} }
 
 /* ── R231h（R39-P3-3）：连签里程碑卡 ── */
 .celeb-backdrop{
@@ -3121,6 +3326,9 @@ h2 .card-sub{font-size:14px;color:var(--secondary);font-weight:400;word-break:ke
    * 常盖住标题/正文。.share-row 容器回落静态流，钮横排自动换行。 */
   .share-row{position:static; justify-content:flex-end; margin:8px 0; flex-wrap:wrap;}
   .share-row .fav-btn{flex:1 1 auto; min-width:100px; white-space:nowrap; margin:0;}
+  /* R3457（判据 2 余量）：5 枚分享/功能钮在 375px 下各占一行吃
+   * ~252px——收紧字号/内边距/最小宽让两钮一行，结果区省 ~110px。 */
+  .share-row .fav-btn{min-width:96px; font-size:12.5px; padding:9px 10px;}
 }
 /* P1：结果卡 fav-btn 骑 h2 盖副标尾字——右上角让位。 */
 .view .card h2{padding-right:92px;}
@@ -3246,6 +3454,11 @@ html[data-theme="dark"] .day-card, html[data-theme="dark"] .daily-pick{
   background:#2E282C; border-color:#453C42;
 }
 html[data-theme="dark"] .welcome-bar, html[data-theme="dark"] .daily-recall-btn,
+/* R3482（移动端八审自审）：预告行晒图钮深色——#E3C79A 金线在
+ * 深底仍可读，透明底保留，仅文色提亮与 recall 同口径。 */
+html[data-theme="dark"] .daily-tomorrow-share{color:#C9BBA9;
+  border-color:rgba(227,199,154,.45);}
+html[data-theme="dark"] .daily-tomorrow-share:hover{color:#EDE1CF;}
 /* R2349j（R70 机制性附注）：真类名 .ck-album-cell，.ck-cell 死补丁修正。 */
 html[data-theme="dark"] .ck-album-cell{background:#2E282C; border-color:#453C42;}
 /* R2345（R62-P2）：深色下凶档星 var(--rose-deep) 在深底上对比弱 → 提亮 */
@@ -3376,8 +3589,9 @@ html[data-theme="dark"] .hl-week-ji{color:#F08CA4;}
 /* P0-5 装饰条（类化后补丁生效）——深底统一，图标图照旧 */
 /* P0-9 skip-link / P0-10 专业盘返回钮 */
 html[data-theme="dark"] .skip-link{background:var(--cta-grad);}
-/* P1-11 侧栏抽屉 */
-html[data-theme="dark"] .side-chat{background:#251F23;}
+/* P1-11 侧栏抽屉（底色链随浅色批同改：渐变上提 aside，侧栏底深） */
+html[data-theme="dark"] .recent-sidebar{background:#251F23;}
+html[data-theme="dark"] .side-chat{background:transparent;}
 html[data-theme="dark"] .recent-side-head{background:#2B2529;
   color:var(--text);}
 /* P1-12 宜忌 pill：白底 pill 在深卡上突兀 */
@@ -3958,13 +4172,23 @@ html[data-theme="dark"] .outfit-share{background:#3A3237;color:#E8C6D4;
   text-underline-offset:3px;}
 .fl-pend{font-size:11px; color:var(--muted);}
 .fl-modal textarea{width:100%; border:1px solid var(--line);
-  border-radius:10px; padding:10px 12px; font-size:13.5px;
+  /* R3432-P2-7（审）：textarea 不在全局 16px 名单——13.5px 聚焦
+   * 必触发 iOS 整页缩放，写信主战场不可留。 */
+  border-radius:10px; padding:10px 12px; font-size:16px;
   font-family:inherit; color:var(--text); background:var(--card, #fff);
   resize:vertical; box-sizing:border-box;}
 .fl-row{display:flex; align-items:center; gap:8px; margin:10px 0;
-  font-size:12.5px; color:var(--secondary);}
-.fl-row select{font-size:12.5px; padding:4px 8px; border-radius:8px;
-  border:1px solid var(--line); color:var(--text); background:var(--card, #fff);}
+  /* R3432-P1-5（审）：__custom 态 label+select+date 挤一行把
+   * 「什么时候送到：」压成 38px 竖排——wrap 让 date 独占第二行。 */
+  flex-wrap:wrap; font-size:13px; color:var(--secondary);}
+.fl-row select{font-size:14px; padding:4px 8px; border-radius:8px;
+  border:1px solid var(--line); background:var(--card, #fff);
+  color:var(--text, #3e3428);}
+/* R3428：自选日期框——跟 select 同款挤进 fl-row。 */
+.fl-row .fl-date{/* R3432-P3-10：字号与全局输入口径拉近。 */
+  font-size:14px; padding:4px 8px; border-radius:8px;
+  border:1px solid var(--line); background:var(--card, #fff);
+  color:var(--text, #3e3428); flex:1 1 100%; max-width:none;}
 .fl-send{width:100%; margin-top:4px;}
 .fl-note{font-size:11px; color:var(--muted); margin:8px 0 0;
   text-align:center;}
@@ -4053,6 +4277,18 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .acct-tip { font-size: 12px; color: var(--secondary); line-height: 1.5; }
 .acct-line { font-size: 13px; margin: 8px 0; }
 
+/* R3441「小满记得」本地数据卡——与 acct-card 同肤 */
+.mem-card { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line, #e8dccf); border-radius: 12px; background: var(--card, #fffdfa); }
+.mem-body { margin-top: 8px; display: flex; flex-direction: column; }
+.mem-row { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 1.5; padding: 6px 0; }
+.mem-row + .mem-row { border-top: 1px dashed var(--line, #e8dccf); }
+.mem-label { font-weight: 600; flex: 0 0 auto; }
+.mem-sum { flex: 1; min-width: 0; color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mem-del { flex: 0 0 auto; border: none; background: none; color: var(--secondary); font-size: 12px; cursor: pointer; padding: 4px 8px; border-radius: 8px; min-height: 32px; font-family: var(--font-sans); }
+.mem-del:hover { color: var(--accent); }
+.mem-del[data-armed="1"] { color: #b8452f; font-weight: 600; }
+.mem-empty { font-size: 13px; color: var(--secondary); padding: 6px 0; }
+
 /* R3373 正缘画像卡（桃花结果内） */
 .sm-card { margin: 12px 0; border: 1px solid var(--line, #e8dccf);
   border-radius: 14px; overflow: hidden; background: var(--card, #fffdfa);
@@ -4072,6 +4308,68 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .sm-note { font-size: 11px; color: var(--secondary); margin: 10px 16px 12px;
   line-height: 1.5; }
 .sm-card .fav-btn { margin: 0 12px 12px; }
+/* R3457（探针实测）：sm/fd/gd 卡内分享钮吃 .fav-btn 基类的
+ * absolute;top:24px;right:24px——飞出卡外叠在卡上方按钮区
+ * （fdShare 实测盖住 shareGuardian 拦点击）。卡内钮回落静态流。 */
+.sm-card .fav-btn { position: static; }
+/* R3456：旺你的方位卡——复用 sm-card 壳，方位行居中大字。 */
+.fd-dir { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
+/* R3489：方位话题 chip 排——卡顶四枚切换（综合/求财/事业/桃花）。 */
+.fd-topics { display: flex; flex-wrap: wrap; gap: 6px;
+  justify-content: center; margin: 14px 12px 0; }
+.fd-topics .fav-btn { position: static; min-width: 0; margin: 0;
+  font-size: 12px; padding: 6px 12px; }
+.fd-tp.on { border-color: var(--accent); color: var(--accent-ink);
+  background: var(--accent-soft, rgba(255,143,171,.12)); }
+/* R3457：守护图腾卡——复用 sm-card 壳，灵兽行居中大字。 */
+.gd-beast { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
+/* R3461：守护水晶卡——复用 sm-card 壳，晶石行居中大字。 */
+.cr-gem { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
+/* R3490：灵魂角色卡——复用 sm-card 壳，角色行居中大字。 */
+.ic-fig { font-size: 19px; font-weight: 600; margin: 14px 8px 2px;
+  color: var(--primary-ink); }
+/* R3491：灵魂纹样卡——canvas 圆形徽章居中（深色底图自带盘色，
+ * 深/浅主题同一观感）。 */
+.em-cv { display: block; margin: 14px auto 4px; border-radius: 50%;
+  max-width: 240px; width: 60vw; height: auto; }
+/* R3492：灵魂原型小测——题卡/选项/进度/原型卡。 */
+.sq-pair { margin: 0 0 12px; }
+/* R3494：灵魂名片——汇总卡头与行距。 */
+.nc-head { font-size: 20px; font-weight: 700; margin: 12px 8px 4px;
+  color: var(--primary-ink); }
+.sq-intro { font-size: 13px; color: var(--muted);
+  margin: 6px 12px 12px; }
+.sq-peer { font-size: 13px; color: var(--accent-ink, #a15c74);
+  background: var(--accent-soft, rgba(255,143,171,.12));
+  border-radius: 10px; padding: 8px 12px; margin: 6px 12px 10px; }
+.sq-q { margin: 0 12px 12px; }
+.sq-q-t { font-size: 14px; font-weight: 600; color: var(--primary-ink);
+  margin-bottom: 6px; }
+.sq-opts { display: flex; flex-direction: column; gap: 6px; }
+.sq-opt { text-align: left; white-space: normal; line-height: 1.4;
+  padding: 9px 12px; }
+.sq-opt.on { border-color: var(--accent); color: var(--accent-ink);
+  background: var(--accent-soft, rgba(255,143,171,.12)); }
+.sq-progress { font-size: 12px; color: var(--muted);
+  text-align: center; margin: 4px 0 2px; }
+.sq-arch { font-size: 20px; font-weight: 700; margin: 12px 8px 4px;
+  text-align: center; color: var(--primary-ink); }
+.sq-arch small { font-size: 13px; font-weight: 400;
+  color: var(--muted); }
+.sq-compat { border-left: 3px solid var(--accent, #ff8fab);
+  padding-left: 8px; }
+/* R3462：灵魂色谱卡——色条即产品（各段 flex 占比=五行权重）。 */
+.sa-strip { display: flex; gap: 3px; height: 46px; margin: 14px 8px 6px;
+  border-radius: 12px; overflow: hidden; }
+.sa-seg { display: block; min-width: 18px; }
+/* R3462s：小惊喜折叠区——四枚喜用 chip 两列紧凑排。 */
+.sa-zone { display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: flex-end; margin: 4px 0 2px; }
+.sa-zone .fav-btn { position: static; min-width: 0; font-size: 12px;
+  padding: 8px 10px; white-space: nowrap; margin: 0; }
 
 /* R3381 默契挑战（view-mochi） */
 .mc-box { display: flex; flex-direction: column; gap: 12px; }
@@ -4080,13 +4378,21 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   margin: 2px 0 4px; }
 .mc-nick { width: 100%; box-sizing: border-box; padding: 9px 12px;
   border-radius: 12px; border: 1px solid var(--line, #e8dccf);
-  background: var(--card, #fffdfa); color: var(--text); font-size: 15px; }
+  /* R3432-P1-4（审）：裸 input 缺 type 吃不到全局 16px 规则——
+   * 15px 触发 iOS 聚焦整页缩放，直接抬字号根治。 */
+  background: var(--card, #fffdfa); color: var(--text); font-size: 16px; }
 .mc-link { width: 100%; box-sizing: border-box; padding: 9px 12px;
   border-radius: 12px; border: 1px dashed var(--line, #d8c6ad);
   background: var(--accent-soft, #fdf4e7); color: var(--text);
   font-size: 12.5px; word-break: break-all; }
 .mc-q { display: flex; flex-direction: column; gap: 7px; }
 .mc-q-t { font-size: 14px; font-weight: 600; color: var(--text); }
+/* R3436：出题单题「换一题」小钮——题行尾轻量入口，44px 触摸。 */
+.mc-reroll { float: right; border: none; background: none;
+  font-size: 11px; color: var(--secondary); cursor: pointer;
+  padding: 6px 2px 6px 10px; min-height: 32px;
+  font-family: var(--font-sans); }
+.mc-reroll:active { transform: scale(.94); color: var(--accent); }
 .mc-opts { display: flex; flex-wrap: wrap; gap: 7px; }
 /* R3401：答题选项是整页核心点按件——抬到 36px 触控线（与
  * .mc-pack/.hl-cal-btn 同口径），窄屏不再难点。 */
@@ -4152,12 +4458,47 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .mc-pack:active { transform: scale(.95); }
 .mc-pack.on { background: var(--primary, #b0764a); color: #fff;
   border-color: var(--primary, #b0764a); }
+/* R3445：照着写链接行——小号灰字+主题色链，留够触击面。 */
+.mc-tpl { font-size: 12.5px; color: var(--muted); margin: 6px 0 2px; }
+.mc-tpl a { display: inline-block; padding: 6px 4px; color: var(--accent);
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* R3446：聊天空态「她记得」一行——对齐 memo 行的轻量口径。 */
+.chat-memline { margin: 12px 0 0; font-size: 12.5px; color: var(--accent); }
+/* R3446：记忆卡顶「她注意到」一行。 */
+.mem-note { font-size: 12.5px; color: var(--accent); margin: 0 0 10px;
+  padding: 8px 10px; background: var(--accent-soft, #fdf1e4);
+  border-radius: 10px; }
 .mc-packtag { display: inline-block; margin-left: 6px; padding: 1px 8px;
   border-radius: 999px; font-size: 11px; font-weight: 600;
   background: var(--accent-soft, #fdf1e4);
   color: var(--primary-ink, #7a4f2b);
   border: 1px solid rgba(176, 118, 74, .25);
   vertical-align: middle; }
+/* R3427 自写题编辑器：题干行 + 选项行（radio 打勾=我的答案）。 */
+.mc-eq { margin: 12px 0; padding: 10px 12px; border: 1px dashed
+  var(--line, #e0d4c0); border-radius: 14px;
+  background: rgba(255,255,255,.5); }
+.mc-eq-t { width: 100%; padding: 9px 12px; border: 1px solid
+  var(--line, #e0d4c0); border-radius: 10px; font-size: 14px;
+  background: #fff; color: var(--text, #3e3428); box-sizing: border-box; }
+.mc-eopts { margin-top: 8px; display: flex; flex-direction: column;
+  gap: 7px; }
+.mc-eo { display: flex; align-items: center; gap: 10px;
+  /* R3432-P2-6（审）：正确答案标记只有 17px 小圈、有效命中带
+   * ~25px——行内留白全归 label（点击转发 radio），圈也放大。 */
+  padding: 4px 10px 4px 4px; border-radius: 10px; }
+.mc-eo input[type="radio"] { flex: 0 0 auto; width: 22px; height: 22px;
+  accent-color: var(--primary, #b0764a); }
+.mc-eo-t { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid
+  var(--line, #e0d4c0); border-radius: 9px; font-size: 13px;
+  background: #fff; color: var(--text, #3e3428); }
+.mc-eq-t:focus, .mc-eo-t:focus { outline: 2px solid
+  var(--primary, #b0764a); outline-offset: 0; border-color:
+  var(--primary, #b0764a); }
+html[data-theme="dark"] .mc-eq { background: rgba(43,37,41,.6);
+  border-color: var(--line); }
+html[data-theme="dark"] .mc-eq-t, html[data-theme="dark"] .mc-eo-t {
+  background: #221D20; color: var(--text); border-color: var(--line); }
 
 /* ============ R3388 每日一签 ============ */
 .qian-box { display: flex; flex-direction: column; gap: 12px; }
@@ -4176,6 +4517,11 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .qian-tube-s { font-size: 12px; color: var(--secondary); margin: 4px 0 14px; }
 .qian-draw { min-width: 168px; }
 .qian-note { font-size: 11.5px; color: var(--muted); margin: 10px 0 0; }
+/* R3861：签页窗前预告行（捣蛋/桃花/福签倒计时）。 */
+.qian-tease { margin: 0 0 12px; text-align: center; }
+/* R3866：塔罗页窗前预告（万圣/圣诞限定倒计时）。 */
+.tr-tease { margin: 0 0 10px; text-align: center;
+  font-size: 12px; color: var(--muted); }
 .qian-slip { background: var(--card, #fffdfa);
   border: 1px solid var(--line, #e0d4c0); border-radius: 16px;
   padding: 18px 16px 14px; }
@@ -4351,3 +4697,117 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 @media (max-width: 420px) {
   .ansb-answer { font-size: 20px; }
 }
+
+/* ── R3424 敲敲木鱼 ── */
+.muyu-box { display: flex; flex-direction: column; gap: 14px; }
+.muyu-stage { position: relative; text-align: center; padding: 18px 0 4px;
+  overflow: hidden; }
+.muyu-fish { appearance: none; background: none; border: 0; padding: 0;
+  cursor: pointer; border-radius: 50%;
+  transition: transform .08s ease-out;
+  -webkit-tap-highlight-color: transparent; }
+.muyu-fish img { width: min(200px, 58vw); height: auto; display: block;
+  border-radius: 50%; user-select: none; -webkit-user-select: none;
+  box-shadow: 0 10px 30px rgba(160,110,60,.28); }
+.muyu-fish:active { transform: scale(.94); }
+.muyu-fish.is-hit { animation: muyuHit .18s ease-out; }
+@keyframes muyuHit {
+  0% { transform: scale(.94); }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+.muyu-fish:focus-visible { outline: 3px solid var(--primary);
+  outline-offset: 4px; }
+.muyu-float { position: absolute; top: 22%; font-size: 20px;
+  font-weight: 700; color: var(--primary, #b0703c); pointer-events: none;
+  animation: muyuFloat .95s ease-out forwards;
+  text-shadow: 0 1px 0 rgba(255,250,240,.9); }
+@keyframes muyuFloat {
+  0% { transform: translateY(0) scale(.8); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-56px) scale(1.1); opacity: 0; }
+}
+.muyu-hint { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
+.muyu-stats { text-align: center; padding: 6px 0 2px; }
+.muyu-stat-big { font-size: 44px; font-weight: 700; line-height: 1.1;
+  color: var(--primary, #b0703c); font-variant-numeric: tabular-nums; }
+.muyu-stat-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.muyu-stat-row { display: flex; gap: 14px; justify-content: center;
+  font-size: 12.5px; color: var(--muted); margin-top: 10px;
+  flex-wrap: wrap; }
+.muyu-stat-row b { color: var(--text, #3e3428); font-weight: 600; }
+.muyu-global { text-align: center; font-size: 12px; color: var(--muted);
+  padding: 8px 12px; background: rgba(255,244,226,.6);
+  border: 1px dashed rgba(176,112,60,.35); border-radius: 999px;
+  align-self: center; }
+.muyu-acts { display: flex; gap: 10px; justify-content: center;
+  margin-top: 4px; flex-wrap: wrap; }
+.muyu-acts .ghost { min-height: 42px; }
+@media (prefers-reduced-motion: reduce) {
+  .muyu-fish.is-hit { animation: none; }
+  .muyu-float { animation: none; opacity: 0; }
+}
+@media (max-width: 420px) {
+  .muyu-stat-big { font-size: 38px; }
+}
+
+/* ── R3425 今日合拍指数卡（合婚页，已存 CP 日更分）── */
+.hh-daily { margin-top: 12px; padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255,240,244,.75), rgba(255,248,236,.75));
+  border: 1px solid rgba(214,140,150,.35); border-radius: 16px; }
+.hh-daily-head { display: flex; justify-content: space-between;
+  align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.hh-daily-title { font-size: 14px; font-weight: 600; color: var(--text, #3e3428); }
+.hh-daily-date { font-size: 11.5px; color: var(--muted); }
+.hh-daily-body { display: flex; align-items: center; gap: 14px; margin-top: 10px; }
+.hh-daily-score { font-size: 44px; font-weight: 700; line-height: 1;
+  color: #c2536b; font-variant-numeric: tabular-nums; }
+.hh-daily-unit { font-size: 13px; color: var(--muted); align-self: flex-end;
+  padding-bottom: 6px; }
+.hh-daily-text { flex: 1; min-width: 0; }
+.hh-daily-line { font-size: 13.5px; line-height: 1.55; color: var(--text, #3e3428); }
+.hh-daily-tag { margin-top: 4px; font-size: 12px; color: #c2536b; }
+.hh-daily-share { margin-top: 10px; min-height: 40px; }
+@media (max-width: 420px) { .hh-daily-score { font-size: 38px; } }
+/* R3432-P1-3（审）：深色下浅粉渐变压近白字，标题/判词洗白
+ * 不可读——改暗底令牌，字色沿用 --text/--muted 自动适配。 */
+html[data-theme="dark"] .hh-daily {
+  background: linear-gradient(135deg, rgba(64,46,56,.9), rgba(52,42,44,.9));
+  border-color: rgba(214,140,150,.28); }
+html[data-theme="dark"] .hh-daily-score,
+html[data-theme="dark"] .hh-daily-tag { color: #e08ba0; }
+
+/* ── R3426 深色补丁：答案之书奶白底族件 ──
+ * .ansb-* 底色是固定奶油渐变（晒图语境），深主题下 --text 变浅=
+ * 浅字写浅底全糊（用户实测「夜晚看不清」）。深档改 --card 深底
+ * 令牌，字色沿用 --text 自动适配。 */
+html[data-theme="dark"] .ansb-book {
+  background: linear-gradient(160deg, rgba(52,44,50,.92),
+    rgba(43,37,41,.85)); border-color: var(--line); }
+html[data-theme="dark"] .ansb-q { background: #221D20;
+  border-color: var(--line); color: var(--text); }
+html[data-theme="dark"] .ansb-card {
+  background: linear-gradient(165deg, rgba(55,46,52,.95),
+    rgba(45,38,43,.9)); border-color: var(--line); }
+html[data-theme="dark"] .ansb-answer { color: var(--text);
+  border-bottom-color: rgba(216,198,242,.3); }
+html[data-theme="dark"] .ansb-crisis {
+  background: linear-gradient(165deg, rgba(74,53,64,.9),
+    rgba(62,45,54,.85)); color: var(--text);
+  border-color: var(--line); }
+/* R3447：聊斋当值签条——万圣限定行下一行，暗紫调分得出又不吓人。 */
+.tr-liao-strip{display:inline-block; margin-bottom:10px;
+  padding:6px 14px; border-radius:14px; font-size:12.5px; line-height:1.6;
+  max-width:320px; background:linear-gradient(135deg,#f2ecfa,#e9e0f6);
+  border:1px solid rgba(124,92,180,.35); color:#5a4680;}
+html[data-theme="dark"] .tr-liao-strip{
+  background:linear-gradient(135deg,#2a2438,#332b44);
+  border-color:rgba(160,140,220,.3); color:#c4b4e8;}
+/* R3451 满月复盘小结卡：挂月相行内，衬底弱化。 */
+.moon-recap{margin-top:6px; font-size:12.5px; line-height:1.6;
+  color:var(--secondary); padding-left:2px;}
+
+/* R3762：信内年链——与信体同色系弱链 */
+.wl-yl{display:inline-block;margin-top:6px;color:#B98A3E;text-decoration:none;font-size:13px}
+.wl-yl:hover,.wl-yl:focus-visible{text-decoration:underline}
+[data-theme="dark"] .wl-yl{color:#D9B98A}

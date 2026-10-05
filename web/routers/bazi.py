@@ -48,6 +48,12 @@ def hehun(req: HehunRequest) -> dict:
     return services.hehun(req)
 
 
+@router.post("/api/hehun/daily")
+def hehun_daily(req: HehunRequest) -> dict:
+    """R3425 今日合拍指数：已存 CP 的日更留存钩（纯坐标确定性）。"""
+    return services.hehun_daily(req)
+
+
 @router.post("/api/qiming")
 def qiming(req: QimingRequest) -> dict:
     """五行起名：八字五行缺行 → 部首五行候选字。"""

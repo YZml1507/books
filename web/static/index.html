@@ -507,7 +507,7 @@ try {
     <!-- R3381（调研·裂变引擎）：默契挑战——我答 5 题出邀请链，
          朋友答题对分、可晒可回敬。全程走 URL hash，不上服务器。 -->
     <div class="func-card func-entry" data-view="mochi" role="button" tabindex="0" aria-label="默契挑战">
-      <img class="func-icon-img" loading="lazy" decoding="async" data-view="mochi" src="/static/cream/cream-icon-mochi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">默契挑战</div><div class="func-desc">答 5 题 · 闺蜜对象双题库</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="mochi" src="/static/cream/cream-icon-mochi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">默契挑战</div><div class="func-desc">答 5 题 · 闺蜜/对象/自写三题包</div>
     </div>
     <!-- R3388（调研·签小签验证链）：每日一签——观音灵签百签真本，
          同日同签 + 连下签暖心调节 + 晒签海报 + 近签回顾。 -->
@@ -518,6 +518,10 @@ try {
          一句答案+一句提示+一个小动作，轻仪式感裂变件。 -->
     <div class="func-card func-entry" data-view="ansb" role="button" tabindex="0" aria-label="答案之书">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="ansb" src="/static/cream/cream-icon-ansb.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">答案之书</div><div class="func-desc">默念问题 · 翻一页</div>
+    </div>
+    <!-- R3424：敲敲木鱼——解压敲击件（音画即时反馈+攒心安计数）。 -->
+    <div class="func-card func-entry" data-view="muyu" role="button" tabindex="0" aria-label="敲敲木鱼">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="muyu" src="/static/cream/cream-icon-muyu.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">敲敲木鱼</div><div class="func-desc">敲一下 · 烦心事轻一点</div>
     </div>
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
@@ -1027,6 +1031,13 @@ try {
       </div>
       <div id="orResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>心里其实有偏向的——筊杯只是帮你承认它。</div></div>
     </div>
+    <!-- R3492：灵魂原型小测——8 题轻问答出原型，不用生辰，
+         受邀者点开即玩（裂变漏斗顶端的低门槛件）。 -->
+    <div class="card" id="sqCard">
+      <h2><span aria-hidden="true">🧭</span> 灵魂原型小测 <span class="card-sub">8 题 · 不用生辰 · 喊 TA 也能玩</span></h2>
+      <div id="sqPanel"></div>
+      <div id="sqResult" style="margin-top:14px;"></div>
+    </div>
   </div>
 
   <!-- 塔罗 -->
@@ -1060,6 +1071,8 @@ try {
         <div class="pile-result" id="pileResult" hidden></div>
       </details>
 
+      <!-- R3866：窗前预告——限定开窗前 1-5 天挂行（JS 填句）。 -->
+      <div class="tr-tease" id="trTease" hidden></div>
       <div class="tr-quick" role="group" aria-label="快速抽牌">
         <button type="button" class="tr-quick-btn" id="trQ1">
           <b>🃏 抽一张</b><i>今日一句指引</i></button>
@@ -1071,6 +1084,10 @@ try {
              不敢问的事，限定条 + 预填问句。 -->
         <button type="button" class="tr-quick-btn tr-hfest" id="trQH" hidden>
           <b>🎃 万圣夜限定</b><i>问那件你一直不敢问的事</i></button>
+        <!-- R3435：圣诞心愿限定（12.20–12.25 JS 里解藏）——默念
+             心愿翻一张，限定条 + 预填问句。 -->
+        <button type="button" class="tr-quick-btn tr-xfest" id="trQX" hidden>
+          <b>🎄 圣诞心愿限定</b><i>默念心愿，翻一张看它会怎么来</i></button>
       </div>
       <div class="row" style="margin-top:10px;">
         <div class="field"><label for="tr_question">想问的事（可空）</label>
@@ -1197,6 +1214,8 @@ try {
       </details>
       <!-- R230z（R36-P1-2）：测过的 CP——存过的配对一键回填 -->
       <div id="hhFavRow" class="fav-row" hidden></div>
+      <!-- R3425：今日合拍指数——已存 CP 的日更留存钩（纯坐标日变分） -->
+      <div id="hhDailyBox" class="hh-daily" hidden></div>
       <!-- R3152：可空问句——「能结婚吗/为什么老吵架」让判词对着问的说 -->
       <div class="field" style="margin-top:10px;"><label for="hh_question">最想问的事（可空）</label>
         <input id="hh_question" type="text" maxlength="200" placeholder="比如：我们能结婚吗 / 为什么老吵架"></div>
@@ -1204,7 +1223,7 @@ try {
       <!-- R3160：TA 档案免测入口——想聊感情不用先跑合婚，纯本地写
            me:partner，小满聊天就能对上 TA 的盘。 -->
       <button id="hhSavePartner" type="button" class="ghost" style="margin-top:8px;"
-        title="只存在这台设备上，不提交、不测">先存下 TA 的生日（不测）</button>
+        title="只给你一个人看，不提交、不测">先存下 TA 的生日（不测）</button>
       <!-- R3247：明星合盘——挑个偶像把 TA 侧填成公开生日，走原有「合一下」
            链路出盘。生日全部来自公开资料（公历），时辰按未知处理。 -->
       <details class="pro-drawer" id="celebDrawer" style="margin-top:10px;">
@@ -1360,6 +1379,17 @@ try {
           <div class="acct-tip">备份会在这台设备退出页面时自动同步；换新设备登录同名账号点「从云端拉回」。</div>
         </div>
       </div>
+      <!-- R3441「小满记得」：本地数据面可视化——她能想起的东西全
+           摆在这台设备上给你看，每类都能单独让她忘掉。
+           账号/小锁/主题偏好归各自面板管，不走这张卡。 -->
+      <div class="mem-card" id="memoryCard">
+        <div class="acct-head">
+          <span aria-hidden="true">🧠</span> 小满记得的
+          <span class="acct-sub">都存在这台设备上，随时可以让她忘掉</span>
+        </div>
+        <div class="mem-body" id="memBody"></div>
+        <div class="acct-tip">账号口令、历史小锁、主题皮肤归各自的面板管；想一键全清，用上面「忘掉我的数据」。</div>
+      </div>
       <!-- R3200：类型筛选——记录多了按品类过一眼。只在有条目时出现。 -->
       <div id="historyFilter" class="ph-filter" hidden
            role="group" aria-label="按类型筛选记录"></div>
@@ -1375,7 +1405,7 @@ try {
        小链/深链 ?view=moodweek 进。 -->
   <div class="view" id="view-moodweek">
     <div class="card">
-      <h2><span aria-hidden="true">📒</span> 这周的你 <span class="card-sub">心情周记 · 只存在这台设备上</span></h2>
+      <h2><span aria-hidden="true">📒</span> 这周的你 <span class="card-sub">心情周记 · 只给你一个人看</span></h2>
       <div id="moodWeekBody" class="mw-body"></div>
       <div class="mw-actions">
         <button id="moodWeekShare" type="button" class="ghost">🖼️ 生成周记卡</button>
@@ -1388,7 +1418,7 @@ try {
        /深链 ?view=mantra 进，与 view-moodweek 同模式。 -->
   <div class="view" id="view-mantra">
     <div class="card">
-      <h2><span aria-hidden="true">📖</span> 我的咒语册 <span class="card-sub">收来的好句子 · 只存在这台设备上</span></h2>
+      <h2><span aria-hidden="true">📖</span> 我的咒语册 <span class="card-sub">收来的好句子 · 只给你一个人看</span></h2>
       <div id="mantraBookBody" class="mb-body"></div>
     </div>
   </div>
@@ -1414,6 +1444,15 @@ try {
     <div class="card">
       <h2><span aria-hidden="true">📖</span> 答案之书 <span class="card-sub">把犹豫放进这一页</span></h2>
       <div id="ansbBox" class="ansb-box"></div>
+    </div>
+  </div>
+
+  <!-- R3424：敲敲木鱼——木鱼/计数/共敲数全在 muyuBox 内由
+       _renderMuyu 画；敲击音效走 WebAudio（无音频资产）。 -->
+  <div class="view" id="view-muyu">
+    <div class="card">
+      <h2><span aria-hidden="true">🪵</span> 敲敲木鱼 <span class="card-sub">敲一下 · 烦心事轻一点</span></h2>
+      <div id="muyuBox" class="muyu-box"></div>
     </div>
   </div>
 

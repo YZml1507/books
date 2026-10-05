@@ -102,6 +102,31 @@ ACTION_TIMEOUT_MS = 4000   # 短超时：标签坏了会导致成片元素不可
 BUTTON_CASES = [
     # name,            view,      tab(data-rsec 值或 None), button,        result
     ("bazi",           "bazi",    None,            "#submit",        "#result"),
+    # R3462s：喜用四件收进「盘里小惊喜」折叠区——本案先点展开钮
+    # 放出 saZone（留开态惠及后续四案），result 取区内 chip 存在。
+    ("bazi.pickzone",   "bazi",   None,            "#saZoneToggle",    "#saZone .fav-btn"),
+    # R3456：旺你的方位——bazi 出卡后点 🧭 钮出方位卡。
+    ("bazi.fortunedir", "bazi",   None,            "#shareFortuneDir", "#fdCard .fd-card"),
+    # R3489：方位话题版——点「求财」chip 切到财位元素（.on 当前项
+    # + 卡面出「财」判词）。
+    ("bazi.fortunedir.topic", "bazi", None,        "#fdT_cai",        "#fdCard .fd-tp.on"),
+    ("bazi.fortunedir.topic.shi", "bazi", None,    "#fdT_shi",        "#fdCard .fd-tp.on"),
+    ("bazi.fortunedir.topic.tao", "bazi", None,    "#fdT_tao",        "#fdCard .fd-tp.on"),
+    ("bazi.fortunedir.topic.all", "bazi", None,    "#fdT_all",        "#fdCard .fd-tp.on"),
+    # R3457：守护图腾——bazi 出卡后点 🐉 钮出灵兽卡。
+    ("bazi.guardian",   "bazi",   None,            "#shareGuardian",   "#gdCard .gd-card"),
+    # R3461：守护水晶——bazi 出卡后点 🔮 钮出晶石卡。
+    ("bazi.crystal",    "bazi",   None,            "#shareCrystal",    "#crCard .cr-card"),
+    # R3462：灵魂色谱——bazi 出卡后点 🎨 钮出色谱卡。
+    ("bazi.soulart",    "bazi",   None,            "#shareSoulart",    "#saCard .sa-card"),
+    # R3490：灵魂角色——bazi 出卡后点 🎭 钮出角色卡。
+    ("bazi.soulicon",   "bazi",   None,            "#shareSoulicon",   "#icCard .ic-card"),
+    # R3491：灵魂纹样——bazi 出卡后点 🧿 钮出纹样卡（canvas 画家）。
+    ("bazi.soulemblem", "bazi",   None,            "#shareEmblem",     "#emCard .em-card"),
+    # R3494：灵魂名片——bazi 出卡后点 📇 钮出六件汇总卡。
+    ("bazi.namecard",   "bazi",   None,            "#shareNamecard",   "#ncCard .nc-card"),
+    # R3464：算命 prompt——点 📋 钮复制（clipboard 成败两路都出 toast）。
+    ("bazi.prompt",     "bazi",   None,            "#sharePrompt",     ".toast-item"),
     # R132a（B-018）：news.panel_removed 从按钮用例表移出，重钉为两层判据——
     # news.panel_removed（产品行为，离线可判）+ news.retired_marker
     # （外网内容，可达才断言）。见本文件 docstring 与下方专用块。
@@ -444,6 +469,71 @@ def main() -> int:
         # 模态，同 shareTaohua 族豁免；shareSoulmate 本身有真用例。
         "smShare": "正缘画像「晒出 TA 的画像」——downloadPoster 海报模态，"
                    "同 shareTaohua 族豁免",
+        # R3456：旺方分享钮——downloadPoster('fortune_dir') 海报模态，
+        # 同族豁免；shareFortuneDir 本身有真用例。
+        "fdShare": "旺你的方位「晒出我的旺方」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3457：守护兽分享钮——downloadPoster('guardian') 海报模态，
+        # 同族豁免；shareGuardian 本身有真用例。
+        "gdShare": "守护图腾「晒出我的守护兽」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3461：守护晶分享钮——downloadPoster('crystal') 海报模态，
+        # 同族豁免；shareCrystal 本身有真用例。
+        "crShare": "守护水晶「晒出我的守护晶」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3462：色谱分享钮——downloadPoster('soulart') 海报模态，
+        # 同族豁免；shareSoulart 本身有真用例。
+        "saShare": "灵魂色谱「晒出我的色谱」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3490：灵魂角色分享钮——downloadPoster('soulicon') 海报模态，
+        # 同族豁免；shareSoulicon 本身有真用例。
+        "icShare": "灵魂角色「晒出我的角色」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        # R3491：纹样卡两钮——downloadPoster('soulemblem') 海报模态 + /
+        # canvas 纹样原图合成下载，同 shareBazi/dailyWap 族豁免。
+        "emShare": "灵魂纹样「晒出我的纹样」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免",
+        "emWap": "灵魂纹样「纹样原图」——canvas 徽章合成+下载，"
+                 "同 dailyWap 族豁免",
+        # R3492：原型小测三钮——要先答完 8 题才渲染（单钮用例表
+        # 构不成答题前置），记豁免：sqShare=downloadPoster('soulquiz')
+        # 海报模态族；sqInvite=clipboard toast 族；sqAgain=纯前端重渲染。
+        "sqShare": "灵魂原型「晒出我的原型」——downloadPoster 海报模态，"
+                   "同 shareBazi 族豁免；且须先答完 8 题才出现",
+        "sqInvite": "灵魂原型「喊 TA 也来测」——clipboard+toast 族，"
+                    "须先答完 8 题才出现",
+        "sqAgain": "灵魂原型「再测一次」——清空选项纯前端重渲染，"
+                   "须先答完 8 题才出现",
+        # R3493：原型回传/对对碰钮——sqTell 须受邀链+答完 8 题；
+        # sqbCopy 须 sqb 双键链落地，clipboard+toast 族。
+        "sqTell": "灵魂原型「告诉 TA 我测出来是啥」——回传 sqb 链 "
+                  "clipboard+toast 族，须受邀链+答完 8 题才出现",
+        "sqbCopy": "原型对对碰「复制对对碰链接」——clipboard+toast 族，"
+                   "须 sqb 双键链落地才渲染",
+        # R3494：名片分享钮——downloadPoster('namecard') 海报模态，
+        # 同族豁免；shareNamecard 本身有真用例。
+        "ncShare": "灵魂名片「晒出我的名片」——downloadPoster 海报模态，"
+                   "同 icShare/emShare 族豁免",
+        # R3603：夸夸我钮——downloadPoster('hype') 海报模态，同族豁免。
+        "ncHype": "灵魂名片「夸夸我」——downloadPoster('hype') 海报模态，"
+                  "同 ncShare 族豁免",
+        # R3611：本月月历 overlay——createElement 挂委托的非表单
+        # 容器（关→fetch 渲染→格点 toast），真机链路 Playwright
+        # 手验（31 格/4 节点/hidden 显隐）。
+        "moonCalOv": "本月月历 overlay 容器——懒建 DOM+fetch 渲染的"
+                     "条件件，真实链路已 Playwright 手验",
+        # R3479：色谱锁屏壁纸钮——canvas 合成 + 下载/海报模态，
+        # 同 dailyWap 族豁免（生成链路一致）。
+        "saWap": "灵魂色谱「做我的锁屏」——canvas 星云壁纸合成+下载，"
+                 "同 dailyWap 族豁免",
+        # R3486：图腾锁屏壁纸钮——烘焙底图+canvas 合成下载，
+        # 同 dailyWap 族豁免。
+        "gdWap": "守护图腾「做我的锁屏」——烘焙底图+canvas 合成下载，"
+                 "同 dailyWap 族豁免",
+        # R3481：明日穿搭分享钮——downloadPoster('daily-outfit') 海报
+        # 模态（明日 payload 变体），同 outfitShare 族豁免。
+        "dailyTomorrowShare": "明日穿搭「晒明天的穿搭」——downloadPoster "
+                              "('daily-outfit') 海报模态，同 outfitShare 族豁免",
         # R3379：周记信晒图钮——downloadPoster('weekletter') 海报模态
         # 同族豁免；信卡本身是「本周首访+门槛」条件件，
         # 真机链路在特性批 Playwright 手验（渲染+下载零错）。
@@ -490,8 +580,10 @@ def main() -> int:
         # R2344（R60-P2）：裸绑定补登记
         "dailyRecall": "点击=data-hlask-q 文档级委托，链路同 deeplink/"
                        "问一嘴用例",
-        "dailyCard": "卡片本体无独立点击动作（scrollIntoView 场景），"
-                     "封面/打卡/预告均各有用例",
+        "dailyCard": "卡片本体：scrollIntoView 场景 + R3826 签窗宣"
+                     "委托（.qw-nav click/keydown→showView('qian')"
+                     "导航链路已由 deep.* 用例覆盖；与 dailyPersonal"
+                     " dq-line 同型豁免",
         "birthDrawer": "details 原生开合；ui:birth.submit 已展开并提交",
         "chatEmpty": "容器内的 .chat-chip 走 data-ask 委托→chatSend，"
                      "发送链路已由 crisis_fe/drawer 用例覆盖",
@@ -507,6 +599,9 @@ def main() -> int:
         "signPeekBtn": "解签展开钮——生成在日卡 meta 行内，toggle 本地"
                        " signCard hidden，零请求零副作用",
         "tarotPeekBtn": "同上模式：今日牌牌意展开钮",
+        # R3426：今日牌缩略图改可点钮——与 tarotPeekBtn 同链同 toggle，
+        # 点图=点「牌意」，本地开关零请求。
+        "dcThumbBtn": "同上模式：今日牌缩略图点开大图（同 tarotPeekBtn 链）",
         "xzmSubmit": "星座速配——API 层已由 selftest xzmatch/xzmatch.hard/"
                      "xzmatch.bad 三用例钉死，冒烟只到抽屉可见",
         "dailyWeekGo": "周条提示钮——仅周日/周一生成的动态钮，"
@@ -559,12 +654,17 @@ def main() -> int:
         # 生成+仅农历初一/十五窗口有按钮的容器委托（.daily-moon-go
         # 子钮做 .ck-wish open + scrollIntoView），零请求；与
         # mercBreathe 同型豁免。
-        "dailyMoon": "月相行许愿瓶钩——动态粒内委托（农历初一十五窗口"
-                     "才有 .daily-moon-go），纯本地 open+scroll 零请求；"
+        "dailyMoon": "月相行许愿瓶钩+满月复盘卡——动态粒内委托"
+                     "（仅新月/满月 action 日有 .daily-moon-go），"
+                     "纯本地 open+scroll+recap 零请求；"
                      "与 mercBreathe 同型豁免",
         # R3368：万圣夜限定抽牌钮——仅 10.29–11.1 窗口显示（其余
         # 日期 hidden 不可点）；抽牌链路与 trQ1 同构已覆盖。
         "trQH": "万圣夜限定钮——仅 10.29–11.1 窗口显示，冒烟时段外"
+                "恒 hidden；抽牌链路与 trQ1 同构已覆盖",
+        # R3435：圣诞心愿限定抽牌钮——仅 12.20–12.25 窗口显示；
+        # 抽牌链路与 trQ1 同构已覆盖。
+        "trQX": "圣诞心愿限定钮——仅 12.20–12.25 窗口显示，冒烟时段外"
                 "恒 hidden；抽牌链路与 trQ1 同构已覆盖",
         # R3407：跨年仪式行钩——dailyYearEnd 粒是动态生成+仅
         # 12/29–1/2 窗口有按钮的容器委托（.daily-moon-go 子钮
@@ -573,6 +673,13 @@ def main() -> int:
         "dailyYearEnd": "跨年仪式行钩——动态粒内委托（12/29–1/2 "
                         "窗口才有 .daily-moon-go），纯本地开"
                         "flModal 弹层零请求；与 dailyMoon 同型豁免",
+        # R3746：今日古话「抄走」——dailyPersonal 粒容器委托监听
+        # .dq-line 子行 click/keydown→clipboard.writeText+toast，
+        # 零请求；与 moodRow 同型豁免。真实链路已手验
+        #（点行→toast/长按回退两态）。
+        "dailyPersonal": "古话抄走容器委托——.dq-line 子行"
+                         "click/keydown→clipboard+toast 零请求；"
+                         "与 moodRow 同型豁免；手验已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",
@@ -1824,6 +1931,49 @@ def main() -> int:
             if errors:
                 results[-1]["detail"] += " | " + "; ".join(errors[:3])
 
+            # R3424：敲敲木鱼——连敲 3 下，今日计数/攒数应声走，
+            # 浮字与视图/备份键落地同验。
+            errors.clear()
+            try:
+                goto_view('muyu')
+                page.wait_for_selector('#muyuBox .muyu-fish', timeout=5000)
+                for _i in range(3):
+                    page.click('#muyuBox .muyu-fish')
+                    page.wait_for_timeout(120)
+                _big = page.evaluate(
+                    "(document.querySelector('#muyuStats .muyu-stat-big')"
+                    "||{}).innerText||''")
+                _row = page.evaluate(
+                    "(document.querySelector('#muyuStats .muyu-stat-row')"
+                    "||{}).innerText||''")
+                _k = page.evaluate(
+                    "Object.keys(localStorage).filter("
+                    "k => k.startsWith('muyu:')).length")
+                _share = page.evaluate(
+                    "!!document.querySelector('[data-muyu=\"share\"]')")
+                ok = (_big.strip() == '3' and '攒' in _row and _k >= 3
+                      and _share and not errors)
+                results.append({
+                    "name": "ui:muyu.knock",
+                    "ok": ok,
+                    "detail": ("今日=%s 行=%s 键=%d 晒钮=%s"
+                               % (_big, _row[:16], _k, _share))})
+            except Exception as exc:
+                results.append({"name": "ui:muyu.knock", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+            finally:
+                try:
+                    page.click('#viewBack')
+                    page.wait_for_timeout(300)
+                except Exception:
+                    pass
+                page.evaluate(
+                    "() => { const sb = document.getElementById('recentSidebar');"
+                    " if (sb) sb.classList.remove('collapsed'); }")
+                page.wait_for_timeout(200)
+            if errors:
+                results[-1]["detail"] += " | " + "; ".join(errors[:3])
+
             # 聊天抽屉真开合：recentToggle 打开 → recentClose 收起
             try:
                 page.click('#recentToggle')
@@ -2466,6 +2616,33 @@ def main() -> int:
                     # 容器留着占位文案，旧判据「非空+非…中」会蒙混过关。
                     _pre_empty = bool(page.query_selector(
                         f"{res} .ph-empty"))
+                    # R3680：黄历等结果渲染分支本身会产出 .ph-empty
+                    # （「今天没什么特别适宜的」）——只数元素/对文案在
+                    # 空宜/忌日都误报（前案同日期渲染，新旧文案相同）。
+                    # 给现存占位元素打标，handler 重渲出来的新元素
+                    # 不带标——判的是「旧元素幸存」而非「类名/文案幸存」。
+                    if _pre_empty:
+                        page.eval_on_selector_all(
+                            f"{res} .ph-empty",
+                            "els => els.forEach(e => e.dataset.probePre='1')")
+                    # R3457：前案卡片 scrollIntoView({behavior:'smooth'})
+                    # 还在播时，本案按钮 bounding box 每帧都在变——
+                    # playwright 判 not-stable 超时（真人点没这毛病）。
+                    # 点击前等 scrollY 连续 3×120ms 不动（静止页即刻返回）。
+                    page.evaluate(
+                        """() => new Promise(res => {
+                            let y = window.scrollY, n = 0;
+                            const t = setInterval(() => {
+                                if (window.scrollY === y) {
+                                    if (++n >= 3) {
+                                        clearInterval(t); res(1);
+                                    }
+                                } else { n = 0; y = window.scrollY; }
+                            }, 120);
+                            setTimeout(() => {
+                                clearInterval(t); res(0);
+                            }, 6000);
+                        })""")
                     page.click(target_sel)
                     # 等结果容器出现"非占位"内容。
                     # 早退判据（否则每个坏按钮都要白等满预算，整轮跑不完）：
@@ -2481,7 +2658,7 @@ def main() -> int:
                         if waited >= 2.5 and not api_calls and errors:
                             break
                     _post_empty = bool(page.query_selector(
-                        f"{res} .ph-empty"))
+                        f"{res} .ph-empty[data-probe-pre='1']"))
                     # 失败文案只认 .no-evidence 元素内的文字（见 FAILURE_RE 注释）
                     no_ev = " ".join(
                         page.eval_on_selector_all(
