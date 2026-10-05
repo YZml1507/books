@@ -4809,7 +4809,8 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
             except Exception:
                 pass
         if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天",
-                                 "还有几天", "还有多少天")):
+                                 "还有几天", "还有多少天",
+                                 "星期几", "周几", "什么日子")):
             try:
                 from guji.bazi import TERM_LONGITUDE, term_time
                 # 问「什么时候」语境无歧义（清明这类双节也按节气答日
@@ -4875,6 +4876,16 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                                         break
                                 if _nd is not None:
                                     break
+                # R4101：节日/节气名都没命中时，「星期几/周几/几号/什么
+                # 日子」要的是日期本身——按日偏移链的 _dd/_pfx 回声。
+                # （「生日几号」留给 profile_facts 的生日倒数答，别抢话。）
+                if _nd is None and "生日" not in _n and any(
+                        k in _n for k in
+                        ("星期几", "周几", "几号", "什么日子")):
+                    _wdn2 = "一二三四五六日"
+                    out.append(
+                        f"{_pfx}：{_dd.month}月{_dd.day}日 "
+                        f"星期{_wdn2[_dd.weekday()]}")
                 if _nd is not None:
                     _dl3 = (_nd - _d).days
                     out.append(
