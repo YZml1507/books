@@ -5933,6 +5933,64 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         break
             except Exception:
                 pass
+        # R4301：闰月/双春年民俗问——「今年闰几月/有闰月吗」
+        #「双春年/无春年/寡妇年」全真值（农历年口径）。
+        if any(k in _n for k in ("闰几月", "有闰月", "闰月",
+                                 "双春年", "无春年", "寡妇年",
+                                 "盲年", "两个立春", "双立春")):
+            try:
+                from guji.bazi import term_time
+                _ym9b = re.search(r"(20\d\d)年", _n)
+                _yq9b = int(_ym9b.group(1)) if _ym9b else (
+                    _d.year + 1 if "明年" in _n else
+                    _d.year + 2 if "后年" in _n else
+                    _d.year - 1 if "去年" in _n else
+                    _d.year - 2 if "前年" in _n else _d.year)
+                _ly9b = lunar.solar_to_lunar(_yq9b, 7, 1)["year"]
+                _gy9b = lunar.solar_to_lunar(
+                    _yq9b, 7, 1).get("ganzhi_year", "")
+                _cny9 = lunar.lunar_to_solar(_ly9b, 1, 1)
+                _cny9e = lunar.lunar_to_solar(_ly9b + 1, 1, 1)
+                _tag9b = "今年" if _yq9b == _d.year else (
+                    "明年" if _yq9b == _d.year + 1 else
+                    "后年" if _yq9b == _d.year + 2 else
+                    "去年" if _yq9b == _d.year - 1 else f"{_yq9b}年")
+                # 闰月：显式 20XX 年才由本块答——今年/明年/后年
+                # 归 R4262（含「闰正月/闰腊月」点名扫描）。
+                if (_ym9b or "去年" in _n or "前年" in _n) and any(
+                        k in _n for k in ("闰几月", "有闰月", "闰月")):
+                    _lm9b = lunar.leap_month(_ly9b)
+                    if _lm9b:
+                        _ls9 = lunar.lunar_to_solar(
+                            _ly9b, _lm9b, 1, True)
+                        _le9 = _ls9 + timedelta(
+                            days=lunar.leap_days(_ly9b) - 1)
+                        out.append(
+                            f"{_tag9b}（{_gy9b}年）：闰"
+                            f"{lunar.MONTH_CN[_lm9b - 1]}月，"
+                            f"{_ls9.month}月{_ls9.day}日到"
+                            f"{_le9.month}月{_le9.day}日")
+                    else:
+                        out.append(
+                            f"{_tag9b}（{_gy9b}年）：没有闰月")
+                elif any(k in _n for k in (
+                        "双春年", "无春年", "寡妇年",
+                        "盲年", "两个立春", "双立春")):
+                    if "是什么意思" in _n or "什么是" in _n:
+                        out.append(
+                            "无春年：整个农历年里没有立春的年份，"
+                            "老辈叫寡年/盲年——只是历法巧合，照常过日子")
+                    # 双春/无春：本农历年[初一, 次年初一) 内的立春数。
+                    _spr9 = sum(
+                        1 for _ys9 in (_cny9.year, _cny9e.year)
+                        if _cny9 <= (term_time(_ys9, "立春")
+                                     + timedelta(hours=8)).date() < _cny9e)
+                    _lb9b = {2: "双春年（年内两个立春）",
+                             1: "单春年（年内一个立春）",
+                             0: "无春年（年内没有立春，也叫寡年）"}[_spr9]
+                    out.append(f"{_tag9b}（{_gy9b}年）：{_lb9b}")
+            except Exception:
+                pass
         # R4261：本命年/犯太岁个人判定——流年支 × 生年支真算
         #（同支本命年、六冲冲太岁、刑/害/破犯太岁，口径与
         # bazi_calc 流年K线同一套表），不犯就直说还给下个本命年。
@@ -5984,8 +6042,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
-        if "闰月" in _n or "闰几" in _n or any(
-                k in _n for k in ("闰正", "闰腊", "闰十二")):
+        if ("闰月" in _n or "闰几" in _n or any(
+                k in _n for k in ("闰正", "闰腊", "闰十二"))) \
+                and not re.search(r"(20\d\d|去|前)年", _n):
             try:
                 _lm9 = lunar.leap_month(_dd.year)
                 _MN9 = ["", "正", "二", "三", "四", "五", "六", "七",
