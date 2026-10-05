@@ -1118,6 +1118,8 @@ function _posterHookForView(view, j) {
     if (_qt === '万圣捣蛋签') return '我抽了支万圣捣蛋签，你的呢？';
     /* R3672：桃花签窗内点名——话题件同捣蛋签口径。 */
     if (_qt === '桃花签') return '我抽了支桃花签，你的呢？';
+    /* R3692：福签窗内点名——话题件同捣蛋/桃花口径。 */
+    if (_qt === '新春福签') return '我抽了支新春福签，你的呢？';
     return '今天你的签是什么？';
   }
   if (view === 'ansb') return '心里有个问题？来翻一页';
@@ -2329,6 +2331,8 @@ function buildShareData(view, j) {
       /* R3672：桃花签海报右上🌸徽——与捣蛋签同口径。 */
       if (_pStr(_qn.topic) === '万圣捣蛋签') _qs.badge = '🎃';
       else if (_pStr(_qn.topic) === '桃花签') _qs.badge = '🌸';
+      /* R3692：福签海报右上🧧徽——与捣蛋/桃花同口径。 */
+      else if (_pStr(_qn.topic) === '新春福签') _qs.badge = '🧧';
       _qs.big = '第' + (_pStr(_qn.n) || '?') + '签 · ' +
                 (_pStr(_qn.luck) || '');
       var _qpoem = _pArr(_qn.poem);
