@@ -5265,7 +5265,12 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                              if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
                             None)
                         if _m9:
-                            _uz9 = _SX9[(int(_m9.group(1)) - 4) % 12]
+                            _lz9u = lunar.solar_to_lunar(
+                                int(_m9.group(1)), int(_m9.group(2)),
+                                int(_m9.group(3)))
+                            _uz9 = _SX9[
+                                "子丑寅卯辰巳午未申酉戌亥".index(
+                                    _lz9u.get("ganzhi_year", "  ")[1])]
                             _czh9 = (_hl9.get("chongsha") or {}).get(
                                 "chong", "")
                             _dz9c = (huangli_mod.day_ganzhi(datetime(
@@ -5550,6 +5555,135 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             if _gap9 else f"；{_ask9}时马上")
                 out.append(
                     f"现在：{_sh9}时（{_sw9}）{_vd9}")
+            except Exception:
+                pass
+        # R4261：本命年/犯太岁个人判定——流年支 × 生年支真算
+        #（同支本命年、六冲冲太岁、刑/害/破犯太岁，口径与
+        # bazi_calc 流年K线同一套表），不犯就直说还给下个本命年。
+        if any(k in _n for k in ("本命年", "犯太岁", "冲太岁", "太岁",
+                                 "流年")):
+            try:
+                _m9 = next(
+                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                     for _fp in facts or []
+                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                    None)
+                _yb9 = (bazi_compute(_dd.year, _dd.month, _dd.day, 12,
+                                     "男").year or "  ")
+                _yz9 = _yb9[1]
+                _SX9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                _ygan9 = _yb9[0]
+                out.append(
+                    f"今年流年：{_yb9}年（{_SX9['子丑寅卯辰巳午未申酉戌亥'.index(_yz9)]}年）")
+                if _m9:
+                    _lz9 = lunar.solar_to_lunar(
+                        int(_m9.group(1)), int(_m9.group(2)),
+                        int(_m9.group(3)))
+                    _uzhi9 = _lz9.get("ganzhi_year", "  ")[1]
+                    _uan9 = _SX9[
+                        "子丑寅卯辰巳午未申酉戌亥".index(_uzhi9)]
+                    if _uzhi9 == _yz9:
+                        out.append(
+                            f"对你：属{_uan9}——今年就是你的本命年，"
+                            "红绳系好")
+                    elif CHONG.get(_yz9) == _uzhi9:
+                        out.append(
+                            f"对你：属{_uan9}——今年冲太岁，求稳别硬闯")
+                    elif ((_yz9, _uzhi9) in XING
+                          or (_uzhi9, _yz9) in XING
+                          or XIANG_HAI.get(_yz9) == _uzhi9
+                          or XIANG_PO.get(_yz9) == _uzhi9):
+                        out.append(
+                            f"对你：属{_uan9}——今年犯太岁，宜守不宜冲")
+                    else:
+                        _ui9 = "子丑寅卯辰巳午未申酉戌亥".index(_uzhi9)
+                        _nxb9 = _dd.year + 1
+                        while (_nxb9 - 4) % 12 != _ui9:
+                            _nxb9 += 1
+                        out.append(
+                            f"对你：属{_uan9}——今年不犯太岁；"
+                            f"你的本命年是{_nxb9}年")
+            except Exception:
+                pass
+        # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值。
+        if "闰月" in _n:
+            try:
+                _lm9 = lunar.leap_month(_dd.year)
+                _MN9 = ["", "正", "二", "三", "四", "五", "六", "七",
+                        "八", "九", "十", "冬", "腊"]
+                if _lm9:
+                    out.append(
+                        f"今年闰月：闰{_MN9[_lm9]}月")
+                else:
+                    _ly9 = _dd.year + 1
+                    while _ly9 <= _dd.year + 5 \
+                            and not lunar.leap_month(_ly9):
+                        _ly9 += 1
+                    _lmn9 = lunar.leap_month(_ly9)
+                    out.append(
+                        f"今年闰月：没有（{_ly9}年"
+                        + (f"闰{_MN9[_lmn9]}月" if _lmn9 else "也没有")
+                        + "）")
+            except Exception:
+                pass
+        # R4263：「看黄历/黄历说今天」一句总览——坐标五连打包，
+        # 与黄历卡同一份单日数据。
+        if any(k in _n for k in ("看黄历", "翻黄历", "老黄历", "黄历说",
+                                 "今天黄历", "黄历上")):
+            try:
+                _hl9 = huangli(_dd.isoformat())
+                _cs9 = _hl9.get("chongsha") or {}
+                _yi9 = "、".join((_hl9.get("yi") or [])[:4]) or "—"
+                _ji9 = "、".join((_hl9.get("ji") or [])[:4]) or "—"
+                out.append(
+                    f"{_pfx}黄历：值神{_hl9.get('zhishen') or '—'}"
+                    f"（{'黑道日' if _hl9.get('zhishen_ji') else '黄道日'}），"
+                    f"冲{(_cs9.get('chong_animal') or '—')}，"
+                    f"宜{ _yi9}｜忌{_ji9}")
+            except Exception:
+                pass
+        # R4264：诞生石/生日花/本命佛静态域——存了生日就有真值
+        #（月→石/花、生肖→本命佛，均为通行口径）。
+        if any(k in _n for k in ("诞生石", "生日石", "生日花", "本命佛",
+                                 "守护佛", "生辰石", "月份花")):
+            try:
+                _m9 = next(
+                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                     for _fp in facts or []
+                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                    None)
+                if _m9:
+                    _y9, _mo9, _dy9 = (int(_m9.group(1)),
+                                       int(_m9.group(2)),
+                                       int(_m9.group(3)))
+                    _ST9 = ["", "石榴石", "紫水晶", "海蓝宝", "钻石",
+                            "祖母绿", "珍珠", "红宝石", "橄榄石",
+                            "蓝宝石", "碧玺", "黄水晶", "绿松石"]
+                    _FL9 = ["", "康乃馨", "紫罗兰", "水仙", "雏菊",
+                            "铃兰", "玫瑰", "飞燕草", "剑兰",
+                            "紫菀", "万寿菊", "菊花", "冬青"]
+                    _BF9 = {"鼠": "千手观音", "牛": "虚空藏菩萨",
+                            "虎": "虚空藏菩萨", "兔": "文殊菩萨",
+                            "龙": "普贤菩萨", "蛇": "普贤菩萨",
+                            "马": "大势至菩萨", "羊": "大日如来",
+                            "猴": "大日如来", "鸡": "不动尊菩萨",
+                            "狗": "阿弥陀佛", "猪": "阿弥陀佛"}
+                    if any(k in _n for k in ("诞生石", "生日石", "生辰石")):
+                        out.append(
+                            f"你的诞生石：{_ST9[_mo9]}"
+                            f"（{_mo9}月）")
+                    if "生日花" in _n or "月份花" in _n:
+                        out.append(
+                            f"你的生日花：{_FL9[_mo9]}"
+                            f"（{_mo9}月）")
+                    if any(k in _n for k in ("本命佛", "守护佛")):
+                        _lz9b = lunar.solar_to_lunar(_y9, _mo9, _dy9)
+                        _zz9b = _lz9b.get("ganzhi_year", "  ")[1]
+                        _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
+                            "子丑寅卯辰巳午未申酉戌亥".index(_zz9b)]
+                        out.append(
+                            f"你的本命佛：{_BF9[_sx9]}"
+                            f"（属{_sx9}）")
             except Exception:
                 pass
         # R4231：「做什么好/吃点什么/有什么建议」——日课白话行
@@ -5986,8 +6120,13 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                 out.append(f"{_who}的太阳星座：{sign}")
             # R4246：生肖+生日星期+周岁同档——「我属什么/我多大/
             # 我生日星期几」都是手里现算的真值，不再靠模型脑补。
+            # R4261b：生肖按农历年（春节界）——公历 1-2 月生人
+            # 用 (y-4)%12 会错一个属相（如 1988-01-20 是兔不是龙）。
             try:
-                _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[(y - 4) % 12]
+                _lz9 = lunar.solar_to_lunar(y, mo, d)
+                _zz9 = _lz9.get("ganzhi_year", "  ")[1]
+                _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
+                    "子丑寅卯辰巳午未申酉戌亥".index(_zz9)]
                 out.append(f"{_who}的生肖：属{_sx9}")
                 _bd9 = date(y, mo, d)
                 out.append(
