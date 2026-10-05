@@ -723,6 +723,13 @@ html[data-theme="dark"] .ansb-hq{color:#7F6C57;}
 html[data-theme="dark"] .dm-intro p,
 html[data-theme="dark"] .dm-sym-worry{color:#5A4A6E;}
 html[data-theme="dark"] .ansb-rk{color:#8A5FB8;}
+/* R4444：toast-error 浅粉底在深档叠 --text 浅字=看不见——
+ * 与 toast-warn 同补深底。 */
+html[data-theme="dark"] .toast-error{background:#3A2E2B;}
+/* R4444b：#journalInput 是 ID 选择器 background:#fff——压过
+ * 通用 input 深档规则，聊天小记输入框白底浅字。 */
+html[data-theme="dark"] #journalInput{background:#352E33;
+  color:var(--text); border-color:#4E4348;}
 /* R3264（R40）：久归深拥横幅 */
 .return-banner{display:flex; align-items:center; justify-content:center;
   gap:10px; padding:10px 16px; background:var(--card); color:var(--text);

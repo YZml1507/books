@@ -21504,3 +21504,5 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R4440 捣蛋签 T-13 天终核：10/24「明天开」→10/25「今天开张」→10/31「明天截止」→11/1「今晚截止」+11/6 桃花签接力全链真值。
 - R4441（直报双修）：①敲木鱼「今天全铺子的姐妹一起敲了 N 下」——`.muyu-global` 浅奶油胶囊 `rgba(255,244,226,.6)` 叠深底成中灰底，`--muted` 文字对比 ~1.2:1 看不清；补 `html[data-theme="dark"] .muyu-global` 深底浅字虚线。②「装到桌面」点了没反应——Chrome `deferredPrompt.prompt()` 只能弹一次，弹完被关后再点静默无响应（早期 return 挡掉 toast）；改为调完即置空 `deferredInstall=null`，二次点击落到手动指引，且指引从一闪而过的 toast 换成常驻可关的 `.install-howto` 步骤小卡贴在钮下。
 - R4442（深档补丁二批，同直报类）：纸面族组件浅底保留但文字变量反白——`.ansb-q/.ansb-answer/.ansb-ha/.ansb-crisis` 的 `var(--text,#3e3428)` 在深档=#F0E7DC 浅字叠浅纸=看不见，锁 #3E3428；`.ansb-book-s/.ansb-note/.ansb-bookmark/.ansb-htitle/.ansb-hd/.ansb-hq` 的 `--muted` 锁纸面灰 #7F6C57；`.dm-intro p/.dm-sym-worry` 的 `--primary-ink` 锁暗紫 #5A4A6E；`.ansb-rk` 锁 #8A5FB8。烟测 126 例全绿。
+- R4443：`.install-howto-x` 关闭钮 32→var(--tap) 44px 触控下限。
+- R4444/R4444b：深档补丁三批——`.toast-error` 浅粉底补 #3A2E2B（错误 toast 是主错误通道，深档白字浅底=不可读）；`#journalInput` ID 白底压过通用 input 深档规则，锁深底浅字。
