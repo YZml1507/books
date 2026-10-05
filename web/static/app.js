@@ -6547,7 +6547,15 @@ async function loadDaily() {
       try {
         var _dq = _dayPick(_DAY_QUOTES, 'dq');
         if (_dq) {
-          _pc2.push('<span class="e-week-low">📜 今日古话：' +
+          /* R3706：今天心情记了「有点累」——古话行换「挑给今天的
+           * 你」口吻（同一句，多个被看见的由头；别的不变）。 */
+          var _dqForYou = '今日古话：';
+          try {
+            _dqForYou =
+              (localStorage.getItem('mood:' + todayIso()) === '0')
+                ? '挑给今天的你：' : '今日古话：';
+          } catch (eM) {}
+          _pc2.push('<span class="e-week-low">📜 ' + _dqForYou +
             '「' + esc(_dq.t) + '」（' + esc(_dq.s) + '）' +
             '——' + esc(_dq.g) + '</span>');
         }
