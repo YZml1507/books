@@ -14408,6 +14408,39 @@ function initViews() {
   };
   if (document.readyState === 'complete') { _qfBadge(); }
   else { window.addEventListener('load', _qfBadge); }
+  /* R3901：塔罗功能卡徽——与签卡徽同套，万圣夜/圣诞心愿限定
+   * 开窗前 1-5 天倒计时+窗内「开着」三态（load 后判避 defer-var）。 */
+  var _tfBadge = function () {
+    try {
+      var _td0 = document.querySelector(
+        '.func-card[data-view="tarot"] .func-desc');
+      if (!_td0) return;
+      var _tf0 = '';
+      try {
+        var _n7 = new Date();
+        var _d7 = new Date(_n7.getFullYear(), _n7.getMonth(),
+                           _n7.getDate());
+        var _hd4 = Math.round(
+          (new Date(_d7.getFullYear(), 9, 29) - _d7) / 86400000);
+        var _xd2 = Math.round(
+          (new Date(_d7.getFullYear(), 11, 20) - _d7) / 86400000);
+        if ((_d7.getMonth() === 9 && _d7.getDate() >= 29) ||
+            (_d7.getMonth() === 10 && _d7.getDate() <= 1)) {
+          _tf0 = '🎃 万圣夜限定开着';
+        } else if (_d7.getMonth() === 11 && _d7.getDate() >= 20 &&
+                   _d7.getDate() <= 25) {
+          _tf0 = '🎄 圣诞心愿限定开着';
+        } else if (_hd4 >= 1 && _hd4 <= 5) {
+          _tf0 = '🎃 万圣夜限定 ' + _hd4 + ' 天后开';
+        } else if (_xd2 >= 1 && _xd2 <= 5) {
+          _tf0 = '🎄 圣诞心愿限定 ' + _xd2 + ' 天后开';
+        }
+      } catch (eT0) {}
+      if (_tf0) _td0.textContent = '塔罗占卜 · ' + _tf0;
+    } catch (eTF) {}
+  };
+  if (document.readyState === 'complete') { _tfBadge(); }
+  else { window.addEventListener('load', _tfBadge); }
   /* R3249g（UX-AUDIT B4）：场景快捷条——「心里有事」开聊天并替
    * 她写好第一句；其余直达对应功能视图。 */
   document.querySelectorAll('.scene-chip').forEach(function (chip) {
