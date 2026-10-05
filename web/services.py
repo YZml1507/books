@@ -5382,6 +5382,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # 吉时走黄历小时辰吉凶表。
         if any(k in _n for k in ("日子怎么样", "什么日子", "吉日", "大吉",
                                  "凶日", "日子好不", "日子如何", "什么档",
+                                 "吉利", "吉不", "利不利",
                                  "幸运数字", "幸运数", "财神方位",
                                  "财神在哪", "财神向哪", "吉时", "好时辰",
                                  "几点好", "几点吉")):
@@ -5401,9 +5402,14 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                            for h in _hrs if h.get("ji")]
                     out.append(
                         f"{_pfx}吉时：{'、'.join(_gs) if _gs else '没排上'}")
+                # R4341b：点名时辰问（午时吉不吉）不发日档——归
+                # R4341 的时辰判定答，别混层级。
                 if any(k in _n for k in ("日子怎么样", "什么日子", "吉日",
                                          "大吉", "凶日", "日子好不",
-                                         "日子如何", "什么档")):
+                                         "日子如何", "什么档",
+                                         "吉利", "吉不", "利不利")) \
+                        and not re.search(
+                            r"[子丑寅卯辰巳午未申酉戌亥]时", _n):
                     _b9 = bazi_compute(_dd.year, _dd.month, _dd.day, 12, "男")
                     _lv9 = fortune_level(
                         bazi_calc(_b9, ask_date=_dd.isoformat()),
@@ -6432,6 +6438,36 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             out.append(
                                 f"{_who9}的守护星：{_rl9}"
                                 f"（{_sg9}座）")
+            except Exception:
+                pass
+        # R4341：点名时辰吉凶+「几点出门好」——吉时榜已有（R4181），
+        # 缺点名判定与办事问法；与卡面同走 huangli hours 表。
+        if (re.search(r"[子丑寅卯辰巳午未申酉戌亥]时", _n) and any(
+                k in _n for k in ("吉不", "好不", "怎么样", "吉吗",
+                                  "行吗", "能去", "能出门", "适合"))) \
+                or ("几点" in _n and any(
+                    k in _n for k in ("出门", "办事", "动身",
+                                      "启程", "去办"))):
+            try:
+                _h9l = huangli(_dd.isoformat()).get("hours") or []
+                _zq9h = re.search(
+                    r"([子丑寅卯辰巳午未申酉戌亥])时", _n)
+                if _zq9h:
+                    _he9 = next(
+                        (h for h in _h9l
+                         if h.get("branch") == _zq9h.group(1)), None)
+                    if _he9:
+                        out.append(
+                            f"{_zq9h.group(1)}时："
+                            f"{'吉时' if _he9.get('ji') else '凶时'}"
+                            f"（{_he9.get('shen', '')}）")
+                else:
+                    _gs9h = [f"{h['branch']}时"
+                             for h in _h9l if h.get("ji")]
+                    out.append(
+                        f"{_pfx}好时段："
+                        + ('、'.join(_gs9h) if _gs9h
+                           else "没排上吉时"))
             except Exception:
                 pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
