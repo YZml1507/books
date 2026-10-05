@@ -4948,7 +4948,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         if _m5:
             for _k5 in ("我生日", "我的生日", "自己生日",
                         "我什么时候生日", "我的生日是",
-                        "我几号生日", "我哪天生日"):
+                        "我几号生日", "我哪天生日",
+                        "我什么时候过生日"):
                 _personal[_k5] = _nb5
         else:
             for _k5 in ("TA生日", "他生日", "她生日", "对象生日",
@@ -4956,7 +4957,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         "他什么时候生日", "她什么时候生日",
                         "TA的生日是", "TA几号生日", "TA哪天生日",
                         "TA的生日", "他的生日", "她的生日",
-                        "对象的生日"):
+                        "对象的生日", "TA什么时候过生日",
+                        "他什么时候过生日", "她什么时候过生日"):
                 _personal[_k5] = _nb5
     try:
         # R3991/R3996：「明天/明日/第二天/后天」问句族——穿搭/月相/
@@ -6773,6 +6775,12 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "她几岁", "TA星座", "他星座", "她星座",
                                  "对象星座", "TA的太阳星座",
                                  "他的星座", "她的星座",
+                                 # R4421：TA 人称连写/语序变体补键。
+                                 "TA属相", "TA的属相", "TA生肖",
+                                 "TA生肖属相", "TA是什么星座",
+                                 "TA什么命", "TA是什么命", "他什么命",
+                                 "她什么命", "TA今年多大", "TA今年几岁",
+                                 "他今年多大", "她今年多大",
                                  "农历生日", "阴历生日",
                                  "农历几", "阴历几",
                                  # R4406b：「我/TA 出生星期几」出生日星期
@@ -6822,7 +6830,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             f"{_who9}的虚岁："
                             f"{_d.year - _by9 + 1}岁")
                     elif any(k in _n for k in ("属什么", "属相", "属啥",
-                                               "几岁", "多大", "年纪")) \
+                                               "生肖", "几岁", "多大",
+                                               "年纪")) \
                             and "星座" not in _n and "命" not in _n:
                         if "五行" in _n or "金木水火土" in _n:
                             # 「金木水火土我属啥」问的是日主五行。
@@ -6833,7 +6842,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                 f"（五行属{GAN_ELEM.get(_dg9w, '')}）")
                         else:
                             if any(k in _n for k in
-                                   ("属什么", "属相")):
+                                   ("属什么", "属相", "生肖")):
                                 _lz9 = lunar.solar_to_lunar(
                                     _by9, _bm9, _bd9i)
                                 _zz9 = _lz9.get(
