@@ -5350,11 +5350,24 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"{_pfx}值神：{_zs9}"
                         f"（{'黑道日' if _hl9.get('zhishen_ji') else '黄道日'}）")
                 _cs9 = _hl9.get("chongsha") or {}
-                if _cs9.get("chong_animal") and any(
-                        k in _n for k in ("冲", "煞", "克我", "旺我")):
-                    out.append(
-                        f"{_pfx}冲煞：冲{_cs9['chong_animal']}"
-                        f"（{_cs9['chong']}），煞{_cs9.get('sha_fang', '')}方")
+                # R4431b：「TA旺我/克我」问人不问日——人称在句时今日
+                # 冲煞行不跟，只发双人属相判（内层判定照常跑）。
+                _tap9 = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _taq9 = _tap9 and any(
+                    k in _n for k in ("克我", "旺我", "冲我",
+                                      "跟我冲", "跟我合", "对我"))
+                if (_cs9.get("chong_animal") and any(
+                        k in _n for k in ("冲", "煞", "克我", "旺我"))) \
+                        or _taq9:
+                    if _cs9.get("chong_animal") and any(
+                            k in _n for k in
+                            ("冲", "煞", "克我", "旺我")) \
+                            and not _taq9:
+                        out.append(
+                            f"{_pfx}冲煞：冲{_cs9['chong_animal']}"
+                            f"（{_cs9['chong']}），"
+                            f"煞{_cs9.get('sha_fang', '')}方")
                     # R4246c：「冲我属相吗/克我吗/旺我吗」个人判定——
                     # 存了生日的人直接比今日冲煞与六合，给结论不绕。
                     if any(k in _n for k in (
@@ -5383,7 +5396,71 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                      "卯": "兔", "辰": "龙", "巳": "蛇",
                                      "午": "马", "未": "羊", "申": "猴",
                                      "酉": "鸡", "戌": "狗", "亥": "猪"}
-                            if _uz9 == _cs9.get("chong_animal"):
+                            # R4431：「TA旺我吗/TA克我吗」问的是人不是
+                            # 日——双人属相判定（六合/三合/冲/害/破/
+                            # 刑/平常），出结论不发日冲答。
+                            _ta9w = any(
+                                k in _n for k in
+                                ("TA", "ta", "他", "她", "对象"))
+                            if _ta9w:
+                                _m9p2 = next(
+                                    (_BIRTHDAY_PARTNER_RE.match(
+                                        str(_fp).strip())
+                                     for _fp in facts or []
+                                     if _BIRTHDAY_PARTNER_RE.match(
+                                            str(_fp).strip())),
+                                    None)
+                                if _m9p2:
+                                    _lz9v = lunar.solar_to_lunar(
+                                        int(_m9p2.group(1)),
+                                        int(_m9p2.group(2)),
+                                        int(_m9p2.group(3)))
+                                    _tz9w = _SX9[
+                                        "子丑寅卯辰巳午未申酉戌亥".index(
+                                            _lz9v.get(
+                                                "ganzhi_year",
+                                                "  ")[1])]
+                                    _A2Z9w = {a: z
+                                              for z, a in _Z2A9.items()}
+                                    _uzw, _tzw = (_A2Z9w.get(_uz9, ""),
+                                                  _A2Z9w.get(_tz9w, ""))
+                                    _rel9w = "不冲不合，平常相处"
+                                    if _uzw and _tzw:
+                                        if LIU_HE.get(_uzw) == _tzw \
+                                                or LIU_HE.get(_tzw) == _uzw:
+                                            _rel9w = ("六合属相——"
+                                                    "互相旺")
+                                        elif frozenset((_uzw, _tzw)) in (
+                                                {"申", "子", "辰"},
+                                                {"巳", "酉", "丑"},
+                                                {"寅", "午", "戌"},
+                                                {"亥", "卯", "未"}):
+                                            _rel9w = ("三合局中人——"
+                                                      "很合得来")
+                                        elif CHONG.get(_uzw) == _tzw \
+                                                or CHONG.get(_tzw) == _uzw:
+                                            _rel9w = ("六冲属相——"
+                                                      "容易顶牛，慢一点处")
+                                        elif XIANG_HAI.get(_uzw) == _tzw \
+                                                or XIANG_HAI.get(
+                                                    _tzw) == _uzw:
+                                            _rel9w = "相害——小磕碰多"
+                                        elif XIANG_PO.get(_uzw) == _tzw \
+                                                or XIANG_PO.get(
+                                                    _tzw) == _uzw:
+                                            _rel9w = "相破——损耗多"
+                                        elif (_uzw, _tzw) in XING or \
+                                                (_tzw, _uzw) in XING or \
+                                                (_uzw == _tzw and _uzw in
+                                                 "辰午酉亥"):
+                                            _rel9w = "相刑——别硬顶"
+                                    out.append(
+                                        f"对你们：TA属{_tz9w}、"
+                                        f"你属{_uz9}——{_rel9w}")
+                                    _uz9 = None
+                            if _uz9 is None:
+                                pass
+                            elif _uz9 == _cs9.get("chong_animal"):
                                 out.append(
                                     f"对你：属{_uz9}——今天冲的就是"
                                     f"你的属相（{_czh9}），诸事宜缓")
@@ -5746,7 +5823,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  "明天的运势", "明天能量", "我后天",
                                  "TA今天", "ta今天", "TA的运势",
                                  "TA今天怎么样", "TA今天运气",
-                                 "他今天", "她今天", "对象今天")):
+                                 "他今天", "她今天", "对象今天",
+                                 # R4431c：TA 电量/十神日补键。
+                                 "TA的电量", "TA电量", "ta电量",
+                                 "他的电量", "她的电量", "TA的状态",
+                                 "TA的十神日", "TA明天电量")):
             try:
                 # R4381b：TA 人称同链——「TA今天怎么样」取 TA 生日
                 # 的 personal 行，称呼换 TA。
