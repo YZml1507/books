@@ -20651,3 +20651,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3818 数据面三十一轮：本轮零新增键（纯展示层），`_qianWinHook` 只读 `qian:hist`/窗函数。
 - R3819 移动端十九审：360px dailyQianWin 自立块零横滚。
 - R3820 收口闸全绿：selftest 457/contract 810/dollar 0/banned 0/ui_smoke 126/check_poster。
+
+## R3821-25（窗宣公共行全分支实测 + 审计轮转）
+
+- **R3821 公共行三分支实测（无盘用户）**：10/26 未抽「捣蛋签开着呢」✓、10/26 已抽 2 天「捣蛋签连抽 2 天了——窗开到 11/1」✓、11/8 桃花签「连抽 2 天了」✓、11/5「桃花签 1 天后开张」✓——`qian:hw:<date>`/`qian:love:<date>` 判定键链全通。
+- R3822 口吻四十三审：公共行与个人块同一串零偏差。
+- R3823 数据面三十二轮：`_qianWinHook` 纯读（qian:hist/qian:hw/lv/cny 判定键），零新增键。
+- R3824 留存面十二轮复扫：dailyQianWin 空态 hidden 不占位，daily-mine-block 不进 +N 收纳。
+- R3825 收口：无静态文件改动（测试批），闸沿用 R3820 绿态。
