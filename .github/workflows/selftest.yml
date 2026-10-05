@@ -7,6 +7,12 @@ on:
     branches: [main]
   pull_request:
 
+# R4036：同一 PR/分支的新推送取消在跑旧 run——此前每次 push 都
+# 排队一轮，循环优化高频推送下 CI 积压十几条、最新绿被埋底。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   selftest:
     runs-on: ubuntu-latest
