@@ -5158,6 +5158,29 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                 f"{_cnext[0][0].day}日–"
                                 f"{_cnext[0][1].month}月"
                                 f"{_cnext[0][1].day}日）")
+                # R4346b：远窗反查——离窗超 5 天问「X什么时候开」
+                # 原静默；点名窗给固定窗期+倒数，没点名给最近一窗。
+                if not _qw:
+                    _WK9 = {"捣蛋签": (10, 25, "只出宜动的签"),
+                            "万圣签": (10, 25, "只出宜动的签"),
+                            "桃花签": (11, 6, "桃花签")}
+                    _hit9 = next((k for k in _WK9 if k in _n), None)
+                    if _hit9:
+                        _om9, _od9 = _WK9[_hit9][0], _WK9[_hit9][1]
+                        _op9 = date(_d.year, _om9, _od9)
+                        if _op9 <= _d:
+                            _op9 = date(_d.year + 1, _om9, _od9)
+                        out.append(
+                            f"{_hit9}：{_om9}月{_od9}日开窗"
+                            f"（还有{(_op9 - _d).days}天）")
+                    elif any(k in _n for k in
+                             ("福签", "新春签", "新年签")):
+                        _cn9 = [w for w in _cwin if w[0] > _d]
+                        if _cn9:
+                            out.append(
+                                f"新春福签窗：{_cn9[0][0].month}月"
+                                f"{_cn9[0][0].day}日除夕开"
+                                f"（还有{(_cn9[0][0] - _d).days}天）")
                 out.extend(_qw)
             except Exception:
                 pass
@@ -5195,6 +5218,21 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"圣诞心愿限定："
                         f"{'明天开' if _xtd == 1 else str(_xtd) + '天后开'}"
                                "（12/20–12/25）")
+                # R4346c：远窗反查同签窗——离窗超 5 天给窗期+倒数。
+                if not _tw:
+                    _TW9 = {"万圣夜限定": (10, 29), "万圣限定": (10, 29),
+                            "不敢问": (10, 29),
+                            "圣诞心愿": (12, 20), "圣诞限定": (12, 20),
+                            "心愿限定": (12, 20), "塔罗限定": (12, 20)}
+                    _th9 = next((k for k in _TW9 if k in _n), None)
+                    if _th9:
+                        _tm9, _td9 = _TW9[_th9]
+                        _to9 = date(_d.year, _tm9, _td9)
+                        if _to9 <= _d:
+                            _to9 = date(_d.year + 1, _tm9, _td9)
+                        out.append(
+                            f"{_th9}：{_tm9}月{_td9}日开"
+                            f"（还有{(_to9 - _d).days}天）")
                 out.extend(_tw)
             except Exception:
                 pass
@@ -6468,6 +6506,60 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"{_pfx}好时段："
                         + ('、'.join(_gs9h) if _gs9h
                            else "没排上吉时"))
+            except Exception:
+                pass
+        # R4346：桃花运命盘——「我桃花运/桃花旺不旺」在档生日走
+        # taohua 咸池/红鸾/天喜定式表（与合婚同源），桃花年/桃花月
+        # 折算公历反查。「桃花签」是产品窗名，归窗事实不管。
+        if "桃花" in _n and "桃花签" not in _n:
+            try:
+                _ta9 = any(k in _n for k in
+                           ("TA", "ta", "他", "她", "对象", "另一半"))
+                _m9w = next(
+                    ((_BIRTHDAY_PARTNER_RE if _ta9
+                      else _BIRTHDAY_FACT_RE).match(str(_fp).strip())
+                     for _fp in facts or []
+                     if (_BIRTHDAY_PARTNER_RE if _ta9
+                         else _BIRTHDAY_FACT_RE).match(
+                             str(_fp).strip())),
+                    None)
+                if _m9w:
+                    from guji import taohua as _th9
+                    _bp9 = bazi_compute(int(_m9w.group(1)),
+                                        int(_m9w.group(2)),
+                                        int(_m9w.group(3)), 12, "")
+                    _th9r = _th9.compute(_bp9)
+                    _who9 = "TA" if _ta9 else "你"
+                    _SX9t = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                    _ZI9t = "子丑寅卯辰巳午未申酉戌亥"
+                    _pz9 = _th9r.peach_zhi
+                    _pz9i = _ZI9t.index(_pz9)
+                    # 桃花年：下个年支=桃花支的年；桃花月：支序月份
+                    #（寅月≈2月…子月≈12月，节气月粗口径）。
+                    _ny9 = _dd.year
+                    while (_ny9 - 4) % 12 != _pz9i:
+                        _ny9 += 1
+                    _PM9 = {"寅": 2, "卯": 3, "辰": 4, "巳": 5,
+                            "午": 6, "未": 7, "申": 8, "酉": 9,
+                            "戌": 10, "亥": 11, "子": 12, "丑": 1}
+                    out.append(
+                        f"{_who9}的桃花星：{_pz9}（属"
+                        f"{_SX9t[_pz9i]}位）——{_ny9}年是{_who9}的"
+                        f"桃花年，{_PM9.get(_pz9, '?')}月前后是桃花月")
+                    _PC9 = {"year": "年柱（早年人缘）",
+                            "month": "月柱（同辈异性缘）",
+                            "day": "日柱（婚恋缘分位）",
+                            "hour": "时柱（晚缘）"}
+                    if _th9r.hit_pillars:
+                        out.append(
+                            "桃花落宫："
+                            + "、".join(_PC9.get(p, p)
+                                        for p in _th9r.hit_pillars))
+                    out.append(
+                        f"红鸾：{_th9r.hongluan}·天喜：{_th9r.tianxi}"
+                        f"（逢{_SX9t[_ZI9t.index(_th9r.hongluan)]}年/"
+                        f"{_SX9t[_ZI9t.index(_th9r.tianxi)]}年"
+                        "婚恋信号强）")
             except Exception:
                 pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
