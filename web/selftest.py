@@ -307,6 +307,18 @@ def _run_inner() -> list[str]:
         ("bazi.chenggu.song", _cgo.get("song"))
     _cg2 = (_hk.get("calc") or {}).get("chenggu") or {}
     assert _cg2.get("available") is False, "时辰未知不得硬称"
+    # R4696a：闰月/夜子口径钉扎——闰二月二十（day>15）按三月称（18钱），
+    # 闰二月初四（day<=15）按本月称（7钱）；23 点后算次日。
+    from guji import chenggu as _cgmod
+    _cgl = _cgmod.chenggu_compute(2023, 4, 10, 10)
+    assert _cgl["parts"]["month"]["w_cn"] == "一两八钱", \
+        ("chenggu.leap_late", _cgl["parts"]["month"])
+    _cge = _cgmod.chenggu_compute(2023, 3, 25, 10)
+    assert _cge["parts"]["month"]["w_cn"] == "七钱", \
+        ("chenggu.leap_early", _cge["parts"]["month"])
+    _cgz = _cgmod.chenggu_compute(2001, 7, 25, 23)
+    assert _cgz["parts"]["day"]["label"] == "初六", \
+        ("chenggu.late_zi", _cgz["parts"]["day"])
     ok.append("bazi.chenggu")
     # R230a-21（R13-P0-1 钉扎）：补缺走「生我」方向——1989-02-24 缺水须
     # 说「从金的方向补」（金生水），而不是「我生」的反向（此前错指）。
