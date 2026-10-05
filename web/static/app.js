@@ -20179,6 +20179,34 @@ function _qianWinHook() {
       } catch (eYL) {}
   return _qh.join('<br>');
 }
+/* R4026：周信「本周窗讯」——扫今天起 7 天，撞上时令窗就回一句
+ * 捎带话（一句即止，多个窗取最早撞上的）。 */
+function _wlWinNote(today) {
+  try {
+    for (var i = 0; i < 7; i++) {
+      var d = _isoShift(today, i);
+      var dt = new Date(d + 'T00:00:00');
+      var m = dt.getMonth(), dd = dt.getDate();
+      if ((m === 9 && dd >= 25) || (m === 10 && dd <= 1))
+        return '对了，这周捣蛋签窗还开着（10/25–11/1），' +
+          '去抽一支宜动签。';
+      if (m === 10 && dd >= 6 && dd <= 11)
+        return '对了，这周桃花签窗还开着（到 11/11）。';
+      if (m === 9 && dd === 29)
+        return '对了，万圣夜限定塔罗 10/29 开——' +
+          '不敢问的事留到那天翻一张。';
+      if (m === 11 && dd === 25)
+        return '对了，跨年封愿今天开——' +
+          '写给明年的话封到元旦才启封。';
+      if (m === 11 && dd >= 20 && dd <= 25)
+        return '对了，这周圣诞心愿限定还开着（到 12/25）。';
+      if (m === 11 && dd === 31)
+        return '对了，跨年封愿今晚截止——' +
+          '想写给明年就趁今天。';
+    }
+  } catch (e) {}
+  return '';
+}
 /* R3986：年聚合共用 helper——年信卡与导引行同一套口径。
  * 原始键（checkin:/mood:/journal:）150 天 GC，故读时合并
  * 年汇总键（ckY:/mdY:/jrY:/ckBest:），两者取大不双计；
@@ -22118,6 +22146,10 @@ function renderCheckin(dateKey) {
             ? '上周你来记下 ' + _lwl.m + ' 天心情'
             : '上周你打卡 ' + _lwl.n + ' 天') +
           esc(_lwl.moodTxt) + '。' + esc(_lwl.line) +
+          /* R4026：本周时令窗捎一句——周信生成日所在周扫 7 天，
+           * 有窗就提（捣蛋/桃花/圣诞心愿/封愿末日），归档信
+           * 不带这句（同期产物只对当下有意义）。 */
+          esc(_wlWinNote(dateKey)) +
           /* R3762：年信窗挂「这一年」链——信族三级互链不孤立；
            * _ylShown 由年信块先算（本块在其后渲染）。 */
           (_ylShown
