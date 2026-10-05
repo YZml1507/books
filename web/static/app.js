@@ -20179,6 +20179,29 @@ function _qianWinHook() {
       } catch (eYL) {}
   return _qh.join('<br>');
 }
+/* R4031：月信「本月窗讯」——扫本月余日找开窗日，集齐一起捎。
+ * 与 _wlWinNote 同族：周信即时、月信展望。 */
+function _mlWinNote(today) {
+  try {
+    var _m0 = new Date(today + 'T00:00:00').getMonth();
+    var _p = [];
+    for (var i = 0; i < 62; i++) {
+      var d = _isoShift(today, i);
+      var dt = new Date(d + 'T00:00:00');
+      if (dt.getMonth() !== _m0) break;
+      var m = dt.getMonth(), dd = dt.getDate();
+      if (m === 9 && dd === 25) _p.push('捣蛋签 10/25');
+      if (m === 10 && dd === 6) _p.push('桃花签 11/6');
+      if (m === 9 && dd === 29) _p.push('万圣夜限定 10/29');
+      if (m === 11 && dd === 20) _p.push('圣诞心愿限定 12/20');
+      if (m === 11 && dd === 25) _p.push('跨年封愿 12/25');
+    }
+    if (_p.length) {
+      return '这个月 ' + _p.join('、') + ' 开窗，到时来。';
+    }
+  } catch (e) {}
+  return '';
+}
 /* R4026：周信「本周窗讯」——扫今天起 7 天，撞上时令窗就回一句
  * 捎带话（一句即止，多个窗取最早撞上的）。 */
 function _wlWinNote(today) {
@@ -22233,6 +22256,8 @@ function renderCheckin(dateKey) {
           esc(_mParts.join('、')) + '，我都替你记着。' +
           esc(_MSEASON[_pm.getMonth()]) +
           (_mpf ? '还有个规律：' + esc(_mpf.txt) + '。' : '') +
+          /* R4031：本月窗讯捎一句——扫本月余日找开窗日。 */
+          esc(_mlWinNote(dateKey)) +
           esc(_mql) +
           /* R3762：年信窗「这一年」链——与周信同一件内链。 */
           (_ylShown
