@@ -21295,7 +21295,9 @@ function renderCheckin(dateKey) {
     var _vList = String(localStorage.getItem('visits') || '')
       .split(',').filter(Boolean).sort();
     if (_vList.length) {
-      var _d0v = new Date(_vList[0] + 'T00:00:00');
+      var _d0v = new Date(
+        (localStorage.getItem('visit:first') || _vList[0]) +
+        'T00:00:00');
       var _ann = Math.round(
         (new Date(todayIso() + 'T00:00:00') - _d0v) / 86400000);
       var _ANN = { 30: 1, 100: 1, 365: 1 };
@@ -23167,6 +23169,14 @@ function _visitCount() {
       v.push(t);
       if (v.length > 400) v = v.slice(-400);
       localStorage.setItem('visits', v.join(','));
+      /* R3786：visits 400 截尾丢首日——「认识小满第 N 天」
+       * 漂移。visit:first 永久锚，只写一次。 */
+      try {
+        if (!localStorage.getItem('visit:first')) {
+          var _fv = v.slice().sort()[0] || t;
+          localStorage.setItem('visit:first', _fv);
+        }
+      } catch (eVF) {}
     }
     return v.length;
   } catch (e) { return 0; }
@@ -26652,7 +26662,7 @@ function baziPersonaCard(j) {
      * 凭据/口令锁/主题/UI 偏好不在此列（非个人足迹，各有
      * 本家开关）。 */
     { id: 'trk', icon: '👣', label: '来过的足迹',
-      re: /^(rlast:|usage:|remind:|visits$|welcomed$|notify:time$|returnBannerDismissed$)/,
+      re: /^(rlast:|usage:|remind:|visits$|visit:first$|welcomed$|notify:time$|returnBannerDismissed$)/,
       sum: function () {
         var b = [];
         var v = 0;
@@ -27590,7 +27600,7 @@ function baziPersonaCard(j) {
            * 可被旧备份导回）此前游离在清除清单外——实测 wipe 后残留。 */
           /* R3350：mantraFav（咒语册句子）也是个人化数据，「忘掉我的
            * 数据」一起收——与 wishfulfilled 同族口径。 */
-          if (k && (/^(me(:partner)?|hlask|visits|welcomed|wishbottle|wishfulfilled|mantraFav|chatSessionId|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1|threads_mirror_v1|installTipDismissed|ret_tip|voiceMode)$/
+          if (k && (/^(me(:partner)?|hlask|visits|visit:first|welcomed|wishbottle|wishfulfilled|mantraFav|chatSessionId|chat:topics|chat:cards|chat:events|mood:lv|notify:time|returnBannerDismissed|paipan_mirror_v1|paipan_mirror_del_v1|favorites_mirror_v1|threads_seen_v1|threads_mirror_v1|installTipDismissed|ret_tip|voiceMode)$/
                 .test(k) || k.indexOf('remind:') === 0 ||
                 /* R3339（审-中）：transcript 改 sid 命名空间后裸名匹配
                  * 漏收 chatTranscript:<sid>/:lastsid——前缀全覆盖。 */
