@@ -22401,6 +22401,20 @@ function renderCheckin(dateKey) {
            '封口存到元旦才启封') +
           '<button type="button" class="ck-quest-btn ck-xwish">' +
           '去封一个 →</button></div>';
+      } else if (typeof _wishNyGet === 'function') {
+        /* R4021：元旦拆封提醒——封过的愿 1/1 启封，1/1–1/5
+         * 没拆过挂提醒行（opened 旗在瓶内点亮时立）。 */
+        var _nyW2 = _wishNyGet();
+        var _nyN2 = new Date();
+        if (_nyW2 && !_nyW2.opened &&
+            +_nyW2.year <= _nyN2.getFullYear() &&
+            _nyN2.getMonth() === 0 &&
+            _nyN2.getDate() <= 5) {
+          _xmasHtml += '<div class="ck-quest ck-nytease">' +
+            '🧨 你的跨年愿拆封啦——去许愿瓶看看' +
+            '<button type="button" class="ck-quest-btn ck-xwish">' +
+            '去看看 →</button></div>';
+        }
       }
     } catch (eXM) {}
     _ddayHtml = '<div class="ck-quest ck-dday">' +
