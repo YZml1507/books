@@ -18076,12 +18076,16 @@ if (document.readyState === 'loading') {
       }
       /* R3573：对擂/递好运落地欢迎条挂 CTA——别只口播「打个卡
        * 接招」，直挂按钮滚到打卡区（受邀新客少一步）。 */
-      if ((_sv2 === 'home' || _sv2 === 'monthrec' || _sv2 === 'yearrec')
+      /* R3851：weekletter/moon 同挂 CTA——信靠打卡攒、月亮件
+       * 也在日卡区，受邀者看完点名句要有下一步。 */
+      if ((_sv2 === 'home' || _sv2 === 'monthrec' || _sv2 === 'yearrec'
+           || _sv2 === 'weekletter' || _sv2 === 'moon')
           && !bar.querySelector('.welcome-cta')) {
         var _q3 = new URLSearchParams(location.search);
         /* R3777：复盘海报落地也挂 CTA——受邀者看完「你的年记
          * 也攒一份」要有下一步（攒记从打卡起）。 */
-        if (_sv2 === 'monthrec' || _sv2 === 'yearrec') {
+        if (_sv2 === 'monthrec' || _sv2 === 'yearrec' ||
+            _sv2 === 'weekletter' || _sv2 === 'moon') {
           var _wcta4 = document.createElement('button');
           _wcta4.type = 'button';
           _wcta4.className = 'welcome-cta';
