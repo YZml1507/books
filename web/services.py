@@ -4534,6 +4534,11 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
     _d = (now or _now_cn()).date()
     out: list[str] = []
     try:
+        # R3991：「明天/明日/第二天」问句族——穿搭/月相/节日/星座
+        # 共用一次判定，各块取 _dd/_pfx 出明日数据。
+        _tmr = any(k in _n for k in ("明天", "明日", "第二天"))
+        _dd = _d + timedelta(days=1) if _tmr else _d
+        _pfx = "明日" if _tmr else "今日"
         if any(k in _n for k in ("水逆", "水星逆行")):
             _m = _mercury_state(_d)
             if _m.get("on"):
@@ -4600,10 +4605,7 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
         if any(k in _n for k in ("穿搭", "穿什么", "穿啥", "幸运色",
                                  "幸运颜色", "开运色", "什么颜色", "配色")):
             # R3896：「明天穿什么」同式给明日数据——日签卡明天预告
-            # 族已有同款，聊天不该只会报今天。
-            _tmr = any(k in _n for k in ("明天", "明日", "第二天"))
-            _dd = _d + timedelta(days=1) if _tmr else _d
-            _pfx = "明日" if _tmr else "今日"
+            # 族已有同款，聊天不该只会报今天（_tmr/_dd/_pfx 共用于块首）。
             _lk = _lucky_for(_dd)
             _of = _outfit_for(_dd)
             if _lk.get("color"):
@@ -4712,9 +4714,9 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
         if any(k in _n for k in ("月亮", "月相", "满月", "新月",
                                  "月圆", "月缺", "今晚的月亮")):
             try:
-                _mo = _moon_for(_d)
+                _mo = _moon_for(_dd)
                 if _mo.get("label"):
-                    out.append(f"今日月相：{_mo['label']}"
+                    out.append(f"{_pfx}月相：{_mo['label']}"
                                f"（{_mo.get('line', '')}）")
             except Exception:
                 pass
@@ -4731,12 +4733,13 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                                  "元宵", "清明", "小年", "除夕", "跨年",
                                  "双十一", "光棍", "黑五", "七夕节")):
             try:
-                _fn = _festival_for(_d, "")
+                _fn = _festival_for(_dd, "")
                 if _fn:
-                    out.append(f"今日节日：{'、'.join(_fn)}")
+                    out.append(f"{_pfx}节日：{'、'.join(_fn)}")
                 elif any(k in _n for k in ("什么节", "啥节日", "节日",
                                            "过节")):
-                    out.append("今日节日：今天没排上节日名")
+                    out.append(f"{_pfx}节日："
+                               f"{'明' if _tmr else '今'}天没排上节日名")
             except Exception:
                 pass
         # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
@@ -4745,22 +4748,24 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
         _XZ = ("白羊", "金牛", "双子", "巨蟹", "狮子", "处女",
                "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼")
         if any(k in _n for k in ("星座运势", "星座日运", "今日星座",
-                                 "今天星座")) or \
-           any((s + "座") in _n or (s + "今天") in _n for s in _XZ):
+                                 "今天星座", "明日星座", "明天星座")) or \
+           any((s + "座") in _n or (s + "今天") in _n or
+               (s + "明天") in _n for s in _XZ):
             try:
-                _b0 = bazi_compute(_d.year, _d.month, _d.day, 12, "男")
+                _b0 = bazi_compute(_dd.year, _dd.month, _dd.day, 12, "男")
                 _hz = xingzuo_mod.daily_horoscope(_b0.day)
                 _ts = _hz.get("today_sign", "")
                 _tn = _hz.get("today_note", "")
                 if _ts and _tn:
-                    out.append(f"今日星座值宫：{_ts}座当班——{_tn}")
+                    out.append(f"{_pfx}星座值宫：{_ts}座当班——{_tn}")
                 for _s in _XZ:
-                    if (_s + "座") in _n or (_s + "今天") in _n:
+                    if ((_s + "座") in _n or (_s + "今天") in _n or
+                            (_s + "明天") in _n):
                         _row = [x for x in (_hz.get("signs") or [])
                                 if x.get("sign") == _s]
                         if _row:
                             out.append(
-                                f"今日{_s}座：{_row[0].get('sign_note', '')}"
+                                f"{_pfx}{_s}座：{_row[0].get('sign_note', '')}"
                                 f"（{_row[0].get('note', '')}）")
                         break
             except Exception:
