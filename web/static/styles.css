@@ -4519,6 +4519,9 @@ html[data-theme="dark"] .mc-eq-t, html[data-theme="dark"] .mc-eo-t {
 .qian-note { font-size: 11.5px; color: var(--muted); margin: 10px 0 0; }
 /* R3861：签页窗前预告行（捣蛋/桃花/福签倒计时）。 */
 .qian-tease { margin: 0 0 12px; text-align: center; }
+/* R3866：塔罗页窗前预告（万圣/圣诞限定倒计时）。 */
+.tr-tease { margin: 0 0 10px; text-align: center;
+  font-size: 12px; color: var(--muted); }
 .qian-slip { background: var(--card, #fffdfa);
   border: 1px solid var(--line, #e0d4c0); border-radius: 16px;
   padding: 18px 16px 14px; }

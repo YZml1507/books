@@ -15008,12 +15008,39 @@ function initDivination() {
   };
   var _trXBtn = el('trQX');
   if (_trXBtn && (_trXFest() || _trXFestCn())) _trXBtn.hidden = false;
+  /* R3866：塔罗页窗前预告——万圣(10.29)/圣诞(12.20) 限定开窗
+   * 前 1-5 天挂「N 天后开张」行（窗内钮本体接管）。 */
+  var _trTse = el('trTease');
+  var _trFestTease = function () {
+    if (!_trTse) return;
+    var _tt = [];
+    var _n5 = new Date();
+    var _d5 = new Date(_n5.getFullYear(), _n5.getMonth(), _n5.getDate());
+    if (!(_trHFest() || _trHFestCn())) {
+      var _hd2 = Math.round((new Date(_n5.getFullYear(), 9, 29) - _d5)
+        / 86400000);
+      if (_hd2 >= 1 && _hd2 <= 5)
+        _tt.push('🎃 万圣夜限定 ' + _hd2 +
+          ' 天后开张——那件不敢问的事留给它');
+    }
+    if (!(_trXFest() || _trXFestCn())) {
+      var _xd = Math.round((new Date(_n5.getFullYear(), 11, 20) - _d5)
+        / 86400000);
+      if (_xd >= 1 && _xd <= 5)
+        _tt.push('🎄 圣诞心愿限定 ' + _xd +
+          ' 天后开张——心愿翻一张看它会怎么来');
+    }
+    _trTse.hidden = !_tt.length;
+    _trTse.innerHTML = _tt.join('<br>');
+  };
+  _trFestTease();
   /* R3435：跨零点进出窗口重判——页面过夜到 12/20 钮要现身、
    * 到 12/26 要收起来（init 快照不动）。
    * R3449（审-P1）：现身与点击复判同口径=本地或 CST 任一在窗。 */
   window.__festDayFlip = function () {
     if (_trHBtn) _trHBtn.hidden = !(_trHFest() || _trHFestCn());
     if (_trXBtn) _trXBtn.hidden = !(_trXFest() || _trXFestCn());
+    _trFestTease();
   };
   on('trQX', function () {
     if (!_trXFest() && !_trXFestCn()) {
