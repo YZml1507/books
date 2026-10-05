@@ -5328,6 +5328,59 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     f"（日干{_g9}属{_wx9.get(_g9, '')}）")
             except Exception:
                 pass
+        # R4206：合拍日支信号——已存 CP 时问「我们合拍吗/跟TA合不合」
+        # 给当日日支信号（与合拍页 _sig 同式：今日日支 vs 双方日支
+        # 的合/冲/半合/害/刑/破；分数要全盘，这里给感受标签）。
+        if any(k in _n for k in ("合拍指数", "合拍吗", "合不合",
+                                 "我们合", "我俩", "跟TA", "跟ta",
+                                 "跟对象", "和对象", "跟另一半")):
+            try:
+                _ub9 = _pb9 = None
+                for _pf9 in facts or []:
+                    _m9 = _BIRTHDAY_FACT_RE.match(str(_pf9).strip())
+                    _p9 = _BIRTHDAY_PARTNER_RE.match(str(_pf9).strip())
+                    if _m9:
+                        _ub9 = (int(_m9.group(1)), int(_m9.group(2)),
+                                int(_m9.group(3)))
+                    elif _p9:
+                        _pb9 = (int(_p9.group(1)), int(_p9.group(2)),
+                                int(_p9.group(3)))
+                if _ub9 and _pb9:
+                    _tz9 = _bazi_day_ganzhi(
+                        datetime(_dd.year, _dd.month, _dd.day))[0][1]
+                    _uz9 = _bazi_day_ganzhi(datetime(*_ub9))[0][1]
+                    _pz9 = _bazi_day_ganzhi(datetime(*_pb9))[0][1]
+
+                    def _sg9(dz):
+                        if hehun_mod.SIX_COMBINE.get(_tz9) == dz:
+                            return "合"
+                        if hehun_mod.SIX_CLASH.get(_tz9) == dz:
+                            return "冲"
+                        if hehun_mod.half_combine(_tz9, dz):
+                            return "半合"
+                        if hehun_mod.is_harm(_tz9, dz):
+                            return "害"
+                        if hehun_mod.is_xing(_tz9, dz):
+                            return "刑"
+                        if hehun_mod.is_break(_tz9, dz):
+                            return "破"
+                        return ""
+
+                    _sigs = [_sg9(_uz9), _sg9(_pz9)]
+                    _tag9 = ""
+                    if "冲" in _sigs:
+                        _tag9 = "今天你们容易顶起来，别翻旧账"
+                    elif "合" in _sigs:
+                        _tag9 = "今天你们格外对味，适合把话说开"
+                    elif "半合" in _sigs:
+                        _tag9 = "今天你们慢慢对味，适合一起做点小计划"
+                    elif "害" in _sigs or "刑" in _sigs or "破" in _sigs:
+                        _tag9 = "今天你们容易有小别扭，多点耐心就好"
+                    else:
+                        _tag9 = "今天你们信号平平，正常过就好"
+                    out.append(f"{_pfx}合拍信号：{_tag9}")
+            except Exception:
+                pass
         # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
         # 点名假期给该段，没点名给「今天在不在放/下一假期/补班日」。
         if any(k in _n for k in ("放假", "假期", "调休", "补班",
