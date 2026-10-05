@@ -4539,28 +4539,34 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
         _tmr = any(k in _n for k in ("明天", "明日", "第二天"))
         _dat3 = "大后天" in _n
         _dat = "后天" in _n
-        # R4011：反向问日——「昨天/前天」回溯节日月相也有真值。
+        # R4011/R4056：反向问日——「昨天/前天/大前天」回溯也有真值
+        #（大前天先判：它是「前天」的超集词）。
         _yst = "昨天" in _n
+        _dbt3 = "大前天" in _n
         _dbt = "前天" in _n
         _dd = _d + timedelta(days=3) if _dat3 \
             else (_d + timedelta(days=2) if _dat
                   else (_d + timedelta(days=1) if _tmr
-                        else (_d - timedelta(days=1) if _yst
-                              else (_d - timedelta(days=2) if _dbt
-                                    else _d))))
+                        else (_d - timedelta(days=3) if _dbt3
+                              else (_d - timedelta(days=1) if _yst
+                                    else (_d - timedelta(days=2) if _dbt
+                                          else _d)))))
         _pfx = "大后天" if _dat3 \
             else ("后天" if _dat else ("明日" if _tmr
-                  else ("昨天" if _yst
-                        else ("前天" if _dbt else "今日"))))
-        # R4001：「周五/下周三」问日族——解析到具体日期复用 _dd/_pfx
-        #（明/后优先；本周末日/当天已过都算下一个，下周再加 7）。
-        if not (_tmr or _dat or _dat3 or _yst or _dbt):
-            _wdm = re.search(r"(下)?周([一二三四五六日天])", _n)
+                  else ("大前天" if _dbt3 else ("昨天" if _yst
+                        else ("前天" if _dbt else "今日")))))
+        # R4001/R4056：「周五/下周三/上周五」问日族——上=回上一周，
+        # 下=再往后推一周；当天已过都算下一个。
+        if not (_tmr or _dat or _dat3 or _yst or _dbt or _dbt3):
+            _wdm = re.search(r"(上|下)?周([一二三四五六日天])", _n)
             if _wdm:
                 _twd = "一二三四五六日天".index(_wdm.group(2)) % 7
-                _dl = (_twd - _d.weekday()) % 7 or 7
-                if _wdm.group(1):
-                    _dl += 7
+                if _wdm.group(1) == "上":
+                    _dl = -((_d.weekday() - _twd) % 7 or 7)
+                else:
+                    _dl = (_twd - _d.weekday()) % 7 or 7
+                    if _wdm.group(1):
+                        _dl += 7
                 _dd = _d + timedelta(days=_dl)
                 _pfx = _wdm.group(0)
             elif "周末" in _n:
