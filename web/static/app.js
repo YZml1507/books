@@ -7289,9 +7289,15 @@ function _renderBirthdayBanner() {
           _ckb2.parentNode.insertBefore(_bbar, _ckb2);
         }
       }
-      _bbar.innerHTML = '🎂 ' +
+      /* R4091：两人都在倒数窗不互挡——我倒数时 TA 也快到的
+       * 同行并列，别再只显一条让 TA 生日悄悄走过。 */
+      var _bPfx = '🎂 ' +
         (_bme.n ? esc(_bme.n) + '，' : '') +
         '生日还有 ' + _bdl + ' 天——想个愿望先攒着';
+      if (_bdlP >= 1 && _bdlP <= 7 && _bdlP !== _bdl) {
+        _bPfx += ' · TA 还有 ' + _bdlP + ' 天';
+      }
+      _bbar.innerHTML = _bPfx;
     } else if (_bdlP >= 1 && _bdlP <= 7) {
       if (!_bbar) {
         _bbar = document.createElement('div');
