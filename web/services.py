@@ -4943,7 +4943,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             for _k5 in ("TA生日", "他生日", "她生日", "对象生日",
                         "另一半生日", "伴侣生日", "TA什么时候生日",
                         "他什么时候生日", "她什么时候生日",
-                        "TA的生日是", "TA几号生日", "TA哪天生日"):
+                        "TA的生日是", "TA几号生日", "TA哪天生日",
+                        "TA的生日", "他的生日", "她的生日",
+                        "对象的生日"):
                 _personal[_k5] = _nb5
     try:
         # R3991/R3996：「明天/明日/第二天/后天」问句族——穿搭/月相/
@@ -7439,8 +7441,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             except Exception:
                 pass
         if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天",
-                                 "还有几天", "还有多少天",
-                                 "星期几", "周几", "什么日子")):
+                                 "还有几天", "还有多少天", "快到了",
+                                 "还有多久", "星期几", "周几",
+                                 "什么日子")):
             try:
                 # R4106：反查解析抽成 _next_named_day——「什么时候」
                 # 反查与「X那天穿什么」命名日偏移共用一条，顺序
@@ -7554,7 +7557,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼")
         if any(k in _n for k in ("星座运势", "星座日运", "今日星座",
                                  "今天星座", "明日星座", "明天星座",
-                                 "运势", "运气")) or \
+                                 "星座今天", "星座明天", "运势",
+                                 "运气")) or \
            any((s + "座") in _n or (s + "今天") in _n or
                (s + "明天") in _n for s in _XZ):
             try:
@@ -7574,6 +7578,33 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                 f"{_pfx}{_s}座：{_row[0].get('sign_note', '')}"
                                 f"（{_row[0].get('note', '')}）")
                         break
+                # R4386b：人称指代座——「TA星座今天/我星座今天」
+                # 档案生日→太阳座→同一条日行。
+                if any(k in _n for k in
+                       ("TA星座", "ta星座", "他星座", "她星座",
+                        "我星座", "我的星座")):
+                    _ta9q = any(k in _n for k in
+                                ("TA", "ta", "他", "她"))
+                    _re9q = (_BIRTHDAY_PARTNER_RE if _ta9q
+                             else _BIRTHDAY_FACT_RE)
+                    _m9q = next(
+                        (_re9q.match(str(_x).strip())
+                         for _x in facts or []
+                         if _re9q.match(str(_x).strip())),
+                        None)
+                    if _m9q:
+                        from guji.xingzuo import sun_sign as _ss9q
+                        _sg9q = _ss9q(
+                            int(_m9q.group(2)), int(_m9q.group(3)),
+                            year=int(_m9q.group(1)))
+                        _row9 = [x for x in (_hz.get("signs") or [])
+                                 if x.get("sign") == _sg9q]
+                        if _row9:
+                            _w9q = "TA" if _ta9q else "你"
+                            out.append(
+                                f"{_pfx}{_w9q}（{_sg9q}座）："
+                                f"{_row9[0].get('sign_note', '')}"
+                                f"（{_row9[0].get('note', '')}）")
             except Exception:
                 pass
         # R3876：跨年封愿实时态——12/25–31 封口窗（前端
