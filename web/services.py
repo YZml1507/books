@@ -6242,6 +6242,84 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                if _rg9 in _TT9c else ""))
             except Exception:
                 pass
+        # R4326：周内吉日榜——「这周/下周哪天最顺·搬家好」逐日
+        # 日档+宜词命中（fortune_level 与日档同源、yi 与黄历同源）。
+        if any(k in _n for k in ("哪天", "哪几天", "最顺", "最好",
+                                 "适合", "挑一", "选一")) and any(
+                k in _n for k in ("这周", "本周", "下周")) \
+                and "星期" not in _n:
+            try:
+                _wk9 = 1 if "下周" in _n else 0
+                _mon9 = _d - timedelta(days=_d.weekday()) \
+                    + timedelta(days=7 * _wk9)
+                # 事项词：口语词表优先，规范词兜底（≥2字防「安」误抓）。
+                _af9 = None
+                _afw9 = ""
+                for _w9 in sorted(_CHAT_SCENE_TERMS, key=len,
+                                  reverse=True):
+                    if _w9 in _n:
+                        _af9 = _CHAT_SCENE_TERMS[_w9]
+                        _afw9 = _w9
+                        break
+                if _af9 is None:
+                    for _w9 in sorted(_HUANGLI_VOCAB, key=len,
+                                      reverse=True):
+                        if len(_w9) >= 2 and _w9 in _n:
+                            _af9 = [_w9]
+                            _afw9 = _w9
+                            break
+                _rows9 = []
+                for _i9 in range(7):
+                    _dx9 = _mon9 + timedelta(days=_i9)
+                    _b9w = bazi_compute(
+                        _dx9.year, _dx9.month, _dx9.day, 12, "男")
+                    _lv9w = fortune_level(
+                        bazi_calc(_b9w, ask_date=_dx9.isoformat()),
+                        day=datetime(_dx9.year, _dx9.month,
+                                     _dx9.day, 12))
+                    _yi9 = set((huangli_mod.day_query(
+                        datetime(_dx9.year, _dx9.month,
+                                 _dx9.day, 12)) or {}).get("yi") or [])
+                    _hit9 = bool(_af9) and any(
+                        t in _yi9 for t in _af9)
+                    _rows9.append((_dx9, _lv9w, _hit9))
+                _tag9w = "下周" if _wk9 else "本周"
+                _WL9 = "一二三四五六日"
+                if _af9:
+                    _hs9 = [r for r in _rows9 if r[2]]
+                    if _hs9:
+                        out.append(
+                            f"{_tag9w}{_afw9}好："
+                            + "、".join(
+                                f"周{_WL9[r[0].weekday()]}"
+                                f"{r[0].month}/{r[0].day}"
+                                for r in _hs9[:3]))
+                    else:
+                        out.append(
+                            f"{_tag9w}{_afw9}：整周都没排上宜"
+                            f"{_af9[0]}的日子")
+                else:
+                    _gs9 = [r for r in _rows9
+                            if r[1] in ("吉", "小吉")]
+                    if _gs9:
+                        out.append(
+                            f"{_tag9w}吉日："
+                            + "、".join(
+                                f"周{_WL9[r[0].weekday()]}"
+                                f"{r[0].month}/{r[0].day}"
+                                f"（{r[1]}）" for r in _gs9[:4]))
+                    else:
+                        _bs9 = [r for r in _rows9 if r[1] == "平"]
+                        out.append(
+                            f"{_tag9w}吉日：没排上吉档——"
+                            + ("相对稳的是"
+                               + "、".join(
+                                   f"周{_WL9[r[0].weekday()]}"
+                                   f"{r[0].month}/{r[0].day}"
+                                   for r in _bs9[:3])
+                               if _bs9 else "整周都是避雷日"))
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
@@ -7834,13 +7912,26 @@ def fortune_level(calc_out: dict, day: "datetime | None" = None) -> str:
             score += 1
     except Exception:
         pass
+    # R4326b（真 P1）：硬凶日（月破/四离/四绝/杨公忌/岁破/受死）
+    # 此前照常评吉——杨公忌日卡面出「小吉」与黄历「大事勿用」
+    # 自相矛盾。落硬凶旗封顶「平」：约三成日子带旗，全打凶会
+    # 狼来了；不许吉、也不过罚，凶标仍由 day_flags 单独展示。
+    _hard9 = False
+    try:
+        if day is not None:
+            _hf9 = set((huangli_mod.day_query(day) or {})
+                       .get("day_flags") or [])
+            _hard9 = bool(_hf9 & {"月破", "四离", "四绝", "杨公忌",
+                                  "岁破", "受死"})
+    except Exception:
+        pass
     if score >= 2:
-        return "吉"
+        return "吉" if not _hard9 else "平"
     # R230y（R36-P2-7）：score==1 归「小吉」——此前该档从未产出，
     # copy_bank 里 4 条小吉文案是死池；接上后等级粒度 3→4 档。
     # R2349g：小吉放宽到 score>=0——天平居中本就是小顺，不是平平无奇。
     if score >= 0:
-        return "小吉"
+        return "小吉" if not _hard9 else "平"
     return "凶" if score <= -3 else "平"
 
 
