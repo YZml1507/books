@@ -2097,6 +2097,22 @@ _CHAT_SCENE_TERMS: dict[str, list[str]] = {
     "买车": ["纳财", "立券"], "提车": ["纳财", "立券"],
     "会友": ["谒贵", "出行"], "会亲友": ["谒贵", "出行"],
     "沐浴": ["沐浴"], "洗澡": ["沐浴"],
+    # R4221：洗头/大扫除长尾口语——洗头归沐浴（同净身簇），
+    # 大扫除/打扫卫生/收拾屋子归解除+沐浴（扫舍宇不在词表，解除
+    # 是最近的「清扫解秽」规范词）。
+    "洗头": ["沐浴"], "洗头发": ["沐浴"],
+    "大扫除": ["解除", "沐浴"], "打扫卫生": ["解除"],
+    "收拾屋子": ["解除"], "搞卫生": ["解除"], "扫房子": ["解除"],
+    # 礼俗红白事长尾：扫墓/烧纸/烧香/还愿/开光→祭祀祈福簇；
+    # 下聘同彩礼（嫁娶+纳财）；过门/迎亲/贴春联→嫁娶/祈福。
+    "扫墓": ["祭祀"], "烧纸": ["祭祀"], "烧香": ["祭祀"],
+    "还愿": ["祭祀", "祈福"], "开光": ["祈福"], "贴春联": ["祈福"],
+    "下聘": ["嫁娶", "纳财"], "过门": ["嫁娶"], "迎亲": ["嫁娶"],
+    # 日常娱乐长尾：跑步/游泳→健身簇（有意中性）；火锅→出行+谒贵
+    #（同聚餐口径，scene→scene 套娃会被活词闸拒）；KTV→唱歌。
+    "跑步": ["健身"], "晨跑": ["健身"], "夜跑": ["健身"],
+    "游泳": ["健身"], "吃火锅": ["出行", "谒贵"], "火锅": ["出行", "谒贵"],
+    "ktv": ["唱歌"], "去唱歌": ["唱歌"],
     "纹身": ["求医", "冠笄"],
     "割双眼皮": ["求医", "治病", "求医疗病"],
     # 直播系与前端已立的 开市+纳财 口径同构（主播开播=开张做生意）。
@@ -2321,6 +2337,135 @@ def _nearest_day(cands: list, now: datetime, past: bool):
     return min(cands, key=lambda d: abs((d - today).days)) if cands else None
 
 
+# R4166：节日 tip 服务端镜像——web/static/app.js _FEST_TIP 逐字
+# 同序。子串匹配先扫表头序，同名节共享同一句；卡面与聊天同源。
+_FEST_TIP = [
+    ("春节", "新年第一天：给家人发个消息，比什么仪式都开运"),
+    ("大年初一", "新年第一天：给家人发个消息，比什么仪式都开运"),
+    ("除夕", "今晚守岁别熬太晚，岁末把旧心事留在旧年"),
+    ("中秋", "月亮最圆的一晚：给想你的人回个消息"),
+    ("七夕", "牛郎织女都见面了——想见的人，今天就去见"),
+    ("情人节", "爱与被爱都值得庆祝，先对自己好一点"),
+    ("女神节", "今天是你的节日：把自己放在第一顺位"),
+    ("妇女节", "今天是你的节日：把自己放在第一顺位"),
+    ("女生节", "今天是你的节日：把自己放在第一顺位"),
+    ("跨年", "今年最后一晚：零点前给这一年收个尾"),
+    ("元旦", "新年第一天：立个小一点的愿望，容易灵"),
+    ("元宵", "花灯如昼：今晚适合和家人朋友聚一聚"),
+    ("端午", "吃个粽子讨个平安，湿热天多照顾自己"),
+    ("母亲节", "给妈妈发条消息吧，她在等"),
+    ("父亲节", "给爸爸发条消息吧，他不太会说但在等"),
+    ("教师节", "想起哪位老师就告诉她，一句话就好"),
+    ("国庆", "难得的假期：出去走走或好好躺着，都算数"),
+    ("圣诞", "叮当作响的日子：给在乎的人挑个小礼物"),
+    ("平安夜", "今晚吃颗苹果讨个平安，早点回家"),
+    ("万圣", "南瓜灯的日子：可以鬼混，但别熬夜"),
+    ("感恩", "把「谢谢」说出口的日子：给那个人发条消息"),
+    ("双十一", "购物车满不满都要记得：你最贵"),
+    ("双十二", "年底最后一次大促：囤点让自己开心的"),
+    ("521", "表白日：喜欢就说出来，最坏也就是现在"),
+    ("儿童", "谁还不是个宝宝：今天允许自己幼稚一回"),
+    ("愚人", "玩笑归玩笑，今天别人的话留三分"),
+    ("植树", "种点什么吧——阳台一盆也算"),
+    ("劳动", "劳动者的节日：今天允许自己躺平"),
+    ("青年", "青春正好：去做一件想了很久的事"),
+    ("破五", "初五接财神：求财方位去首页日签卡看，迎一迎"),
+    ("人日", "人人生日：今天对自己好一点，也算过生日"),
+    ("填仓", "填满谷仓的日子：收拾下钱包和冰箱，讨个有余"),
+    ("数九", "数九寒天：把自己裹暖和了再出门"),
+    ("寒食", "不动火的日子：点个外卖也算应景，肠胃轻一天"),
+    ("入伏", "入伏了：接下来的热是正经的，清淡饮食早点睡"),
+    ("腊八", "喝碗热粥暖暖身子，年味从今天开始了"),
+    ("小年", "扫尘祭灶：把家里收拾出一块干净的角落"),
+    ("重阳", "登高望远的好日子，也给家里老人打个电话"),
+    ("龙抬头", "抬头的日子：剪个头发换个心情"),
+    ("花朝", "百花生辰：给自己带一枝花回家"),
+    ("上巳", "春日水边：出去走走，沾沾春气"),
+    ("寒衣", "天冷了：添衣，也记挂记挂故人"),
+    ("下元", "水官解厄日：心里的结今天松一松"),
+    ("中元", "追思的日子：心里记挂着的人，今天点一盏灯"),
+]
+
+
+_DAY_QUOTES = [
+    ("宠辱不惊，闲看庭前花开花落", "菜根谭", "得失这事儿，先别急着往心里去"),
+    ("风来疏竹，风过而竹不留声", "菜根谭", "事过了就让它过，别翻来覆去反刍"),
+    ("天行健，君子以自强不息", "周易", "日子再平，也别忘了给自己上劲"),
+    ("知足者富", "老子", "觉得够了的人，其实已经赢了"),
+    ("上善若水", "老子", "软一点，路反而宽"),
+    ("祸兮福所倚，福兮祸所伏", "老子", "好坏是串门的，别急着下定论"),
+    ("知人者智，自知者明", "老子", "看懂别人是聪明，看懂自己是明白"),
+    ("胜人者有力，自胜者强", "老子", "赢过昨天的自己，今天就算数"),
+    ("千里之行，始于足下", "老子", "先迈今天这一步"),
+    ("大巧若拙", "老子", "看着笨的办法，往往最耐用"),
+    ("己所不欲，勿施于人", "论语", "自己不爱听的，也别递给别人"),
+    ("知者不惑，仁者不忧，勇者不惧", "论语", "心里有数的人，不慌"),
+    ("岁寒，然后知松柏之后凋也", "论语", "难的时候，才知道谁靠得住"),
+    ("三人行，必有我师焉", "论语", "身边的人，都能教你点什么"),
+    ("吾日三省吾身", "论语", "睡前跟自己核对一下，不亏"),
+    ("往者不可谏，来者犹可追", "论语", "过去的追不回，后头的还赶得上"),
+    ("欲速则不达", "论语", "急火煮不熟饭，慢点不丢人"),
+    ("小不忍则乱大谋", "论语", "忍一下，别把整盘掀了"),
+    ("君子坦荡荡", "论语", "心里没疙瘩，走到哪都敞亮"),
+    ("人无远虑，必有近忧", "论语", "往前看一眼，今天就少慌一点"),
+    ("工欲善其事，必先利其器", "论语", "先把家伙什收拾好，活就顺了"),
+    ("知之为知之，不知为不知，是知也", "论语", "承认不知道，才是真知道"),
+    ("哀而不伤", "论语", "可以难过，别让难过当家"),
+    ("不积跬步，无以至千里", "荀子", "每天挪一点，年底吓一跳"),
+    ("锲而不舍，金石可镂", "荀子", "一直磨，硬东西也让路"),
+    ("闲中不放过，忙处有受用", "菜根谭", "闲时攒下的，忙时都用得上"),
+    ("天地有万古，此身不再得", "菜根谭", "这辈子就一次，对自己好点"),
+    ("白日欺人，难逃清夜之愧赧", "菜根谭", "夜里对得起自己，才算赢"),
+    ("伏久者飞必高", "菜根谭", "憋得久的，飞得高"),
+    ("昨日之非不可留，今日之是不可执", "菜根谭", "昨天的错翻篇，今天的对也别攥太死"),
+    ("咬得菜根，则百事可做", "菜根谭", "能把淡日子过好的，什么事都接得住"),
+    ("处世让一步为高，退步即进步的张本", "菜根谭", "让一步不是输，是攒后劲"),
+    ("交友须带三分侠气，做人要存一点素心", "菜根谭", "交朋友仗义点，对自己素净点"),
+    ("路径窄处，留一步与人行", "菜根谭", "窄路上让半步，大家都好过"),
+    ("人有恩于我不可忘，而怨则不可不忘", "菜根谭", "恩记着，怨算了"),
+    ("事有急之不白者，宽之或自明", "菜根谭", "说不清的事，放一放自己就明了"),
+    ("心地上无风涛，随在皆青山绿水", "菜根谭", "心里不起浪，走到哪都是风景"),
+    ("疾风怒雨，禽鸟戚戚；霁日光风，草木欣欣", "菜根谭", "坏天气熬过去，草都在笑"),
+    ("醲肥辛甘非真味，真味只是淡", "菜根谭", "大鱼大肉不是真味，真味是淡"),
+    ("君子之心事，天青日白", "菜根谭", "心里的事能摊在天底下，睡得香"),
+    ("福莫福于少事，祸莫祸于多心", "菜根谭", "最大的福是事少，最大的祸是想多"),
+    ("枝头秋叶，将落犹然恋树", "菜根谭", "秋叶将落还恋树——该走的最难说再见"),
+    ("花繁柳密处拨得开，才是手段", "菜根谭", "热闹里能抽身，才算本事"),
+    ("迷则乐境成苦海，悟则苦海为乐境", "菜根谭", "想不开糖也苦，想开了苦也甜"),
+    ("夜深人静独坐观心", "菜根谭", "夜里跟自己坐坐，才知道想要什么"),
+    ("知足之人，虽卧地上，犹为安乐", "围炉夜话", "知足的人，躺平都香"),
+    ("与朋友交游，须将他好处留心学来", "围炉夜话", "跟朋友处，学他的好"),
+    ("敬他人，即是敬自己", "围炉夜话", "敬人就是敬自己"),
+    ("有才必韬藏，如浑金璞玉", "围炉夜话", "真有货的人，不急着亮"),
+    ("淡中交耐久，静里寿延长", "围炉夜话", "淡淡的交情最耐走"),
+    ("心静则明，水止乃能照物", "围炉夜话", "心一静，事就看清了"),
+    ("家纵贫寒，也须留读书种子", "围炉夜话", "再紧巴，也给脑子留口粮"),
+    ("花不可以无蝶，山不可以无泉", "小窗幽记", "花要配蝶，日子要配点甜"),
+    ("千载奇逢，无如好书良友", "小窗幽记", "千年难遇的，是好书和好朋友"),
+    ("留七分正经以度生，留三分痴呆以防死", "小窗幽记", "七分认真过日子，三分糊涂护自己"),
+    ("先淡后浓，先疏后亲，交友道也", "小窗幽记", "交情慢慢热，最稳"),
+    ("路遥知马力，日久见人心", "增广贤文", "日子长了，真心假意都现形"),
+    ("良言一句三冬暖，恶语伤人六月寒", "增广贤文", "好话一句，顶一冬暖气"),
+    ("责人之心责己，恕己之心恕人", "增广贤文", "拿量别人的尺量自己，拿谅自己的心谅别人"),
+    ("有意栽花花不发，无心插柳柳成荫", "增广贤文", "使劲的不成，随手的成了——缘分别拧"),
+]
+
+def _day_quote_for(d) -> tuple[str, str, str]:
+    """每日古话——与前端 _dayPick(_DAY_QUOTES,'dq') 同池同哈希：
+    h=h*31+charCodeAt（UTF-16，BMP 内与 ord 相同），再取模。"""
+    h = 0
+    for _ch in f"dq|{d.isoformat()}":
+        h = (h * 31 + ord(_ch)) & 0xFFFFFFFF
+    return _DAY_QUOTES[h % len(_DAY_QUOTES)]
+
+def _fest_tip(fest_name: str) -> str:
+    _n = fest_name or ""
+    for _k2, _t2 in _FEST_TIP:
+        if _k2 in _n:
+            return _t2
+    return ""
+
+
 # 第 N 个周日类节日：(月, weekday[周一=0], 第几个)
 _HOLIDAY_NTH = {
     "母亲节": (5, 6, 2), "父亲节": (6, 6, 3), "感恩节": (11, 3, 4),
@@ -2371,6 +2516,223 @@ _FEST_LUNAR = {
     # R3314（R3311-中2）：民俗小节日也报到。
     (1, 5): "破五", (1, 7): "人日", (1, 25): "填仓节",
 }
+
+
+# R4106：命名日下一发生日反查——「X什么时候」与「X那天穿什么」
+# 共用一条解析。返回 (date, 名称)，没认出来的名字给 (None, "")。
+# 顺序：节气全表 → 跨年/新年口语词 → 公历节 → 除夕 → 农历节。
+def _sanfu(year: int):
+    """三伏日对：(初伏首日, 末伏末日=出伏)；算法同 _festival_for 庚日计。"""
+    try:
+        from guji import bazi as bazi_mod
+        xz = (bazi_mod.term_time(year, "夏至") + timedelta(hours=8)).date()
+        lq = (bazi_mod.term_time(year, "立秋") + timedelta(hours=8)).date()
+        ru = mo = None
+        cnt = 0
+        for _k in range(0, 60):
+            _dd = xz + timedelta(days=_k)
+            if bazi_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day))[0][0] == "庚":
+                cnt += 1
+                if cnt == 3:
+                    ru = _dd
+                    break
+        for _k in range(0, 20):
+            _dd = lq + timedelta(days=_k)
+            if bazi_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day))[0][0] == "庚":
+                mo = _dd + timedelta(days=9)
+                break
+        return ru, mo
+    except Exception:
+        return None, None
+
+
+def _bday_next(today: date, mo: int, d: int) -> date | None:
+    """生日的下一发生日；2/29 非闰年按 3/1 过（与档案倒数同口径）。"""
+    for _yy in (today.year, today.year + 1):
+        try:
+            _c = date(_yy, mo, d)
+        except ValueError:
+            _c = date(_yy, 3, 1)
+        if _c >= today:
+            return _c
+    return None
+
+
+def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
+                    personal: dict | None = None):
+    from guji.bazi import TERM_LONGITUDE, term_time
+    # R4131：个人纪念日先判——「我生日/TA 生日那天…」比节气名
+    # 优先（生日数据来自客户端档案事实表）。
+    if personal:
+        for _pn, _pd in personal.items():
+            if _pn in msg:
+                return _pd, _pn
+    # 「小满」是本应用吉祥物名、「大雪/小雪/大寒/小寒」常是天气
+    # 语境——隐式调用（命名日迁移）不许它们挪日子；显式反查
+    # （allow_ambi）放行后三个，但「小满」哪怕显式问也只在
+    # 句里带「节气」时才按节气解，否则是在叫小满本人。
+    _ambi = {"大雪", "小雪", "大寒", "小寒"}
+    tname = next(
+        (t for t in TERM_LONGITUDE
+         if t in msg and t != "小满"
+         and (allow_ambi or t not in _ambi)), "")
+    if not tname and "小满" in msg and "节气" in msg:
+        tname = "小满"
+    if tname:
+        for yy in (today.year, today.year + 1):
+            cand = (term_time(yy, tname) + timedelta(hours=8)).date()
+            if cand >= today:
+                return cand, tname
+        return None, ""
+    if "跨年" in msg:
+        cand = date(today.year, 12, 31)
+        if cand < today:
+            cand = date(today.year + 1, 12, 31)
+        return cand, "跨年夜"
+    if "新年" in msg:
+        cand = date(today.year, 1, 1)
+        if cand < today:
+            cand = date(today.year + 1, 1, 1)
+        return cand, "新年（元旦）"
+    # R4251：「年底/年末/岁尾」+「2026还有几天」年尾倒数——
+    # 非节名但用户当日子问，解到该年 12/31。
+    if any(k in msg for k in ("年底", "年末", "岁尾")):
+        _ey9 = today.year + (
+            1 if (today.month, today.day) > (12, 20) else 0)
+        return date(_ey9, 12, 31), "年底"
+    _ym9 = re.search(r"(20\d\d).*?(还有|剩|到|倒数)", msg)
+    if _ym9 and 2024 <= int(_ym9.group(1)) <= 2100:
+        _yy9 = int(_ym9.group(1))
+        _c9 = date(_yy9, 12, 31)
+        if _c9 >= today:
+            return _c9, f"{_yy9}年"
+    for (mm2, dd2), fv in _FEST_SOLAR.items():
+        if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
+               for p2 in fv.split("·")):
+            cand = date(today.year, mm2, dd2)
+            if cand < today:
+                cand = date(today.year + 1, mm2, dd2)
+            return cand, fv
+    # 月第 N 周节（感恩/母亲/父亲/黑五）——_festival_for 同表，
+    # 「黑五」别名按显示名判。
+    for _hn, (_hm3, _wd3, _nth3) in _HOLIDAY_NTH.items():
+        if _hn in msg or any(
+                _al2 in msg and _disp2 == _hn
+                for _al2, _disp2 in _HOLIDAY_QUERY_ALIAS.items()):
+            cand = _nth_weekday(today.year, _hm3, _wd3, _nth3)
+            if cand < today:
+                cand = _nth_weekday(today.year + 1, _hm3, _wd3, _nth3)
+            return cand, _hn
+    # R4266：复活节——Computus 算经（春分后第一个满月后的周日），
+    # 比静态表永远准一年：2026-04-05 / 2027-03-28。
+    if "复活节" in msg:
+        def _easter(_ey: int) -> date:
+            _a = _ey % 19
+            _b, _c = divmod(_ey, 100)
+            _d0, _e = divmod(_b, 4)
+            _f = (_b + 8) // 25
+            _g = (_b - _f + 1) // 3
+            _h = (19 * _a + _b - _d0 - _g + 15) % 30
+            _i, _k = divmod(_c, 4)
+            _l = (32 + 2 * _e + 2 * _i - _h - _k) % 7
+            _mm2 = (_a + 11 * _h + 22 * _l) // 451
+            _mo2 = (_h + _l - 7 * _mm2 + 114) // 31
+            _dd2 = (_h + _l - 7 * _mm2 + 114) % 31 + 1
+            return date(_ey, _mo2, _dd2)
+        _ce9 = _easter(today.year)
+        if _ce9 < today:
+            _ce9 = _easter(today.year + 1)
+        return _ce9, "复活节"
+    # 寒食节——清明前一天（冬至后105日古制）。
+    if "寒食" in msg:
+        for _cy9 in (today.year, today.year + 1):
+            _qd9 = term_time(_cy9, "清明").date()
+            _hs9 = _qd9 - timedelta(days=1)
+            if _hs9 >= today:
+                return _hs9, "寒食节"
+    # 「大年三十/正月十五」俗语日——除夕=次年正月初一前一天，
+    # 正月十五=元宵节（lunar 表真转，不走近似日）。
+    if "大年三十" in msg or "年三十" in msg:
+        for _yy9 in (today.year, today.year + 1):
+            _cd9 = lunar.lunar_to_solar(_yy9, 1, 1) - timedelta(days=1)
+            if _cd9 >= today:
+                return _cd9, "除夕"
+    if any(k in msg for k in ("正月十五", "上元", "灯节")):
+        for _yy9 in (today.year, today.year + 1):
+            _cd9 = lunar.lunar_to_solar(_yy9, 1, 15)
+            if _cd9 >= today:
+                return _cd9, "元宵节"
+    if "618" in msg:
+        _c9 = date(today.year, 6, 18)
+        if _c9 < today:
+            _c9 = date(today.year + 1, 6, 18)
+        return _c9, "618"
+    # 口语别名→正式节日名——「光棍节/520/双11」嘴上这么说。
+    _FEST_ALIAS = {"光棍节": "双十一", "双11": "双十一",
+                   "520": "网络情人节",
+                   # R4242：「五一/十一长假」口语——「十一」裸词歧义大
+                   #（11月/双十一常撞），只认长假说法。
+                   "五一": "劳动节", "十一长假": "国庆节",
+                   "十一假期": "国庆节", "十一黄金周": "国庆节"}
+    for _al9, _disp9 in _FEST_ALIAS.items():
+        if _al9 in msg and _disp9 not in msg:
+            for (_am, _ad), _fv9 in _FEST_SOLAR.items():
+                if _fv9 == _disp9:
+                    cand = date(today.year, _am, _ad)
+                    if cand < today:
+                        cand = date(today.year + 1, _am, _ad)
+                    return cand, _disp9
+    # 三伏/数九——_festival_for 认得的时令节点，反查也该有。
+    if any(k in msg for k in ("入伏", "三伏", "头伏", "初伏", "出伏")):
+        _ru2, _mo2 = _sanfu(today.year)
+        if "出伏" in msg:
+            if _mo2 is not None and _mo2 >= today:
+                return _mo2, "出伏"
+            _ru3, _mo3 = _sanfu(today.year + 1)
+            if _mo3 is not None:
+                return _mo3, "出伏"
+        elif _ru2 is not None:
+            # 正在三伏内→给今年入伏日；过了→给明年的。
+            if _mo2 is not None and _ru2 <= today <= _mo2:
+                return _ru2, "入伏"
+            if _ru2 >= today:
+                return _ru2, "入伏"
+            _ru3, _m3 = _sanfu(today.year + 1)
+            if _ru3 is not None:
+                return _ru3, "入伏"
+    if "数九" in msg:
+        from guji.bazi import term_time as _tt9
+        _end9 = any(k in msg for k in ("结束", "完", "出九"))
+        for _yy9 in (today.year - 1, today.year, today.year + 1):
+            _dz9 = (_tt9(_yy9, "冬至") + timedelta(hours=8)).date()
+            _d99 = _dz9 + timedelta(days=80)
+            if _dz9 <= today <= _d99:
+                return (_d99, "出九") if _end9 else (_dz9, "数九")
+        for _yy9 in (today.year, today.year + 1):
+            _dz9 = (_tt9(_yy9, "冬至") + timedelta(hours=8)).date()
+            _d99 = _dz9 + timedelta(days=80)
+            if _dz9 > today:
+                return (_d99, "出九") if _end9 else (_dz9, "数九")
+    if "除夕" in msg:
+        from guji import lunar as _lx
+        for yy in (today.year, today.year + 1):
+            cand = _lx.lunar_to_solar(
+                yy - 1, 12, _lx.month_days(yy - 1, 12))
+            if cand >= today:
+                return cand, "除夕"
+        return None, ""
+    from guji import lunar as _ly
+    for (lm2, ld2), fv in _FEST_LUNAR.items():
+        if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
+               for p2 in fv.split("·")):
+            for yy in (today.year, today.year + 1):
+                cand = _ly.lunar_to_solar(yy, lm2, ld2)
+                if cand >= today:
+                    return cand, fv
+            return None, ""
+    return None, ""
 
 
 # R2349l（R73-P1-7）：星座速配——四象分组兼容表，确定性零 LLM。
@@ -2837,6 +3199,14 @@ def _week_sky(d: date) -> list:
                 tn = _term_name_for(dd)
                 if tn:
                     evs.append({"d": lab, "t": "🍂 " + tn})
+            except Exception:
+                pass
+            # R4161：节日节点同进预告——重阳/双十一这类曾只靠
+            # 当天节日行冒头，前瞻里零曝光（公历/农历/月第N周节
+            # 与节日行同一条 _festival_for）。
+            try:
+                for _fe in _festival_for(dd):
+                    evs.append({"d": lab, "t": "🎉 " + _fe})
             except Exception:
                 pass
             for tbl, nm in ((_MERCURY_RETRO, "水逆"),
@@ -4147,6 +4517,21 @@ _CHAT_ACTIONS = [
      "百签真本——默念想问的事摇一支，今天的签不会变，签面可晒图；"
      "让她去那儿摇，抽完回来接着聊签上怎么说",
      "qian", "🎋 去摇今日签", None),
+    # R4156：择日路标——黄历是核心功能却此前无入口：「哪天适合
+    # 搬家/什么时候领证好/挑日子」全漏。收意图词（「好日子」
+    # 裸词不收——「今天是个好日子」是寒暄不是导航）。
+    (("黄历", "宜忌", "择日", "挑日子", "选日子", "挑个日子",
+      "哪天适合", "什么时候适合", "适合搬家", "适合开业", "适合领证",
+      "适合结婚", "适合表白", "适合动土", "适合出行", "吉日",
+      "良辰", "宜什么",
+      # 场合名词本身即择日意图（「什么时候领证好」「哪天订婚」）。
+      "领证", "订婚", "结婚", "婚礼", "嫁娶", "乔迁", "入宅",
+      "搬家", "开业", "开张", "动土", "装修", "提亲", "摆酒",
+      "办喜事", "出远门"),
+     "她想挑日子，铺子里有真入口：首页宫格「黄历」卡看今日宜忌、"
+     "还能往后翻挑个宜某某的好日子（吉日挑选就在黄历页），"
+     "让她去那儿翻，翻完回来接着聊",
+     "huangli", "🌙 去翻黄历挑日子", None),
     # R3702：每日古话路标——日行 📜 行已落地。「古话/名言/古文」
     # 词族指到首页日行那条；与答案之书（翻页出答案）分开，这是
     # 看一句不是求一句。
@@ -4523,7 +4908,8 @@ def _day_mantra(date_str: str) -> str:
     return _MANTRA_POOL[h % len(_MANTRA_POOL)]
 
 
-def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
+def chat_daily_facts(message: str, now: datetime | None = None,
+                     facts: list[str] | None = None) -> list[str]:
     """R3331（审-中2/3/4）：当日派生事实按问句主题注入——
     水逆/穿搭色/咒语问句此前零供给，小满自由发挥出口径分裂
     （答「今天没有水逆」当日正值水逆第 3 天；咒语每次现编
@@ -4533,6 +4919,28 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
         return []
     _d = (now or _now_cn()).date()
     out: list[str] = []
+    # R4131：档案事实里挖生日→命名日 personal 档——「我生日那天
+    # 穿什么/TA 生日那天月亮」与节气名同一条解析链。
+    _personal: dict = {}
+    for _pf in facts or []:
+        _m5 = _BIRTHDAY_FACT_RE.match(str(_pf).strip())
+        _p5 = _BIRTHDAY_PARTNER_RE.match(str(_pf).strip())
+        if not _m5 and not _p5:
+            continue
+        _mm5 = _m5 or _p5
+        try:
+            _by, _bm, _bd = (int(_mm5.group(1)), int(_mm5.group(2)),
+                             int(_mm5.group(3)))
+            _nb5 = _bday_next(_d, _bm, _bd)
+        except Exception:
+            continue
+        if _m5:
+            for _k5 in ("我生日", "我的生日", "自己生日"):
+                _personal[_k5] = _nb5
+        else:
+            for _k5 in ("TA生日", "他生日", "她生日", "对象生日",
+                        "另一半生日", "伴侣生日"):
+                _personal[_k5] = _nb5
     try:
         # R3991/R3996：「明天/明日/第二天/后天」问句族——穿搭/月相/
         # 节日/星座共用一次判定，各块取 _dd/_pfx 出对应日数据。
@@ -4582,6 +4990,30 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                         _dl = 6
                 _dd = _d + timedelta(days=_dl)
                 _pfx = "下周末" if "下周末" in _n else "周末"
+            # R4106：「立冬穿什么/中秋月亮圆不圆」命名日也走偏移——
+            # 只在日值域问句生效（穿/开运色/星座/运势/月相），
+            # 「中秋快乐」这类问候不挪日子。
+            if _dd == _d and any(
+                    k in _n for k in
+                    ("穿", "开运色", "运势", "运气", "星座",
+                     "月亮", "满月", "新月", "月相",
+                     # R4171c：黄历坐标词同享命名日迁移——
+                     # 「立冬那天冲什么」该出立冬的煞。
+                     "值神", "冲煞", "冲什么", "煞哪", "彭祖", "百忌",
+                     "建除", "黄道", "黑道", "吉神", "凶煞", "岁破",
+                     "日课", "宜", "忌", "适合",
+                     # R4181：日档/吉时/财神/幸运数同享迁移——
+                     # 「立冬那天日子怎么样」出立冬的档。
+                     "日子", "吉时", "财神", "幸运数字", "幸运数",
+                     "时辰", "贵人", "五行", "干支",
+                     # R4226：今日牌同享迁移——「立冬那天的牌」出立冬牌。
+                     "塔罗", "日签", "今日牌", "每日一牌", "的牌",
+                     "抽什么牌",
+                     # R4231：日课/食俗同享迁移——「立冬那天吃什么」。
+                     "吃", "建议", "日课", "干嘛")):
+                _ndn, _vn = _next_named_day(_n, _d, personal=_personal)
+                if _ndn is not None:
+                    _dd, _pfx = _ndn, _vn
         if any(k in _n for k in ("水逆", "水星逆行")):
             _m = _mercury_state(_d)
             if _m.get("on"):
@@ -4775,6 +5207,26 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                 if _mo.get("label"):
                     out.append(f"{_pfx}月相：{_mo['label']}"
                                f"（{_mo.get('line', '')}）")
+                # R4111：「下次满月/新月什么时候」——只报今日相位
+                # 不答日期的缺口补齐。仍走农历口径（初一/十五），
+                # 与 _week_sky 许愿/复盘事件同表。
+                if any(k in _n for k in ("什么时候", "几号", "哪天",
+                                         "下次", "下一次", "还有几天")):
+                    _want = ("满月" if ("满月" in _n or "月圆" in _n)
+                             else ("新月" if ("新月" in _n or "月缺" in _n)
+                                   else ""))
+                    if _want:
+                        _wlbl = {"满月": "满月复盘", "新月": "新月许愿"}[_want]
+                        if _mo.get("label") == _wlbl:
+                            out.append(f"下次{_want}：就是今天")
+                        else:
+                            for _i5 in range(1, 40):
+                                _md5 = _d + timedelta(days=_i5)
+                                if _moon_for(_md5).get("label") == _wlbl:
+                                    out.append(
+                                        f"下次{_want}：{_md5.month}月"
+                                        f"{_md5.day}日（还有{_i5}天）")
+                                    break
             except Exception:
                 pass
         # R3886：当日节日名活事实——问「今天什么节/X节快乐」手里
@@ -4791,84 +5243,899 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                                  "双十一", "光棍", "黑五", "七夕节")):
             try:
                 _fn = _festival_for(_dd, "")
-                if _fn:
-                    out.append(f"{_pfx}节日：{'、'.join(_fn)}")
-                elif any(k in _n for k in ("什么节", "啥节日", "节日",
-                                           "过节")):
-                    _nopf = _pfx if _pfx != "今日" else "今天"
-                    out.append(f"{_pfx}节日：{_nopf}没排上节日名")
+                # R4116：命名日已把节日名挂在前缀（「中秋节穿什么」）
+                # ——节日行复读同名属噪声，只剩「除夕、数九」式补充才留。
+                _fkeep = [x for x in _fn
+                          if x != _pfx and x not in _pfx] if _fn else []
+                if _fkeep:
+                    _ft9 = _fest_tip(_fkeep[0])
+                    out.append(f"{_pfx}节日：{'、'.join(_fkeep)}"
+                               + (f"（{_ft9}）" if _ft9 else ""))
+                elif not _fn and any(
+                        k in _n for k in ("什么节", "啥节日", "节日",
+                                          "过节")):
+                    # R4196b：「重阳是什么节」点的是重阳不是今天——
+                    # 能解出点名日就给它的真日期，别答「今天没节」。
+                    _nd3, _v3 = _next_named_day(_n, _d,
+                                                personal=_personal)
+                    if _nd3 is not None:
+                        _dl5 = (_nd3 - _d).days
+                        _tip5 = _fest_tip(_v3)
+                        out.append(
+                            f"{_v3}：{_nd3.month}月{_nd3.day}日"
+                            + ("（就是今天）" if _dl5 == 0
+                               else f"（还有{_dl5}天）" if _dl5 > 0
+                               else "")
+                            + (f"（{_tip5}）" if _tip5 else ""))
+                    else:
+                        _nopf = _pfx if _pfx != "今日" else "今天"
+                        out.append(f"{_pfx}节日：{_nopf}没排上节日名")
+            except Exception:
+                pass
+        # R4171：黄历坐标活事实——值神/冲煞/彭祖百忌/建除/日课，
+        # 与黄历卡同源（huangli() 单日坐标），命名日迁移同享。
+        if any(k in _n for k in ("值神", "吉神", "凶煞", "黄道", "黑道",
+                                 "冲什么", "冲煞", "煞哪", "冲哪个",
+                                 "冲我", "克我", "旺我", "跟我冲",
+                                 "跟我属相", "冲咱",
+                                 "岁破", "日破", "月破", "四离", "四绝",
+                                 "杨公", "受死", "彭祖", "百忌", "建除",
+                                 "除日", "危日", "收日", "开日", "闭日",
+                                 "执日", "破日", "成日", "平日", "定日",
+                                 "满日", "建日", "日课")):
+            try:
+                _hl9 = huangli(_dd.isoformat())
+                _zs9 = _hl9.get("zhishen")
+                if _zs9 and any(k in _n for k in
+                                ("值神", "吉神", "凶煞", "黄道", "黑道")):
+                    out.append(
+                        f"{_pfx}值神：{_zs9}"
+                        f"（{'黑道日' if _hl9.get('zhishen_ji') else '黄道日'}）")
+                _cs9 = _hl9.get("chongsha") or {}
+                if _cs9.get("chong_animal") and any(
+                        k in _n for k in ("冲", "煞", "克我", "旺我")):
+                    out.append(
+                        f"{_pfx}冲煞：冲{_cs9['chong_animal']}"
+                        f"（{_cs9['chong']}），煞{_cs9.get('sha_fang', '')}方")
+                    # R4246c：「冲我属相吗/克我吗/旺我吗」个人判定——
+                    # 存了生日的人直接比今日冲煞与六合，给结论不绕。
+                    if any(k in _n for k in (
+                            "冲我", "克我", "旺我", "跟我冲", "跟我合",
+                            "合不合我", "冲咱", "跟我属相", "对我")):
+                        _SX9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                        _m9 = next(
+                            (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                             for _fp in facts or []
+                             if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                            None)
+                        if _m9:
+                            _lz9u = lunar.solar_to_lunar(
+                                int(_m9.group(1)), int(_m9.group(2)),
+                                int(_m9.group(3)))
+                            _uz9 = _SX9[
+                                "子丑寅卯辰巳午未申酉戌亥".index(
+                                    _lz9u.get("ganzhi_year", "  ")[1])]
+                            _czh9 = (_hl9.get("chongsha") or {}).get(
+                                "chong", "")
+                            _dz9c = (huangli_mod.day_ganzhi(datetime(
+                                _dd.year, _dd.month, _dd.day, 12)
+                            ) or ["", ""])[1]
+                            _lh9c = LIU_HE.get(_dz9c, "")
+                            _Z2A9 = {"子": "鼠", "丑": "牛", "寅": "虎",
+                                     "卯": "兔", "辰": "龙", "巳": "蛇",
+                                     "午": "马", "未": "羊", "申": "猴",
+                                     "酉": "鸡", "戌": "狗", "亥": "猪"}
+                            if _uz9 == _cs9.get("chong_animal"):
+                                out.append(
+                                    f"对你：属{_uz9}——今天冲的就是"
+                                    f"你的属相（{_czh9}），诸事宜缓")
+                            elif _Z2A9.get(_lh9c) == _uz9:
+                                out.append(
+                                    f"对你：属{_uz9}——今天日支跟你是"
+                                    "六合，反而旺你")
+                            else:
+                                out.append(
+                                    f"对你：属{_uz9}——今天冲的是"
+                                    f"属{_cs9['chong_animal']}，不冲你")
+                _pz9 = _hl9.get("pengzu") or {}
+                if _pz9.get("gan_text") and any(
+                        k in _n for k in ("彭祖", "百忌")):
+                    out.append(
+                        f"{_pfx}彭祖百忌：{_pz9['gan_text']}；"
+                        f"{_pz9['zhi_text']}")
+                _jc9 = _hl9.get("jianchu")
+                if _jc9 and any(k in _n for k in
+                                ("建除", "除日", "危日", "收日", "开日",
+                                 "闭日", "执日", "破日", "成日", "平日",
+                                 "定日", "满日", "建日")):
+                    out.append(f"{_pfx}建除十二神：{_jc9}日")
+                _fl9 = _hl9.get("day_flags") or []
+                if any(k in _n for k in ("岁破", "日破", "月破", "四离",
+                                         "四绝", "杨公", "受死", "日课")):
+                    out.append(
+                        f"{_pfx}日课：{'、'.join(_fl9) if _fl9 else '无大凶课'}")
+            except Exception:
+                pass
+        # R4176：宜忌活事实——与日行卡同源（do/dont 人话行）；
+        # 「今天适合搬家吗」给宜忌清单让她自己判断，比空手乱答强。
+        if any(k in _n for k in ("宜什么", "忌什么", "宜忌", "适合做什么",
+                                 "适合干啥", "适不适合", "该不该", "能不能做",
+                                 "宜出行", "宜搬", "宜领", "宜结", "宜动土",
+                                 "宜开", "宜装修", "忌出行", "忌搬",
+                                 "忌动土", "忌开", "忌装修", "忌结",
+                                 "适合搬", "适合领", "适合结婚", "适合出行",
+                                 "适合开业", "适合动土", "适合装修",
+                                 "适合表白", "适合做什么")):
+            try:
+                # 与 daily() 同源：day_query 真宜忌 + _hl_spoken 白话行。
+                _dq9 = huangli_mod.day_query(
+                    datetime(_dd.year, _dd.month, _dd.day, 12))
+                _dyi9, _dji9 = _dq9.get("yi") or [], _dq9.get("ji") or []
+                if _dyi9 or _dji9:
+                    out.append(
+                        f"{_pfx}宜忌：宜 {_hl_spoken(_dyi9) or '—'}｜"
+                        f"忌 {_hl_spoken(_dji9) or '—'}")
+            except Exception:
+                pass
+        # R4181：日档/幸运数/财神方位/吉时活事实——日档与日签卡同源
+        # （bazi_calc + fortune_level），财神走 huangli_mod.caishen_fang，
+        # 吉时走黄历小时辰吉凶表。
+        if any(k in _n for k in ("日子怎么样", "什么日子", "吉日", "大吉",
+                                 "凶日", "日子好不", "日子如何", "什么档",
+                                 "幸运数字", "幸运数", "财神方位",
+                                 "财神在哪", "财神向哪", "吉时", "好时辰",
+                                 "几点好", "几点吉")):
+            try:
+                if any(k in _n for k in ("幸运数字", "幸运数")):
+                    _lk9 = _lucky_for(_dd)
+                    if _lk9.get("num"):
+                        out.append(
+                            f"{_pfx}幸运数字：{_lk9['num']}"
+                            f"（开运色{_lk9.get('color', '')}）")
+                # R4276 起：财神/方位问句统一走方向神块（喜神/福神/
+                # 贵人/煞方一口袋+方向判定），这里不再单发财神行。
+                if any(k in _n for k in ("吉时", "好时辰", "几点好",
+                                         "几点吉")):
+                    _hrs = huangli(_dd.isoformat()).get("hours") or []
+                    _gs = [f"{h['branch']}时（{h['shen']}）"
+                           for h in _hrs if h.get("ji")]
+                    out.append(
+                        f"{_pfx}吉时：{'、'.join(_gs) if _gs else '没排上'}")
+                if any(k in _n for k in ("日子怎么样", "什么日子", "吉日",
+                                         "大吉", "凶日", "日子好不",
+                                         "日子如何", "什么档")):
+                    _b9 = bazi_compute(_dd.year, _dd.month, _dd.day, 12, "男")
+                    _lv9 = fortune_level(
+                        bazi_calc(_b9, ask_date=_dd.isoformat()),
+                        day=datetime(_dd.year, _dd.month, _dd.day, 12))
+                    _lvh = {"吉": "吉日", "小吉": "小吉日",
+                            "平": "平常日", "凶": "避雷日"}.get(_lv9, _lv9)
+                    out.append(f"{_pfx}日档：{_lvh}")
+            except Exception:
+                pass
+        # R4186：贵人属相活事实——与日签卡 noble/noble_liuhe 同源：
+        # 天乙贵人（日干推）+ 日支六合合拍生肖。
+        if any(k in _n for k in ("贵人", "帮我", "合伙", "合拍",
+                                 "找谁", "搭伙")):
+            try:
+                _dt9 = datetime(_dd.year, _dd.month, _dd.day, 12)
+                _gr9 = huangli_mod.guiren(_dt9)
+                _dz9 = (huangli_mod.day_ganzhi(_dt9) or ["", ""])[1]
+                _lh9 = LIU_HE.get(_dz9, "")
+                _an = {"子": "鼠", "丑": "牛", "寅": "虎", "卯": "兔",
+                       "辰": "龙", "巳": "蛇", "午": "马", "未": "羊",
+                       "申": "猴", "酉": "鸡", "戌": "狗", "亥": "猪"}
+                _gra = "、".join(
+                    f"属{_an.get(z, z)}" for z in _gr9)
+                if _gra or _lh9:
+                    out.append(
+                        f"{_pfx}贵人：{_gra or '—'}"
+                        + (f"，合拍属{_an.get(_lh9, _lh9)}"
+                           if _lh9 else ""))
+            except Exception:
+                pass
+        # R4191：日干支/日干五行活事实——与黄历卡 ganzhi_day_cn 同源。
+        # R4246b：「我属什么/我五行缺什么」是问人不问日——人称词在句
+        # 就跳过（profile_facts 档已给生肖/日主五行），别拿日干支充数。
+        if any(k in _n for k in ("五行", "干支", "属什么", "纳音",
+                                 "天干地支", "什么日")) \
+                and not any(k in _n for k in (
+                    "我属", "我什么命", "我五行", "TA属", "ta属", "他属",
+                    "她属", "俺属", "对象属", "老公属", "老婆属",
+                    "男朋友属", "女朋友属", "TA的五行", "TA什么命")):
+            try:
+                _gd9 = huangli_mod.day_ganzhi(
+                    datetime(_dd.year, _dd.month, _dd.day, 12))
+                _g9, _z9 = _gd9[0], _gd9[1]
+                _wx9 = {"甲": "木", "乙": "木", "丙": "火", "丁": "火",
+                        "戊": "土", "己": "土", "庚": "金", "辛": "金",
+                        "壬": "水", "癸": "水"}
+                out.append(
+                    f"{_pfx}日干支：{_g9}{_z9}日"
+                    f"（日干{_g9}属{_wx9.get(_g9, '')}）")
+            except Exception:
+                pass
+        # R4206：合拍日支信号——已存 CP 时问「我们合拍吗/跟TA合不合」
+        # 给当日日支信号（与合拍页 _sig 同式：今日日支 vs 双方日支
+        # 的合/冲/半合/害/刑/破；分数要全盘，这里给感受标签）。
+        if any(k in _n for k in ("合拍指数", "合拍吗", "合不合",
+                                 "我们合", "我俩", "跟TA", "跟ta",
+                                 "跟对象", "和对象", "跟另一半")):
+            try:
+                _ub9 = _pb9 = None
+                for _pf9 in facts or []:
+                    _m9 = _BIRTHDAY_FACT_RE.match(str(_pf9).strip())
+                    _p9 = _BIRTHDAY_PARTNER_RE.match(str(_pf9).strip())
+                    if _m9:
+                        _ub9 = (int(_m9.group(1)), int(_m9.group(2)),
+                                int(_m9.group(3)))
+                    elif _p9:
+                        _pb9 = (int(_p9.group(1)), int(_p9.group(2)),
+                                int(_p9.group(3)))
+                if _ub9 and _pb9:
+                    _tz9 = _bazi_day_ganzhi(
+                        datetime(_dd.year, _dd.month, _dd.day))[0][1]
+                    _uz9 = _bazi_day_ganzhi(datetime(*_ub9))[0][1]
+                    _pz9 = _bazi_day_ganzhi(datetime(*_pb9))[0][1]
+
+                    def _sg9(dz):
+                        if hehun_mod.SIX_COMBINE.get(_tz9) == dz:
+                            return "合"
+                        if hehun_mod.SIX_CLASH.get(_tz9) == dz:
+                            return "冲"
+                        if hehun_mod.half_combine(_tz9, dz):
+                            return "半合"
+                        if hehun_mod.is_harm(_tz9, dz):
+                            return "害"
+                        if hehun_mod.is_xing(_tz9, dz):
+                            return "刑"
+                        if hehun_mod.is_break(_tz9, dz):
+                            return "破"
+                        return ""
+
+                    _sigs = [_sg9(_uz9), _sg9(_pz9)]
+                    _tag9 = ""
+                    if "冲" in _sigs:
+                        _tag9 = "今天你们容易顶起来，别翻旧账"
+                    elif "合" in _sigs:
+                        _tag9 = "今天你们格外对味，适合把话说开"
+                    elif "半合" in _sigs:
+                        _tag9 = "今天你们慢慢对味，适合一起做点小计划"
+                    elif "害" in _sigs or "刑" in _sigs or "破" in _sigs:
+                        _tag9 = "今天你们容易有小别扭，多点耐心就好"
+                    else:
+                        _tag9 = "今天你们信号平平，正常过就好"
+                    out.append(f"{_pfx}合拍信号：{_tag9}")
+            except Exception:
+                pass
+        # R4211：个人能量/十神行——存了生日的人问「我今天怎么样/
+        # 我的运势/今天能量」给 daily(bday=) 的 personal 真行
+        # （日主×十神日 + 电量分 + 盘冲合），与能量卡同源。
+        if any(k in _n for k in ("我的运势", "我今天怎么样", "我今天如何",
+                                 "今天能量", "我的能量", "今天电量",
+                                 "我今天适合", "我今天的运势", "我运势",
+                                 "我明天怎么样", "我明天运势",
+                                 "明天的运势", "明天能量", "我后天")):
+            try:
+                _ub10 = None
+                for _pf10 in facts or []:
+                    _m10 = _BIRTHDAY_FACT_RE.match(str(_pf10).strip())
+                    if _m10:
+                        _ub10 = (int(_m10.group(1)), int(_m10.group(2)),
+                                 int(_m10.group(3)))
+                        break
+                if _ub10:
+                    _per = daily(_dd.isoformat(),
+                                 bday="{:04d}-{:02d}-{:02d}".format(
+                                     *_ub10)).get("personal") or {}
+                    _eg = _per.get("energy") or {}
+                    if _per.get("line"):
+                        out.append(f"{_pfx}你的十神日：{_per['line']}")
+                    if _eg.get("line"):
+                        out.append(
+                            f"{_pfx}电量：{_eg['line']}"
+                            + (f"（{_eg.get('score')}/100）"
+                               if _eg.get("score") is not None else ""))
+                    _mn = _per.get("mine") or {}
+                    if _mn.get("line") and _mn.get("tone") != "flat":
+                        out.append(f"{_pfx}你的盘：{_mn['line']}")
+            except Exception:
+                pass
+        # R4226：今日牌问句——与卡面「🃏 今日牌」同源（daily 确定性
+        # 日 seed，同日全站同一张大阿卡纳）。
+        if any(k in _n for k in ("塔罗", "日签", "今日牌", "每日一牌",
+                                 "的牌", "抽到什么牌", "抽什么牌")):
+            try:
+                _dc9 = daily(_dd.isoformat()).get("daily_card") or {}
+                if _dc9.get("name"):
+                    out.append(
+                        f"{_pfx}塔罗牌：{_dc9['name']}"
+                        f"（{'正位' if _dc9['upright'] else '逆位'}）"
+                        f"——{_dc9.get('keywords') or ''}；"
+                        f"{_dc9.get('meaning') or ''}")
+            except Exception:
+                pass
+        # R4236：「现在几点/几点了」——中国时区时钟真值。
+        if any(k in _n for k in ("几点了", "几点钟", "现在几点",
+                                 "现在时间", "什么时候了",
+                                 "上午还是下午", "早上还是晚上")):
+            try:
+                _now9 = now or _now_cn()
+                out.append(
+                    f"现在：{_now9.hour}点{_now9.minute:02d}分"
+                    f"（{_d.month}月{_d.day}日）")
+            except Exception:
+                pass
+        # R4256：「现在什么时辰/子时到了吗」——十二时辰可真算：
+        # 点映射（子 23-1 / 丑 1-3 / 寅 3-5 / 卯 5-7 / 辰 7-9 /
+        # 巳 9-11 / 午 11-13 / 未 13-15 / 申 15-17 / 酉 17-19 /
+        # 戌 19-21 / 亥 21-23），问「X时到了吗」点名时给还差几小时。
+        if any(k in _n for k in ("时辰", "子时", "丑时", "寅时",
+                                 "卯时", "辰时", "巳时", "午时",
+                                 "未时", "申时", "酉时", "戌时",
+                                 "亥时")):
+            try:
+                _now9 = now or _now_cn()
+                _SH9 = "子丑寅卯辰巳午未申酉戌亥"
+                _h9 = _now9.hour
+                _sh9 = _SH9[((_h9 + 1) // 2) % 12]
+                _sw9 = f"{(2 * ((_h9 + 1) // 2) - 1) % 24}点到" \
+                       f"{(2 * ((_h9 + 1) // 2) + 1) % 24}点"
+                _ask9 = next(
+                    (_s for _s in _SH9
+                     if f"{_s}时" in _n and _s != _sh9),
+                    None)
+                _vd9 = ""
+                if _ask9 and any(k in _n for k in
+                                 ("到了吗", "到没", "来了吗", "过了吗",
+                                  "几点到", "几点是")):
+                    _ia9 = _SH9.index(_ask9)
+                    _st9 = (2 * _ia9 - 1) % 24
+                    _gap9 = (_st9 - _h9) % 24
+                    _vd9 = (f"；{_ask9}时（{_st9}点起）"
+                            f"还有{_gap9}小时"
+                            if _gap9 else f"；{_ask9}时马上")
+                out.append(
+                    f"现在：{_sh9}时（{_sw9}）{_vd9}")
+            except Exception:
+                pass
+        # R4261：本命年/犯太岁个人判定——流年支 × 生年支真算
+        #（同支本命年、六冲冲太岁、刑/害/破犯太岁，口径与
+        # bazi_calc 流年K线同一套表），不犯就直说还给下个本命年。
+        if any(k in _n for k in ("本命年", "犯太岁", "冲太岁", "太岁",
+                                 "流年")):
+            try:
+                _m9 = next(
+                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                     for _fp in facts or []
+                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                    None)
+                _yb9 = (bazi_compute(_dd.year, _dd.month, _dd.day, 12,
+                                     "男").year or "  ")
+                _yz9 = _yb9[1]
+                _SX9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                _ygan9 = _yb9[0]
+                out.append(
+                    f"今年流年：{_yb9}年（{_SX9['子丑寅卯辰巳午未申酉戌亥'.index(_yz9)]}年）")
+                if _m9:
+                    _lz9 = lunar.solar_to_lunar(
+                        int(_m9.group(1)), int(_m9.group(2)),
+                        int(_m9.group(3)))
+                    _uzhi9 = _lz9.get("ganzhi_year", "  ")[1]
+                    _uan9 = _SX9[
+                        "子丑寅卯辰巳午未申酉戌亥".index(_uzhi9)]
+                    if _uzhi9 == _yz9:
+                        out.append(
+                            f"对你：属{_uan9}——今年就是你的本命年，"
+                            "红绳系好")
+                    elif CHONG.get(_yz9) == _uzhi9:
+                        out.append(
+                            f"对你：属{_uan9}——今年冲太岁，求稳别硬闯")
+                    elif ((_yz9, _uzhi9) in XING
+                          or (_uzhi9, _yz9) in XING
+                          or XIANG_HAI.get(_yz9) == _uzhi9
+                          or XIANG_PO.get(_yz9) == _uzhi9):
+                        out.append(
+                            f"对你：属{_uan9}——今年犯太岁，宜守不宜冲")
+                    else:
+                        _ui9 = "子丑寅卯辰巳午未申酉戌亥".index(_uzhi9)
+                        _nxb9 = _dd.year + 1
+                        while (_nxb9 - 4) % 12 != _ui9:
+                            _nxb9 += 1
+                        out.append(
+                            f"对你：属{_uan9}——今年不犯太岁；"
+                            f"你的本命年是{_nxb9}年")
+            except Exception:
+                pass
+        # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
+        # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
+        # 极罕见，本世纪没有就直说，不编）。
+        if "闰月" in _n or "闰几" in _n or any(
+                k in _n for k in ("闰正", "闰腊", "闰十二")):
+            try:
+                _lm9 = lunar.leap_month(_dd.year)
+                _MN9 = ["", "正", "二", "三", "四", "五", "六", "七",
+                        "八", "九", "十", "冬", "腊"]
+                if "闰正" in _n or "闰一" in _n:
+                    _hit9 = next(
+                        (_ry9 for _ry9 in range(1901, 2100)
+                         if lunar.leap_month(_ry9) == 1), None)
+                    out.append(
+                        "闰正月：" + (
+                            f"{_hit9}年有" if _hit9
+                            else "1901-2099 整两百年都没有（天文上极罕见）"))
+                elif "闰腊" in _n or "闰十二" in _n:
+                    _hit9 = next(
+                        (_ry9 for _ry9 in range(1901, 2100)
+                         if lunar.leap_month(_ry9) == 12), None)
+                    out.append(
+                        "闰腊月：" + (
+                            f"{_hit9}年有" if _hit9
+                            else "1901-2099 整两百年都没有（天文上极罕见）"))
+                elif "明年" in _n or "后年" in _n:
+                    _oy9 = _dd.year + (2 if "后年" in _n else 1)
+                    _olm9 = lunar.leap_month(_oy9)
+                    out.append(
+                        f"{'后年' if '后年' in _n else '明年'}闰月："
+                        + (f"闰{_MN9[_olm9]}月" if _olm9 else "没有"))
+                elif _lm9:
+                    out.append(
+                        f"今年闰月：闰{_MN9[_lm9]}月")
+                else:
+                    _ly9 = _dd.year + 1
+                    while _ly9 <= _dd.year + 5 \
+                            and not lunar.leap_month(_ly9):
+                        _ly9 += 1
+                    _lmn9 = lunar.leap_month(_ly9)
+                    out.append(
+                        f"今年闰月：没有（{_ly9}年"
+                        + (f"闰{_MN9[_lmn9]}月" if _lmn9 else "也没有")
+                        + "）")
+            except Exception:
+                pass
+        # R4263：「看黄历/黄历说今天」一句总览——坐标五连打包，
+        # 与黄历卡同一份单日数据。
+        if any(k in _n for k in ("看黄历", "翻黄历", "老黄历", "黄历说",
+                                 "今天黄历", "黄历上")):
+            try:
+                _hl9 = huangli(_dd.isoformat())
+                _cs9 = _hl9.get("chongsha") or {}
+                _yi9 = "、".join((_hl9.get("yi") or [])[:4]) or "—"
+                _ji9 = "、".join((_hl9.get("ji") or [])[:4]) or "—"
+                out.append(
+                    f"{_pfx}黄历：值神{_hl9.get('zhishen') or '—'}"
+                    f"（{'黑道日' if _hl9.get('zhishen_ji') else '黄道日'}），"
+                    f"冲{(_cs9.get('chong_animal') or '—')}，"
+                    f"宜{ _yi9}｜忌{_ji9}")
+            except Exception:
+                pass
+        # R4264：诞生石/生日花/本命佛静态域——存了生日就有真值
+        #（月→石/花、生肖→本命佛，均为通行口径）。
+        if any(k in _n for k in ("诞生石", "生日石", "生日花", "本命佛",
+                                 "守护佛", "生辰石", "月份花")):
+            try:
+                _m9 = next(
+                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                     for _fp in facts or []
+                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                    None)
+                if _m9:
+                    _y9, _mo9, _dy9 = (int(_m9.group(1)),
+                                       int(_m9.group(2)),
+                                       int(_m9.group(3)))
+                    _ST9 = ["", "石榴石", "紫水晶", "海蓝宝", "钻石",
+                            "祖母绿", "珍珠", "红宝石", "橄榄石",
+                            "蓝宝石", "碧玺", "黄水晶", "绿松石"]
+                    _FL9 = ["", "康乃馨", "紫罗兰", "水仙", "雏菊",
+                            "铃兰", "玫瑰", "飞燕草", "剑兰",
+                            "紫菀", "万寿菊", "菊花", "冬青"]
+                    _BF9 = {"鼠": "千手观音", "牛": "虚空藏菩萨",
+                            "虎": "虚空藏菩萨", "兔": "文殊菩萨",
+                            "龙": "普贤菩萨", "蛇": "普贤菩萨",
+                            "马": "大势至菩萨", "羊": "大日如来",
+                            "猴": "大日如来", "鸡": "不动尊菩萨",
+                            "狗": "阿弥陀佛", "猪": "阿弥陀佛"}
+                    if any(k in _n for k in ("诞生石", "生日石", "生辰石")):
+                        out.append(
+                            f"你的诞生石：{_ST9[_mo9]}"
+                            f"（{_mo9}月）")
+                    if "生日花" in _n or "月份花" in _n:
+                        out.append(
+                            f"你的生日花：{_FL9[_mo9]}"
+                            f"（{_mo9}月）")
+                    if any(k in _n for k in ("本命佛", "守护佛")):
+                        _lz9b = lunar.solar_to_lunar(_y9, _mo9, _dy9)
+                        _zz9b = _lz9b.get("ganzhi_year", "  ")[1]
+                        _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
+                            "子丑寅卯辰巳午未申酉戌亥".index(_zz9b)]
+                        out.append(
+                            f"你的本命佛：{_BF9[_sx9]}"
+                            f"（属{_sx9}）")
+            except Exception:
+                pass
+        # R4231：「做什么好/吃点什么/有什么建议」——日课白话行
+        #（daily.do 与卡面日课同源）+ 时令食俗（节气日 tip 或
+        # 命名日 _fest_tip，与横幅/tip 同一张）。
+        if any(k in _n for k in ("做什么", "干什么", "该干嘛", "干嘛好",
+                                 "什么建议", "有啥建议", "吃点什么",
+                                 "吃什么好", "吃什么", "喝什么",
+                                 "今晚吃什么", "饿了", "吃啥",
+                                 "想吃", "吃东西", "没胃口")):
+            try:
+                _do9 = daily(_dd.isoformat()).get("do") or ""
+                if _do9:
+                    out.append(f"{_pfx}日课：{_do9}")
+                _tb9 = _term_banner(_dd)
+                if _tb9.get("tip"):
+                    out.append(f"{_pfx}节气食俗：{_tb9['tip']}")
+                else:
+                    _ndf, _nvf = _next_named_day(
+                        _n, _d, personal=_personal)
+                    if (_ndf == _dd and _nvf):
+                        _tf9 = _fest_tip(_nvf)
+                        if _tf9:
+                            out.append(f"{_pfx}食俗：{_tf9}")
+            except Exception:
+                pass
+        # R4276：方向神活事实——财神/喜神/福神/贵人/煞方一口袋
+        #（财神走 huangli_mod.caishen_fang 同源，喜神/福神按天干
+        # 通行表，贵人方=天乙贵人支的方位，煞方=冲煞 sha_fang）。
+        # 带「往/朝+方位」的问句给方向判定（吉方/煞方/中性）。
+        if any(k in _n for k in ("方位", "方向", "往哪", "朝哪",
+                                 "喜神", "福神", "贵神", "煞哪",
+                                 "煞方", "煞", "往", "朝", "向", "去",
+                                 "财神在哪", "财神方位", "什么方位")):
+            try:
+                _dt9 = datetime(_dd.year, _dd.month, _dd.day, 12)
+                _gd9 = huangli_mod.day_ganzhi(_dt9) or ["", ""]
+                _XIF9 = {"甲": "东北", "己": "东北", "乙": "西北",
+                         "庚": "西北", "丙": "西南", "辛": "西南",
+                         "丁": "南", "壬": "南", "戊": "东南",
+                         "癸": "东南"}
+                _FUF9 = {"甲": "北", "己": "北", "乙": "西南",
+                         "庚": "西南", "丙": "东", "辛": "东",
+                         "丁": "东南", "壬": "东南", "戊": "东北",
+                         "癸": "东北"}
+                _Z2D9 = {"子": "北", "丑": "东北", "寅": "东北",
+                         "卯": "东", "辰": "东南", "巳": "东南",
+                         "午": "南", "未": "西南", "申": "西南",
+                         "酉": "西", "戌": "西北", "亥": "西北"}
+                _cs9 = huangli(_dd.isoformat()).get("chongsha") or {}
+                _cai9 = huangli_mod.caishen_fang(_dt9)
+                _gr9 = huangli_mod.guiren(_dt9)
+                _grd9 = [_Z2D9.get(z, z) for z in _gr9]
+                _xi9 = _XIF9.get(_gd9[0], "")
+                _fu9 = _FUF9.get(_gd9[0], "")
+                _sha9 = _cs9.get("sha_fang", "")
+                _em9 = False
+                if "喜神" in _n:
+                    out.append(f"{_pfx}喜神方位：{_xi9 or '—'}")
+                    _em9 = True
+                if "福神" in _n:
+                    out.append(f"{_pfx}福神方位：{_fu9 or '—'}")
+                    _em9 = True
+                if "贵神" in _n or "贵人方位" in _n:
+                    out.append(
+                        f"{_pfx}贵人方位：{'、'.join(_grd9) or '—'}")
+                    _em9 = True
+                if "财神" in _n:
+                    out.append(f"{_pfx}财神方位：{_cai9}")
+                    _em9 = True
+                # 「煞北/煞方」裸词给煞方；带「冲/凶」的问句由黄历
+                # 坐标块出冲煞行（含煞方），不重复。
+                if "煞" in _n and "冲" not in _n and "凶" not in _n:
+                    out.append(f"{_pfx}煞方：{_sha9 or '—'}")
+                    _em9 = True
+                # 「往东走好吗/朝南开行吗」点名方向判定——
+                # 吉方=财神/喜神/福神/贵人所含方位，煞方回避。
+                _dm9 = re.search(
+                    r"[往朝向奔去走]?\s*(东南|东北|西南|西北|东|南|西|北)",
+                    _n)
+                if _dm9 and any(k in _n for k in
+                                ("往", "朝", "向", "奔", "走", "去")) \
+                        and not any(k in _n for k in
+                                    ("方位", "方向", "哪")):
+                    _wd9 = _dm9.group(1)
+                    _good9 = []
+                    if _cai9 == _wd9:
+                        _good9.append("财神")
+                    if _xi9 == _wd9:
+                        _good9.append("喜神")
+                    if _fu9 == _wd9:
+                        _good9.append("福神")
+                    if _wd9 in _grd9:
+                        _good9.append("贵人")
+                    if _sha9 == _wd9:
+                        out.append(
+                            f"{_pfx}向{_wd9}：今天是煞方，能换方向"
+                            "就换一个")
+                    elif _good9:
+                        out.append(
+                            f"{_pfx}向{_wd9}：好方向——"
+                            f"今天是{'、'.join(_good9)}方")
+                    else:
+                        out.append(
+                            f"{_pfx}向{_wd9}：不犯煞也不临吉，"
+                            "平常走没问题")
+                    _em9 = True
+                # 泛方向问（往哪/朝哪/去哪/什么方位）没点名→方位四件一把给。
+                if not _em9 and any(k in _n for k in
+                                    ("往哪", "朝哪", "去哪", "方位",
+                                     "方向")):
+                    out.append(
+                        f"{_pfx}方位四件：财神{_cai9}、"
+                        f"喜神{_xi9 or '—'}、"
+                        f"贵人{'、'.join(_grd9) or '—'}、"
+                        f"煞{_sha9 or '—'}")
+                elif not _em9 and "方位" in _n:
+                    out.append(f"{_pfx}财神方位：{_cai9}")
+            except Exception:
+                pass
+        # R4216：时令日内坐标+农历行——「今天几九/几伏/农历几号」。
+        if any(k in _n for k in ("农历", "阴历", "旧历")):
+            try:
+                out.append(f"{_pfx}{_daily_lunar_str(_dd)}")
+            except Exception:
+                pass
+        if any(k in _n for k in ("几九", "数九", "出九")):
+            try:
+                from guji.bazi import term_time as _ttn
+                _hit9 = False
+                for _yyn in (_dd.year, _dd.year - 1):
+                    _dzn = (_ttn(_yyn, "冬至") + timedelta(hours=8)).date()
+                    _d99n = _dzn + timedelta(days=80)
+                    if _dzn <= _dd <= _d99n:
+                        _ofs = (_dd - _dzn).days
+                        _jn = "一二三四五六七八九"[_ofs // 9]
+                        out.append(
+                            f"{_pfx}数九：{_jn}九第{_ofs % 9 + 1}天"
+                            f"（{_d99n.month}月{_d99n.day}日出九）")
+                        _hit9 = True
+                        break
+                if (not _hit9
+                        and not any(k in _n for k in
+                                    ("什么时候", "几号", "哪天", "还有几"))):
+                    _nx9 = (_ttn(_dd.year, "冬至")
+                            + timedelta(hours=8)).date()
+                    if _nx9 <= _dd:
+                        _nx9 = (_ttn(_dd.year + 1, "冬至")
+                                + timedelta(hours=8)).date()
+                    out.append(
+                        f"{_pfx}数九：今天不在数九期，"
+                        f"{_nx9.month}月{_nx9.day}日起")
+            except Exception:
+                pass
+        # R4272：点名数九段——「三九哪天/六九什么时候/九九出九」
+        # 窗口外也给段内日期（本冬或下一冬，冬至天文表同源）。
+        if any(k in _n for k in ("一九", "二九", "三九", "四九",
+                                 "五九", "六九", "七九", "八九",
+                                 "九九", "数九", "出九")):
+            try:
+                from guji.bazi import term_time as _ttj
+                _JN9 = "一二三四五六七八九"
+                _sj9 = next(
+                    (_i for _i, _c in enumerate(_JN9)
+                     if f"{_c}九" in _n), None)
+                _is_out9 = "出九" in _n and _sj9 is None
+                if _is_out9:
+                    _sj9 = 9   # 出九 = 九九最后一天（冬至+80，与窗内同口径）
+                if _sj9 is not None:
+                    for _yyj in (_dd.year - 1, _dd.year):
+                        _dzj = (_ttj(_yyj, "冬至")
+                                + timedelta(hours=8)).date()
+                        _sg9 = _dzj + timedelta(
+                            days=80 if _is_out9 else _sj9 * 9)
+                        _eg9 = _sg9 + (timedelta(days=0) if _is_out9
+                                     else timedelta(days=8))
+                        if _dd > _eg9:
+                            continue
+                        _cj9 = "出九" if _is_out9 else f"{_JN9[_sj9]}九"
+                        if _sg9 <= _dd <= _eg9:
+                            out.append(
+                                f"{_cj9}：就是今天" if _is_out9
+                                else f"{_cj9}：今天是{_cj9}第"
+                                     f"{(_dd - _sg9).days + 1}天"
+                                     f"（{_sg9.month}月{_sg9.day}日到"
+                                     f"{_eg9.month}月{_eg9.day}日）")
+                        else:
+                            out.append(
+                                f"{_cj9}：{_sg9.month}月{_sg9.day}日"
+                                + ("" if _is_out9 else
+                                   f"到{_eg9.month}月{_eg9.day}日")
+                                + f"（还有{(_sg9 - _dd).days}天"
+                                + ("" if _is_out9 else "起") + "）")
+                        break
+            except Exception:
+                pass
+        if any(k in _n for k in ("几伏", "三伏", "入伏了", "出伏了",
+                                 "在伏天", "伏天")):
+            try:
+                _ru9, _mo9 = _sanfu(_dd.year)
+                if _ru9 <= _dd <= _mo9:
+                    _mf9 = _mo9 - timedelta(days=9)   # 末伏首日
+                    if _dd < _ru9 + timedelta(days=10):
+                        _ph9 = "初伏"
+                        _dn9 = (_dd - _ru9).days + 1
+                    elif _dd < _mf9:
+                        _ph9 = "中伏"
+                        _dn9 = (_dd - _ru9).days - 9
+                    else:
+                        _ph9 = "末伏"
+                        _dn9 = (_dd - _mf9).days + 1
+                    out.append(
+                        f"{_pfx}三伏：{_ph9}第{_dn9}天"
+                        f"（{_mo9.month}月{_mo9.day}日出伏）")
+                elif not any(k in _n for k in
+                             ("什么时候", "几号", "哪天", "还有几")):
+                    # 过了今年出伏给明年入伏日；问句态让给反查块答。
+                    _rv9 = _ru9
+                    if _dd > _mo9:
+                        _rv9 = _sanfu(_dd.year + 1)[0]
+                    out.append(
+                        f"{_pfx}三伏：今天不在伏天，"
+                        f"{_rv9.month}月{_rv9.day}日入伏")
+            except Exception:
+                pass
+        # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
+        # 点名假期给该段，没点名给「今天在不在放/下一假期/补班日」。
+        if any(k in _n for k in ("放假", "假期", "调休", "补班",
+                                 "几天假", "放不放假", "天假")):
+            try:
+                import re as _re9
+                _named9 = next(
+                    (r for r in sorted(
+                        _LEGAL_SPANS, key=lambda r: r[1])
+                     if r[2] >= _d
+                     and any(t in _n for t in _re9.findall(r"..", r[0]))),
+                    None)
+                if _named9:
+                    _n9, _s9, _e9, _a9 = _named9
+                    _d9 = (_s9 - _d).days
+                    out.append(
+                        f"{_n9}假期：{_s9.month}月{_s9.day}日到"
+                        f"{_e9.month}月{_e9.day}日"
+                        f"（{(_e9 - _s9).days + 1}天）"
+                        + ("（就是这几天）" if _s9 <= _d <= _e9
+                           else f"（还有{_d9}天）" if _d9 > 0 else ""))
+                elif _d in tuple(x for r in _LEGAL_SPANS for x in r[3]):
+                    _r9 = next(r for r in _LEGAL_SPANS if _d in r[3])
+                    out.append(
+                        f"调休：今天是{_r9[0]}补班日（{_r9[1].month}月"
+                        f"{_r9[1].day}-{_r9[2].month}月{_r9[2].day}假期调的）")
+                else:
+                    _inn = next(
+                        (r for r in _LEGAL_SPANS if r[1] <= _d <= r[2]),
+                        None)
+                    if _inn:
+                        out.append(
+                            f"{_inn[0]}假期：今天就在放假（{_inn[1].month}月"
+                            f"{_inn[1].day}日到{_inn[2].month}月{_inn[2].day}日）")
+                    else:
+                        _nx9 = next(
+                            (r for r in sorted(
+                                _LEGAL_SPANS, key=lambda r: r[1])
+                             if r[1] > _d), None)
+                        if _nx9:
+                            out.append(
+                                f"下一假期{_nx9[0]}：{_nx9[1].month}月"
+                                f"{_nx9[1].day}日起放"
+                                f"{(_nx9[2] - _nx9[1]).days + 1}天"
+                                f"（还有{(_nx9[1] - _d).days}天）")
             except Exception:
                 pass
         # R4061：「X什么时候/几号」反查＋「今年还剩几天」——节气走
         # term_time 天文表（与节气横幅同源），节日走公历/农历双表，
         # 除夕走腊月末日；已过自动取明年。
-        if "今年还剩" in _n or ("今年" in _n and "几天" in _n):
+        if "今年还剩" in _n or ("今年" in _n and "几天" in _n) \
+                or ("今年" in _n and "倒计时" in _n):
             try:
                 out.append(
                     f"今年还剩{(date(_d.year, 12, 31) - _d).days}天")
             except Exception:
                 pass
-        if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天")):
+        if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天",
+                                 "还有几天", "还有多少天",
+                                 "星期几", "周几", "什么日子")):
             try:
-                from guji.bazi import TERM_LONGITUDE, term_time
-                # 问「什么时候」语境无歧义（清明这类双节也按节气答日
-                # 期），直接全表匹配，不走 _SOLAR_TERMS 白名单。
-                _tname = next(
-                    (t for t in TERM_LONGITUDE if t in _n), "")
-                _nd = None
-                _v = ""
-                if _tname:
-                    for _yy2 in (_d.year, _d.year + 1):
-                        _cand = (term_time(_yy2, _tname)
-                                 + timedelta(hours=8)).date()
-                        if _cand >= _d:
-                            _nd = _cand
-                            _v = _tname
-                            break
-                else:
-                    for (_mm2, _dd2), _fv in _FEST_SOLAR.items():
-                        if any((p2 in _n or
-                                (p2.endswith("节") and p2[:-1] in _n))
-                               for p2 in _fv.split("·")):
-                            _cand = date(_d.year, _mm2, _dd2)
-                            if _cand < _d:
-                                _cand = date(_d.year + 1, _mm2, _dd2)
-                            _nd = _cand
-                            _v = _fv
-                            break
-                    if _nd is None and "除夕" in _n:
-                        from guji import lunar as _l3
-                        for _yy2 in (_d.year, _d.year + 1):
-                            _cand = _l3.lunar_to_solar(
-                                _yy2 - 1, 12,
-                                _l3.month_days(_yy2 - 1, 12))
-                            if _cand >= _d:
-                                _nd = _cand
-                                _v = "除夕"
-                                break
-                    if _nd is None:
-                        from guji import lunar as _l4
-                        for (_lm2, _ld2), _fv in _FEST_LUNAR.items():
-                            if any((p2 in _n or
-                                    (p2.endswith("节") and p2[:-1] in _n))
-                                   for p2 in _fv.split("·")):
-                                for _yy2 in (_d.year, _d.year + 1):
-                                    _cand = _l4.lunar_to_solar(
-                                        _yy2, _lm2, _ld2)
-                                    if _cand >= _d:
-                                        _nd = _cand
-                                        _v = _fv
-                                        break
-                                if _nd is not None:
-                                    break
+                # R4106：反查解析抽成 _next_named_day——「什么时候」
+                # 反查与「X那天穿什么」命名日偏移共用一条，顺序
+                # 节气→跨年/新年→公历节→除夕→农历节。
+                _nd, _v = _next_named_day(_n, _d, allow_ambi=True,
+                                          personal=_personal)
+                # R4101：节日/节气名都没命中时，「星期几/周几/几号/什么
+                # 日子」要的是日期本身——按日偏移链的 _dd/_pfx 回声。
+                # （「生日几号」留给 profile_facts 的生日倒数答，别抢话。）
+                # R4111：月亮词问「几号」由月相块答「下次新月/满月」，
+                # 日期回声别抢话。
+                if _nd is None and "生日" not in _n and not any(
+                        k in _n for k in
+                        ("月亮", "满月", "新月", "月圆", "月缺", "月相")) \
+                        and any(
+                        k in _n for k in
+                        ("星期几", "周几", "几号", "什么日子")):
+                    _wdn2 = "一二三四五六日"
+                    out.append(
+                        f"{_pfx}：{_dd.month}月{_dd.day}日 "
+                        f"星期{_wdn2[_dd.weekday()]}")
                 if _nd is not None:
                     _dl3 = (_nd - _d).days
-                    out.append(
-                        f"{_v}：{_nd.month}月{_nd.day}日"
-                        + ("（就是今天）" if _dl3 == 0
-                           else f"（还有{_dl3}天）"))
+                    # R4241b：段内同名假优先——「国庆还有几天」在
+                    # 假期内问，不能答明年倒数。
+                    _sp3 = next(
+                        (r for r in _LEGAL_SPANS
+                         if r[1] <= _d <= r[2]
+                         and (r[0][:2] in _v or _v[:2] in r[0])),
+                        None)
+                    if _sp3 is not None:
+                        _left3 = (_sp3[2] - _d).days
+                        out.append(
+                            f"{_sp3[0]}假期：今天是假期第"
+                            f"{(_d - _sp3[1]).days + 1}天"
+                            f"（{_sp3[1].month}月{_sp3[1].day}日到"
+                            f"{_sp3[2].month}月{_sp3[2].day}日，"
+                            + (f"还剩{_left3}天，共"
+                               f"{(_sp3[2] - _sp3[1]).days + 1}天）"
+                               if _left3 else "今天收尾）"))
+                    else:
+                        out.append(
+                            f"{_v}：{_nd.month}月{_nd.day}日"
+                            + ("（就是今天）" if _dl3 == 0
+                               else f"（还有{_dl3}天）" if _dl3 > 0
+                               else "（今年已过）"))
             except Exception:
                 pass
+        # R4196：点名节日回声——「重阳节快乐/双十一/520」不带
+        # 问题词也认得它：给真实日期+倒数+节日tip（与 _FEST_TIP
+        # 同源）；带问题/值域词的走各自块，不抢话。
+        try:
+            _nd2, _v2 = _next_named_day(_n, _d, personal=_personal)
+            if (_nd2 is not None
+                    and not any(k in _n for k in (
+                        "什么", "几号", "哪天", "几时", "还有几",
+                        "怎么", "穿", "运势", "运气", "星座", "月亮",
+                        "满月", "新月", "月相", "值神", "冲", "煞",
+                        "宜", "忌", "日子", "吉时", "财神", "幸运",
+                        "贵人", "五行", "干支", "放假", "假期",
+                        "适合", "生日", "几伏", "几九", "数九",
+                        "农历", "阴历", "三伏", "入伏", "出伏"))):
+                _dl4 = (_nd2 - _d).days
+                _tip4 = _fest_tip(_v2)
+                # R4241：名字指向明年的同名节，但今年假期段还没走完
+                # ——「国庆第几天」10/3 问不能答「还有363天」：段内
+                # 直接给假期第 N 天（_LEGAL_SPANS 法定表同源）。
+                _sp4 = next(
+                    (r for r in _LEGAL_SPANS
+                     if r[1] <= _d <= r[2]
+                     and (r[0][:2] in _v2 or _v2[:2] in r[0])),
+                    None)
+                if _sp4 is not None:
+                    out.append(
+                        f"{_sp4[0]}假期：今天是假期第"
+                        f"{(_d - _sp4[1]).days + 1}天"
+                        f"（{_sp4[1].month}月{_sp4[1].day}日到"
+                        f"{_sp4[2].month}月{_sp4[2].day}日，共"
+                        f"{(_sp4[2] - _sp4[1]).days + 1}天）")
+                else:
+                    out.append(
+                        f"{_v2}："
+                        + (f"{_nd2.year}年"
+                           if _nd2.year != _d.year else "")
+                        + f"{_nd2.month}月{_nd2.day}日"
+                        + ("（就是今天）" if _dl4 == 0
+                           else f"（还有{_dl4}天）" if _dl4 > 0 else "")
+                        # 当天节日块已给 tip，回声只挂倒计时日的。
+                        + (f"（{_tip4}）"
+                           if _tip4 and _dl4 != 0 else ""))
+        except Exception:
+            pass
+        # R4201：每日古话活事实——问「今天的古话/那句古文」手里
+        # 有今日真句（_DAY_QUOTES 与卡面 _dayPick('dq') 同池同哈希，
+        # 同日同句契约不破）。
+        if any(k in _n for k in ("古话", "古文", "那句", "名言",
+                                 "古语", "名句", "来一句")):
+            _dq9 = _day_quote_for(_dd)
+            out.append(f"{_pfx}古话：「{_dq9[0]}」"
+                       f"——{_dq9[1]}（{_dq9[2]}）")
         # R3891：星座日运活事实——问「天蝎座今天/星座运势」手里
         # 有今日值宫+点名星座的那句（daily_horoscope 与星座卡
         # 同源，不再让她对着十二星座名干想）。
@@ -5054,6 +6321,34 @@ def chat_profile_facts(facts: list[str]) -> list[str]:
                        + (f"（五行属{wx}）" if wx else ""))
             if sign:
                 out.append(f"{_who}的太阳星座：{sign}")
+            # R4246：生肖+生日星期+周岁同档——「我属什么/我多大/
+            # 我生日星期几」都是手里现算的真值，不再靠模型脑补。
+            # R4261b：生肖按农历年（春节界）——公历 1-2 月生人
+            # 用 (y-4)%12 会错一个属相（如 1988-01-20 是兔不是龙）。
+            try:
+                _lz9 = lunar.solar_to_lunar(y, mo, d)
+                _zz9 = _lz9.get("ganzhi_year", "  ")[1]
+                _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
+                    "子丑寅卯辰巳午未申酉戌亥".index(_zz9)]
+                out.append(f"{_who}的生肖：属{_sx9}")
+                _bd9 = date(y, mo, d)
+                out.append(
+                    f"{_who}生日那天：{_bd9.year}年{mo}月{d}日 "
+                    f"星期{'一二三四五六日'[_bd9.weekday()]}")
+                _t9 = _now_cn().date()
+                _ag9 = _t9.year - y - (
+                    (_t9.month, _t9.day) < (mo, d))
+                out.append(f"{_who}现在：{_ag9}周岁")
+                # R4281：年命纳音——「我什么命/TA什么命」手里有真值
+                #（六十甲子纳音表，年柱两干一支合一纳音）。
+                _nb9 = bazi_compute(y, mo, d, 12, "")
+                _ny9 = (_nb9.nayin or [""])[0]
+                if _ny9:
+                    out.append(
+                        f"{_who}的年命：{_ny9}命"
+                        f"（{_nb9.year}年生）")
+            except Exception:
+                pass
             # R4066：生日倒数事实——问「我生日还有几天」手里有真值；
             # 2/29 非闰年按 3/1 过。
             try:
@@ -5445,6 +6740,29 @@ def _chat_facts_inner(message: str, now: datetime,
     if generic:
         facts.append("没列入当日宜忌的事项属中性，不是不支持，只是黄历没"
                      "为它背书，可照常安排；想要背书就挑宜它的日子。")
+        # R4271：泛「哪天最好/最近好日子」找日问——没指场景的给
+        # 近14天日档榜（吉/小吉日，fortune_level 与当日日档同源）。
+        if _find_intent:
+            try:
+                _WD9 = "一二三四五六日"
+                _gd9 = []
+                _d0 = (now or _now_cn()).date()
+                for _io in range(14):
+                    _dx = _d0 + timedelta(days=_io)
+                    _bx = bazi_compute(
+                        _dx.year, _dx.month, _dx.day, 12, "男")
+                    _lx = fortune_level(
+                        bazi_calc(_bx, ask_date=_dx.isoformat()),
+                        day=datetime(_dx.year, _dx.month, _dx.day, 12))
+                    if _lx in ("吉", "小吉"):
+                        _gd9.append(
+                            f"{_dx.month}/{_dx.day}"
+                            f"（周{_WD9[_dx.weekday()]}·{_lx}）")
+                if _gd9:
+                    facts.append(
+                        "近14天日档较好的日子：" + "、".join(_gd9[:6]))
+            except Exception:
+                pass
         if past_note:
             facts.append("该日期已过去，请温和点出、按复盘口径回应，"
                          "不要再给择日建议。")
