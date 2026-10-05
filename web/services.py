@@ -5442,7 +5442,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 and not any(k in _n for k in (
                     "我属", "我什么命", "我五行", "TA属", "ta属", "他属",
                     "她属", "俺属", "对象属", "老公属", "老婆属",
-                    "男朋友属", "女朋友属", "TA的五行", "TA什么命")):
+                    "男朋友属", "女朋友属", "TA的五行", "TA什么命",
+                    "年属", "属什么年", "什么年", "岁次", "干支年")):
             try:
                 _gd9 = huangli_mod.day_ganzhi(
                     datetime(_dd.year, _dd.month, _dd.day, 12))
@@ -5861,6 +5862,75 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             f"（{_tot9}天）"
                             + (f"，今天是第{_diy9}天"
                                if _yy9 == _d.year else ""))
+            except Exception:
+                pass
+        # R4296：年干支/生肖年问——「今年什么年/明年属什么/
+        # 2027年是羊年吗/今年是不是蛇年」全真值（农历年界）。
+        if any(k in _n for k in ("什么年", "属什么年", "什么生肖年",
+                                 "年属", "是鼠年", "是牛年", "是虎年",
+                                 "是兔年", "是龙年", "是蛇年", "是马年",
+                                 "是羊年", "是猴年", "是鸡年", "是狗年",
+                                 "是猪年", "干支年", "岁次")) or \
+                re.search(r"(20\d\d|明|今|后|去|前)年.{0,4}"
+                          r"(属|是|什么|啥)", _n):
+            try:
+                _yq9 = None
+                _ym9 = re.search(r"(20\d\d)年", _n)
+                if _ym9:
+                    _yq9 = int(_ym9.group(1))
+                elif "明年" in _n:
+                    _yq9 = _d.year + 1
+                elif "后年" in _n:
+                    _yq9 = _d.year + 2
+                elif "去年" in _n or "前年" in _n:
+                    _yq9 = _d.year - (2 if "前年" in _n else 1)
+                elif "今年" in _n or "什么年" in _n \
+                        or "岁次" in _n or "年属" in _n:
+                    _yq9 = _d.year
+                if _yq9:
+                    # 年中取农历年干支（春节界与跨年误差免谈）。
+                    _ly9 = lunar.solar_to_lunar(_yq9, 7, 1)
+                    _gy9 = _ly9.get("ganzhi_year", "  ")
+                    _sy9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
+                        "子丑寅卯辰巳午未申酉戌亥".index(_gy9[1])]
+                    _tag9 = "今年" if _yq9 == _d.year else (
+                        "明年" if _yq9 == _d.year + 1 else
+                        "后年" if _yq9 == _d.year + 2 else
+                        "去年" if _yq9 == _d.year - 1 else
+                        "前年" if _yq9 == _d.year - 2 else f"{_yq9}年")
+                    _vy9 = f"{_tag9}：{_gy9}年，属{_sy9}年"
+                    _ck9 = re.search(
+                        r"是([鼠牛虎兔龙蛇马羊猴鸡狗猪])年", _n)
+                    if _ck9:
+                        _vy9 += (f"，{'对' if _ck9.group(1) == _sy9 else '不是'}"
+                                 f"（是{_sy9}年）")
+                    out.append(_vy9)
+            except Exception:
+                pass
+        # R4297：昼夜极值反查——「白天最长/最短哪天」→ 夏至/冬至。
+        if any(k in _n for k in ("白天最长", "白天最短", "黑夜最长",
+                                 "黑夜最短", "昼最长", "夜最长",
+                                 "天长夜短", "日最长", "日最短")):
+            try:
+                from guji.bazi import term_time as _ttx
+                _want9 = "夏至" if any(
+                    k in _n for k in ("白天最长", "昼最长", "日最长",
+                                      "天长夜短")) else "冬至"
+                _lb9 = ("白天最长" if _want9 == "夏至"
+                        else "黑夜最长" if any(
+                            k in _n for k in ("黑夜最长", "夜最长"))
+                        else "白天最短")
+                for _yx9 in (_d.year - 1, _d.year, _d.year + 1):
+                    _tx9 = (_ttx(_yx9, _want9)
+                            + timedelta(hours=8)).date()
+                    if _tx9 >= _d:
+                        _dv9 = (_tx9 - _d).days
+                        out.append(
+                            f"{_lb9}的一天：{_tx9.month}月"
+                            f"{_tx9.day}日{_want9}"
+                            + (f"（还有{_dv9}天）" if _dv9
+                               else "（就是今天）"))
+                        break
             except Exception:
                 pass
         # R4261：本命年/犯太岁个人判定——流年支 × 生年支真算
