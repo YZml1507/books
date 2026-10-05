@@ -6375,6 +6375,65 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             f"{_h9[1]}点（{_zq9.group(1)}时段）")
             except Exception:
                 pass
+        # R4336：五行缺行+守护星——「我五行缺什么/五行全吗」三柱
+        # 六字分布（年/月/日柱干支各取本气，与起名「没填时辰按三柱」
+        # 同口径）；「我的守护星/命主星」太阳星座→守护星表。
+        if any(k in _n for k in ("五行缺", "缺金", "缺木", "缺水",
+                                 "缺火", "缺土", "五行全", "守护星",
+                                 "守护行星", "命主星", "守护星座")):
+            try:
+                _ta9 = any(k in _n for k in
+                           ("TA", "ta", "他", "她", "对象", "另一半"))
+                _m9w = next(
+                    ((_BIRTHDAY_PARTNER_RE if _ta9
+                      else _BIRTHDAY_FACT_RE).match(str(_fp).strip())
+                     for _fp in facts or []
+                     if (_BIRTHDAY_PARTNER_RE if _ta9
+                         else _BIRTHDAY_FACT_RE).match(
+                             str(_fp).strip())),
+                    None)
+                if _m9w:
+                    _by9, _bm9, _bd9i = (int(_m9w.group(1)),
+                                         int(_m9w.group(2)),
+                                         int(_m9w.group(3)))
+                    _who9 = "TA" if _ta9 else "你"
+                    if any(k in _n for k in
+                           ("五行", "缺金", "缺木", "缺水",
+                            "缺火", "缺土")):
+                        from guji.voice import ZHI_ELEMENT as _ZE9
+                        _bp9 = bazi_compute(_by9, _bm9, _bd9i, 12, "")
+                        _cnt9 = {e: 0 for e in "金木水火土"}
+                        for _pl9 in (_bp9.year, _bp9.month, _bp9.day):
+                            _ge9 = GAN_ELEM.get(_pl9[0], "")
+                            if _ge9:
+                                _cnt9[_ge9] += 1
+                            _ze9 = _ZE9.get(_pl9[1], "")
+                            if _ze9:
+                                _cnt9[_ze9] += 1
+                        _miss9 = [e for e in "金木水火土"
+                                  if _cnt9.get(e, 0) == 0]
+                        _dis9 = "·".join(
+                            f"{e}{_cnt9[e]}" for e in "金木水火土")
+                        out.append(
+                            f"{_who9}的五行分布（三柱）：{_dis9}"
+                            + (f"——缺{'、'.join(_miss9)}"
+                               if _miss9 else "——五行齐全"))
+                    if "守护" in _n or "命主星" in _n:
+                        from guji.xingzuo import sun_sign as _ss9
+                        _RL9 = {"白羊": "火星", "金牛": "金星",
+                                "双子": "水星", "巨蟹": "月亮",
+                                "狮子": "太阳", "处女": "水星",
+                                "天秤": "金星", "天蝎": "冥王星",
+                                "射手": "木星", "摩羯": "土星",
+                                "水瓶": "天王星", "双鱼": "海王星"}
+                        _sg9 = _ss9(_bm9, _bd9i, year=_by9) or ""
+                        _rl9 = _RL9.get(_sg9, "")
+                        if _rl9:
+                            out.append(
+                                f"{_who9}的守护星：{_rl9}"
+                                f"（{_sg9}座）")
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
