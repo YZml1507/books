@@ -3242,9 +3242,26 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
                         cand = date(today.year + 1, _am, _ad)
                     return cand, _disp9
     # 三伏/数九——_festival_for 认得的时令节点，反查也该有。
-    if any(k in msg for k in ("入伏", "三伏", "头伏", "初伏", "出伏")):
+    if any(k in msg for k in ("入伏", "三伏", "头伏", "初伏", "出伏",
+                              "中伏", "末伏")):
         _ru2, _mo2 = _sanfu(today.year)
-        if "出伏" in msg:
+        if "中伏" in msg:
+            # R4531：中伏=入伏+10 天（庚日推算表同源）。
+            _zf2 = _ru2 + timedelta(days=10) if _ru2 is not None else None
+            if _zf2 is not None and _zf2 >= today:
+                return _zf2, "中伏"
+            _ru4, _mo4 = _sanfu(today.year + 1)
+            if _ru4 is not None:
+                return _ru4 + timedelta(days=10), "中伏"
+        elif "末伏" in msg:
+            # R4531：末伏首日=出伏（末伏末日）前 9 天。
+            _mf2 = _mo2 - timedelta(days=9) if _mo2 is not None else None
+            if _mf2 is not None and _mf2 >= today:
+                return _mf2, "末伏"
+            _ru5, _mo5 = _sanfu(today.year + 1)
+            if _mo5 is not None:
+                return _mo5 - timedelta(days=9), "末伏"
+        elif "出伏" in msg:
             if _mo2 is not None and _mo2 >= today:
                 return _mo2, "出伏"
             _ru3, _mo3 = _sanfu(today.year + 1)
@@ -3281,6 +3298,13 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
                 return cand, "除夕"
         return None, ""
     from guji import lunar as _ly
+    # R4531：「过年/过大年」口语≡春节（正月初一）——_FEST_LUNAR 只存
+    # 正名，口语别名这里先解。
+    if "过年" in msg or "过大年" in msg:
+        for yy in (today.year, today.year + 1):
+            cand = _ly.lunar_to_solar(yy, 1, 1)
+            if cand >= today:
+                return cand, "春节"
     for (lm2, ld2), fv in _FEST_LUNAR.items():
         if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
                for p2 in fv.split("·")):
@@ -5910,12 +5934,42 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                  # R4466e：赏月/观星同源——观星先看
                                  # 当晚月相（新月期黑得透）。
                                  "赏月", "观星", "看星星", "星空",
-                                 "看月亮", "看月色")):
+                                 "看月亮", "看月色",
+                                 # R4531b：朔望月族——初一十五/朔望晦
+                                 # 都归月相门。
+                                 "初一十五", "上弦月", "下弦月",
+                                 "望月", "朔月", "晦日", "朔日")):
             try:
                 _mo = _moon_for(_dd)
                 if _mo.get("label"):
                     out.append(f"{_pfx}月相：{_mo['label']}"
                                f"（{_mo.get('line', '')}）")
+                # R4531b：朔望月反查——今日农历日+下个朔（初一）/
+                # 望（十五）真值，跟月相位同一张农历表。
+                if any(k in _n for k in ("初一十五", "上弦月",
+                                         "下弦月", "望月", "朔月",
+                                         "晦日", "朔日")):
+                    _ld9 = lunar.solar_to_lunar(
+                        _dd.year, _dd.month, _dd.day)
+                    _out9 = []
+                    for _off9 in range(0, 4):
+                        _mm9, _yy9 = _ld9["month"] + _off9, _ld9["year"]
+                        while _mm9 > 12:
+                            _mm9 -= 12
+                            _yy9 += 1
+                        for _ddt9, _nm9 in ((1, "朔（初一）"),
+                                            (15, "望（十五）")):
+                            _cd9 = lunar.lunar_to_solar(
+                                _yy9, _mm9, _ddt9)
+                            if _cd9 >= _dd:
+                                _out9.append((_cd9, _nm9))
+                    _out9.sort()
+                    out.append(
+                        f"农历日：今天{_ld9['month_cn']}{_ld9['day_cn']}"
+                        f"——" + "，".join(
+                            f"下个{_nm9}：{_cd9.month}月{_cd9.day}日"
+                            f"（还有{(_cd9 - _dd).days}天）"
+                            for _cd9, _nm9 in _out9[:2]))
                 # R4111：「下次满月/新月什么时候」——只报今日相位
                 # 不答日期的缺口补齐。仍走农历口径（初一/十五），
                 # 与 _week_sky 许愿/复盘事件同表。
@@ -8496,6 +8550,9 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         if any(k in _n for k in ("什么时候", "几号", "哪天", "哪一天",
                                  "还有几天", "还有多少天", "快到了",
                                  "还有多久", "星期几", "周几",
+                                 # R4531h：「多久过年/多久放假」——
+                                 # 「多久X」语序补键。
+                                 "多久", "多长时间",
                                  "什么日子")):
             try:
                 # R4106：反查解析抽成 _next_named_day——「什么时候」
@@ -8667,6 +8724,113 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         if _g9h:
             out.append("黄历行话白话："
                        + "，".join(f"{_k}={_glo9[_k]}" for _k in _g9h))
+        # R4531c：生肖年反查——「龙年/虎年」给上/下个真年
+        #（干支随年份真算）。
+        _sx9q = [k for k in ("鼠年", "牛年", "虎年", "兔年", "龙年",
+                             "蛇年", "马年", "羊年", "猴年", "鸡年",
+                             "狗年", "猪年") if k in _n]
+        if _sx9q:
+            _GZ9 = "甲乙丙丁戊己庚辛壬癸"
+            _ZZ9 = "子丑寅卯辰巳午未申酉戌亥"
+            _SXZ9 = {"鼠年": "子", "牛年": "丑", "虎年": "寅",
+                     "兔年": "卯", "龙年": "辰", "蛇年": "巳",
+                     "马年": "午", "羊年": "未", "猴年": "申",
+                     "鸡年": "酉", "狗年": "戌", "猪年": "亥"}
+            _zs9 = []
+            for _k9 in _sx9q:
+                _w9 = _SXZ9[_k9]
+                _pv9 = next(
+                    (y for y in range(_d.year, _d.year - 13, -1)
+                     if _ZZ9[(y - 4) % 12] == _w9), None)
+                _nx9 = next(
+                    (y for y in range(_d.year + 1, _d.year + 13)
+                     if _ZZ9[(y - 4) % 12] == _w9), None)
+                _gz9 = lambda y: (_GZ9[(y - 4) % 10]
+                                  + _ZZ9[(y - 4) % 12])
+                if _pv9 == _d.year:
+                    _zs9.append(f"{_k9}：今年就是（{_gz9(_pv9)}）")
+                else:
+                    _zs9.append(f"{_k9}：上一个{_pv9}（{_gz9(_pv9)}），"
+                                f"下一个{_nx9}（{_gz9(_nx9)}）")
+            out.append("生肖年：" + "；".join(_zs9))
+        # R4531d：年进度坐标——「今年还剩几天/一年过半了吗/Q4/
+        # 上半年/季末/年头」给真值。
+        if any(k in _n for k in ("今年还剩", "今年过去", "一年过半",
+                                 "这一年还有", "上半年", "下半年",
+                                 "第一季度", "第二季度", "第三季度",
+                                 "第四季度", "q1", "q2", "q3", "q4",
+                                 "Q1", "Q2", "Q3", "Q4", "季末",
+                                 "年头", "年初", "年底", "年末",
+                                 "岁尾", "年关")):
+            _doy9 = _dd.timetuple().tm_yday
+            _dim9 = 366 if (_dd.year % 400 == 0 or
+                           (_dd.year % 4 == 0 and _dd.year % 100 != 0)
+                           ) else 365
+            _left9 = _dim9 - _doy9
+            if any(k in _n for k in ("今年还剩", "这一年还有",
+                                     "年底", "年末", "岁尾", "年关")):
+                out.append(f"今年余额：{_dd.year}年还有{_left9}天"
+                           f"（{_dim9}天已过{_doy9}天）")
+            if any(k in _n for k in ("今年过去", "一年过半")):
+                _pct9 = _doy9 * 100 // _dim9
+                out.append(
+                    f"今年进度：{_dd.year}年已过{_doy9}天"
+                    f"（{_pct9}%）——"
+                    f"{'过半了' if _pct9 >= 50 else '还没过半'}")
+            if "上半年" in _n or "下半年" in _n:
+                _h9 = "上半年" if "上半年" in _n else "下半年"
+                _hs9 = "1月1日–6月30日" if _h9 == "上半年" \
+                    else "7月1日–12月31日"
+                _cur9 = "上半年" if _dd.month <= 6 else "下半年"
+                out.append(f"{_h9}：{_hs9}——现在在{_cur9}里")
+            _QMAP9 = {"q1": 1, "q2": 2, "q3": 3, "q4": 4,
+                      "第一季度": 1, "第二季度": 2, "第三季度": 3,
+                      "第四季度": 4}
+            _qk9 = next((k for k in _QMAP9 if k in _n.lower()), None)
+            if _qk9:
+                _qn9 = _QMAP9[_qk9]
+                _qs9 = ("1–3月", "4–6月", "7–9月", "10–12月")[_qn9 - 1]
+                _cq9 = (_dd.month - 1) // 3 + 1
+                _st9 = ("正在这个季度" if _qn9 == _cq9
+                        else "已经过了" if _qn9 < _cq9 else "还没到")
+                out.append(f"{_qk9.upper()}：{_qs9}（{_st9}）")
+            if "季末" in _n:
+                import calendar as _cal9
+                _qm9 = (_dd.month - 1) // 3 * 3 + 3
+                _qe9 = date(_dd.year, _qm9,
+                            _cal9.monthrange(_dd.year, _qm9)[1])
+                out.append(
+                    f"本季度末：{_qm9}月{_qe9.day}日"
+                    f"（还有{(_qe9 - _dd).days}天）")
+            if any(k in _n for k in ("年头", "年初")):
+                _ny9 = date(_dd.year + 1, 1, 1)
+                out.append(
+                    f"年头（年初）指元月——下一个年头："
+                    f"{_ny9.year}年1月1日（还有{(_ny9 - _dd).days}天）")
+        # R4531e：季月/物候白话——孟仲季月名+黄梅天/秋老虎/
+        # 倒春寒/开年这类时令词。
+        _sm9 = {"孟春": "正月（春季头月）", "仲春": "二月",
+                "季春": "三月", "孟夏": "四月", "仲夏": "五月",
+                "季夏": "六月", "孟秋": "七月",
+                "仲秋": "八月（中秋那个月）", "季秋": "九月",
+                "孟冬": "十月", "仲冬": "冬月（十一月）",
+                "季冬": "腊月（十二月）",
+                "黄梅天": "江南梅雨季（6月中到7月上，"
+                          "「黄梅时节家家雨」）",
+                "秋老虎": "立秋后的回热天（8月底9月）",
+                "倒春寒": "开春后返冷的天", "开春": "立春后叫开春",
+                "开年": "正月开头那几天（老话讲开年大吉）",
+                "平年": "365天的年份（闰年366天）",
+                "生肖纪年": "属相轮着走的纪年法——今年马年明年羊年"}
+        _sm9h = [k for k in _sm9 if k in _n]
+        if _sm9h:
+            out.append("老话时令白话："
+                       + "，".join(f"{_k}={_sm9[_k]}" for _k in _sm9h))
+        # R4531f：寒暑假——校历在各省各校手里，诚实给通行段。
+        if any(k in _n for k in ("寒假", "暑假", "开学")):
+            out.append(
+                "寒暑假看校历——中小学通行寒假1月中下到2月、"
+                "暑假7月到8月；各省各校不同，以学校通知为准")
         # R4506d：十神/格局/喜用神门——排盘术语给白话对照+指路。
         if any(k in _n for k in ("十神", "食神", "伤官", "正财", "偏财",
                                  "七杀", "正官", "偏印", "正印",
@@ -8871,13 +9035,16 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             if (_nd2 is not None
                     and not any(k in _n for k in (
                         "什么", "几号", "哪天", "几时", "还有几",
+                        # R4531g：「还有多久」也走 8496 意图行——
+                        # 裸词回声再发一条就重样了。
+                        "多久",
                         "怎么", "穿", "运势", "运气", "星座", "月亮",
                         "满月", "新月", "月相", "值神", "冲", "煞",
                         "宜", "忌", "日子", "吉时", "财神", "幸运",
                         "贵人", "五行", "干支", "放假", "假期",
                         "星期", "周几", "吉不", "吉利", "顺不",
                         "适合", "生日", "几伏", "几九", "数九",
-                        "农历", "阴历", "三伏", "入伏", "出伏"))):
+                        "农历", "阴历", "三伏", "入伏"))):
                 _dl4 = (_nd2 - _d).days
                 _tip4 = _fest_tip(_v2)
                 # R4241：名字指向明年的同名节，但今年假期段还没走完
