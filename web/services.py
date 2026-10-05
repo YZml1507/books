@@ -6621,6 +6621,76 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             f"（{_wc9}方——复习/考试朝这坐沾点文气）")
             except Exception:
                 pass
+        # R4356：月段坐标+节后上班——「月底几号/月初月中」月历段
+        # 反查；「国庆后哪天上班/节后上班」_LEGAL_SPANS 段尾+1。
+        if any(k in _n for k in ("月底", "月末", "月初", "月中",
+                                 "节后上班", "后上班", "假期结束",
+                                 "上班第一天", "哪天上班", "几号上班",
+                                 "什么时候上班")):
+            try:
+                import calendar as _cal9b
+                _WD9b = "一二三四五六日"
+                if any(k in _n for k in ("节后", "后上班", "假期结束",
+                                         "上班", "几号上班", "哪天上班")) \
+                        and not any(k in _n for k in ("月底", "月末",
+                                                      "月初", "月中")):
+                    # 假期口语别名→规范名（五一→劳动节、十一→国庆）。
+                    _AL9 = {"五一": "劳动", "十一": "国庆",
+                            "年假": "春节", "过年": "春节"}
+                    _qn9 = _n
+                    for _ak9, _av9 in _AL9.items():
+                        if _ak9 in _qn9:
+                            _qn9 = _qn9.replace(_ak9, _av9)
+                    _nm9 = [r for r in _LEGAL_SPANS
+                            if (r[0][:2] in _qn9
+                                or any(t in _qn9 for t in
+                                       ("国庆", "春节", "五一", "劳动",
+                                        "清明", "端午", "中秋", "元旦")
+                                       if t in r[0]))]
+                    _sp9 = next(
+                        (r for r in _nm9
+                         if r[2] >= _d - timedelta(days=7)), None)
+                    if _sp9 is None and _nm9:
+                        _sp9 = next(
+                            (r for r in sorted(
+                                _nm9, key=lambda r: r[1])
+                             if r[2] >= _d), None)
+                    if _sp9 is None and not _nm9:
+                        _sp9 = next(
+                            (r for r in sorted(
+                                _LEGAL_SPANS, key=lambda r: r[1])
+                             if r[2] >= _d), None)
+                    if _sp9 is None and _nm9:
+                        out.append(
+                            f"{_nm9[0][0]}：下一个假期表还没排到")
+                    if _sp9:
+                        _bk9 = _sp9[2] + timedelta(days=1)
+                        out.append(
+                            f"{_sp9[0]}后上班：{_bk9.month}月{_bk9.day}日"
+                            f" 星期{_WD9b[_bk9.weekday()]}"
+                            + (f"（还有{(_bk9 - _d).days}天）"
+                               if _bk9 > _d else ""))
+                else:
+                    _lm9b = _cal9b.monthrange(_dd.year, _dd.month)[1]
+                    if "月底" in _n or "月末" in _n:
+                        _me9 = date(_dd.year, _dd.month, _lm9b)
+                        out.append(
+                            f"{_dd.month}月月底：{_lm9b}日"
+                            f"（星期{_WD9b[_me9.weekday()]}"
+                            + (f"，还有{(_me9 - _d).days}天"
+                               if _me9 > _d else "") + "）")
+                    elif "月初" in _n:
+                        out.append(
+                            f"{_dd.month}月月初：1日"
+                            f"（今天已过{_dd.day - 1}天）")
+                    elif "月中" in _n:
+                        _mm9d = date(_dd.year, _dd.month, 15)
+                        out.append(
+                            f"{_dd.month}月月中：15日前后"
+                            + (f"（还有{(_mm9d - _d).days}天）"
+                               if _mm9d > _d else "（过了）"))
+            except Exception:
+                pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
         # 「闰正月/闰腊月」点名问扫 1901-2099 全表（闰正/闰腊天文上
         # 极罕见，本世纪没有就直说，不编）。
