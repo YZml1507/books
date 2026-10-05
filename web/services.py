@@ -2615,7 +2615,11 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
             return cand, _hn
     # 口语别名→正式节日名——「光棍节/520/双11」嘴上这么说。
     _FEST_ALIAS = {"光棍节": "双十一", "双11": "双十一",
-                   "520": "网络情人节"}
+                   "520": "网络情人节",
+                   # R4242：「五一/十一长假」口语——「十一」裸词歧义大
+                   #（11月/双十一常撞），只认长假说法。
+                   "五一": "劳动节", "十一长假": "国庆节",
+                   "十一假期": "国庆节", "十一黄金周": "国庆节"}
     for _al9, _disp9 in _FEST_ALIAS.items():
         if _al9 in msg and _disp9 not in msg:
             for (_am, _ad), _fv9 in _FEST_SOLAR.items():
@@ -5628,11 +5632,29 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"星期{_wdn2[_dd.weekday()]}")
                 if _nd is not None:
                     _dl3 = (_nd - _d).days
-                    out.append(
-                        f"{_v}：{_nd.month}月{_nd.day}日"
-                        + ("（就是今天）" if _dl3 == 0
-                           else f"（还有{_dl3}天）" if _dl3 > 0
-                           else "（今年已过）"))
+                    # R4241b：段内同名假优先——「国庆还有几天」在
+                    # 假期内问，不能答明年倒数。
+                    _sp3 = next(
+                        (r for r in _LEGAL_SPANS
+                         if r[1] <= _d <= r[2]
+                         and (r[0][:2] in _v or _v[:2] in r[0])),
+                        None)
+                    if _sp3 is not None:
+                        _left3 = (_sp3[2] - _d).days
+                        out.append(
+                            f"{_sp3[0]}假期：今天是假期第"
+                            f"{(_d - _sp3[1]).days + 1}天"
+                            f"（{_sp3[1].month}月{_sp3[1].day}日到"
+                            f"{_sp3[2].month}月{_sp3[2].day}日，"
+                            + (f"还剩{_left3}天，共"
+                               f"{(_sp3[2] - _sp3[1]).days + 1}天）"
+                               if _left3 else "今天收尾）"))
+                    else:
+                        out.append(
+                            f"{_v}：{_nd.month}月{_nd.day}日"
+                            + ("（就是今天）" if _dl3 == 0
+                               else f"（还有{_dl3}天）" if _dl3 > 0
+                               else "（今年已过）"))
             except Exception:
                 pass
         # R4196：点名节日回声——「重阳节快乐/双十一/520」不带
@@ -5651,14 +5673,32 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         "农历", "阴历", "三伏", "入伏", "出伏"))):
                 _dl4 = (_nd2 - _d).days
                 _tip4 = _fest_tip(_v2)
-                out.append(
-                    f"{_v2}："
-                    + (f"{_nd2.year}年" if _nd2.year != _d.year else "")
-                    + f"{_nd2.month}月{_nd2.day}日"
-                    + ("（就是今天）" if _dl4 == 0
-                       else f"（还有{_dl4}天）" if _dl4 > 0 else "")
-                    # 当天节日块已给 tip，回声只挂倒计时日的。
-                    + (f"（{_tip4}）" if _tip4 and _dl4 != 0 else ""))
+                # R4241：名字指向明年的同名节，但今年假期段还没走完
+                # ——「国庆第几天」10/3 问不能答「还有363天」：段内
+                # 直接给假期第 N 天（_LEGAL_SPANS 法定表同源）。
+                _sp4 = next(
+                    (r for r in _LEGAL_SPANS
+                     if r[1] <= _d <= r[2]
+                     and (r[0][:2] in _v2 or _v2[:2] in r[0])),
+                    None)
+                if _sp4 is not None:
+                    out.append(
+                        f"{_sp4[0]}假期：今天是假期第"
+                        f"{(_d - _sp4[1]).days + 1}天"
+                        f"（{_sp4[1].month}月{_sp4[1].day}日到"
+                        f"{_sp4[2].month}月{_sp4[2].day}日，共"
+                        f"{(_sp4[2] - _sp4[1]).days + 1}天）")
+                else:
+                    out.append(
+                        f"{_v2}："
+                        + (f"{_nd2.year}年"
+                           if _nd2.year != _d.year else "")
+                        + f"{_nd2.month}月{_nd2.day}日"
+                        + ("（就是今天）" if _dl4 == 0
+                           else f"（还有{_dl4}天）" if _dl4 > 0 else "")
+                        # 当天节日块已给 tip，回声只挂倒计时日的。
+                        + (f"（{_tip4}）"
+                           if _tip4 and _dl4 != 0 else ""))
         except Exception:
             pass
         # R4201：每日古话活事实——问「今天的古话/那句古文」手里
