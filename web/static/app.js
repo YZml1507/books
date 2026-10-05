@@ -20106,6 +20106,9 @@ function _qianWinHook() {
                 : (typeof _qianCnyFirstDay === 'function' &&
                    _qianCnyFirstDay())
                 ? '除夕团圆——福签今天开张，讨第一支彩头'
+                : (typeof _qianCnyEveDay === 'function' &&
+                   _qianCnyEveDay())
+                ? '正月十四——福签明天截止，讨彩头还有两天'
                 : (typeof _qianCaishenDay === 'function' &&
                    _qianCaishenDay())
                 ? '初五迎财神——今天抽支福签讨头彩'
@@ -26305,6 +26308,14 @@ function _qianCnyLastDay() {
     return !!(r && o.m * 100 + o.d === r[1]);
   });
 }
+/* R4046：元宵前一天（正月十四）——_QIAN_CNY_WIN 的 r[1]
+ * 全是 2 月下旬 MMDD，r[1]-1 不跨月，减法安全。 */
+function _qianCnyEveDay() {
+  return _inBothDates(function (o) {
+    var r = _QIAN_CNY_WIN[o.y];
+    return !!(r && o.m * 100 + o.d === r[1] - 1);
+  });
+}
 function _qianCaishenDay() {
   return _inBothDates(function (o) {
     return _QIAN_CAISHEN[o.y] === o.m * 100 + o.d;
@@ -26552,6 +26563,9 @@ function _qianSlipHtml(n, opts) {
          ? '<div class="qian-note">' +
            (_qianCnyLastDay()
              ? '福签到今晚元宵截止——明年新春再来'
+             : (typeof _qianCnyEveDay === 'function' &&
+                _qianCnyEveDay())
+             ? '福签明天元宵截止——这支是倒数第二支'
              : '福签今天这支——明天还能再抽') + '</div>'
          : (o.hw
          ? '<div class="qian-note">' +
@@ -26560,6 +26574,9 @@ function _qianSlipHtml(n, opts) {
            (_inBothDates(function (o) {
               return o.m === 11 && o.d >= 1; })
              ? '捣蛋签到今晚截止——明年万圣再来'
+             : _inBothDates(function (o) {
+                return o.m === 10 && o.d === 31; })
+             ? '捣蛋签明天截止——这支是倒数第二支'
              : '捣蛋签今天这支——明天还能再抽') + '</div>'
          : (o.love
          ? '<div class="qian-note">' +
@@ -26572,6 +26589,9 @@ function _qianSlipHtml(n, opts) {
            (_inBothDates(function (o) {
               return o.m === 11 && o.d >= 11; })
              ? '桃花签到今晚截止——明年双十一再来'
+             : _inBothDates(function (o) {
+                return o.m === 11 && o.d === 10; })
+             ? '桃花签明天截止——这支是倒数第二支'
              : '桃花签今天这支——明天还能再抽') + '</div>'
          : (o.review
            ? '<button class="ghost" type="button" data-qian="back">回到今天的签</button>'
