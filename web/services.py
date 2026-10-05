@@ -4555,6 +4555,19 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                     _dl += 7
                 _dd = _d + timedelta(days=_dl)
                 _pfx = _wdm.group(0)
+            elif "周末" in _n:
+                # R4006：周末=周六；今天周六即今天，周日说下周末
+                # 指下个周六；「下周末」固定下个周六。
+                if "下周末" in _n:
+                    _dl = (5 - _d.weekday()) % 7 + 7
+                    if _d.weekday() == 6:
+                        _dl = 13
+                else:
+                    _dl = (5 - _d.weekday()) % 7
+                    if _d.weekday() == 6:
+                        _dl = 6
+                _dd = _d + timedelta(days=_dl)
+                _pfx = "下周末" if "下周末" in _n else "周末"
         if any(k in _n for k in ("水逆", "水星逆行")):
             _m = _mercury_state(_d)
             if _m.get("on"):
