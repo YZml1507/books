@@ -19907,7 +19907,17 @@ function _usageTrack(view) {
       localStorage.setItem('usage:first', todayIso());
     localStorage.setItem('usage:last', todayIso());
     /* R3264（R30）：7 天轻见面记录——每天留一个脚印，多次访问同一天只记 1。 */
-    localStorage.setItem('usage:d:' + todayIso(), '1');
+    var _udK = 'usage:d:' + todayIso();
+    if (!localStorage.getItem(_udK)) {
+      /* R3796：usage:d 是 150 天 GC 族——来访天数年级口径
+       * 封顶 ~150。udY:YYYY 永久汇总与 ckY: 同款写法。 */
+      try {
+        var _udY = 'udY:' + todayIso().slice(0, 4);
+        localStorage.setItem(_udY,
+          String((+localStorage.getItem(_udY) || 0) + 1));
+      } catch (eUD) {}
+    }
+    localStorage.setItem(_udK, '1');
     var k = 'usage:v:' + view;
     localStorage.setItem(k, String((+localStorage.getItem(k) || 0) + 1));
   } catch (eU) {}
@@ -20504,6 +20514,8 @@ function _yearStats(dateKey) {
     if (_ckR > out.checkinDays) out.checkinDays = _ckR;
     var _ckB = +(localStorage.getItem('ckBest:' + yy) || 0);
     if (_ckB > out.streakBest) out.streakBest = _ckB;
+    var _udR = +(localStorage.getItem('udY:' + yy) || 0);
+    if (_udR > out.visitDays) out.visitDays = _udR;
     var _jrR = +(localStorage.getItem('jrY:' + yy) || 0);
     if (_jrR > out.journalCount) out.journalCount = _jrR;
     var _mdR = JSON.parse(localStorage.getItem('mdY:' + yy) || 'null');
@@ -26662,7 +26674,7 @@ function baziPersonaCard(j) {
      * 凭据/口令锁/主题/UI 偏好不在此列（非个人足迹，各有
      * 本家开关）。 */
     { id: 'trk', icon: '👣', label: '来过的足迹',
-      re: /^(rlast:|usage:|remind:|visits$|visit:first$|welcomed$|notify:time$|returnBannerDismissed$)/,
+      re: /^(rlast:|usage:|remind:|visits$|visit:first$|udY:|welcomed$|notify:time$|returnBannerDismissed$)/,
       sum: function () {
         var b = [];
         var v = 0;
@@ -27320,7 +27332,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$|st:cur$|st:last$|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|visit:first$|udY:|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$|st:cur$|st:last$|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -27675,6 +27687,7 @@ function baziPersonaCard(j) {
                 k === 'hwCloseTip' ||
                 /* R3756：连签/年汇总/年信旗同收（足迹件）。 */
                 k === 'st:cur' || k === 'st:last' ||
+                k.indexOf('udY:') === 0 ||
                 k.indexOf('ckY:') === 0 || k.indexOf('ckBest:') === 0 ||
                 k.indexOf('mdY:') === 0 || k.indexOf('jrY:') === 0 ||
                 k.indexOf('yearlyLetter:') === 0 ||
