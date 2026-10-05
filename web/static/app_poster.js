@@ -422,7 +422,7 @@ function _paintSharePoster(s, W, H) {
    * 上限；行高按剩余空间自适应，不越进页脚水印区。 */
   /* R3637/40（审-P1）：daily 全字段齐=签诗+签运+评分+能量+
    * 贵人+财神+宜+缓+峰值+TA+双满电=11 行——提帽 11 兜全。 */
-  var _lineCap = { daily: 11, 'checkin-week': 7, 'checkin-month': 6,
+  var _lineCap = { daily: 12, 'checkin-week': 7, 'checkin-month': 6,
                    /* R3644：5 档色行+明天电量=6 行——提帽 6。 */
                    hehun: 6, 'daily-outfit': 6,
                    huangli: 6, birth: 5, bazi: 5,
@@ -1312,6 +1312,15 @@ function buildShareData(view, j) {
                ' · TA ' + String(_dppk.s) });
         }
       }
+      /* R3711：今日古话上海报——晒图多一句耐看的话（与日行
+       * 同池同日同句；最长 17 字在 20 字帽内）。 */
+      try {
+        var _gdq = _dayPick(_DAY_QUOTES, 'dq');
+        if (_gdq && _gdq.t) {
+          _ds.lines.push({ k: '今日古话',
+            v: '「' + _pStr(_gdq.t) + '」' });
+        }
+      } catch (eGDQ) {}
       /* R2349t（R88-2a/15b）：节日/节气上海报副题+右上徽章——
        * 中秋当天发出去的图自带时令由头（字段已在 daily 响应下发）。 */
       var _dfest = _pArr(j && j.festival)[0] ||
