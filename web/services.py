@@ -2996,6 +2996,14 @@ def _week_sky(d: date) -> list:
                     evs.append({"d": lab, "t": "🍂 " + tn})
             except Exception:
                 pass
+            # R4161：节日节点同进预告——重阳/双十一这类曾只靠
+            # 当天节日行冒头，前瞻里零曝光（公历/农历/月第N周节
+            # 与节日行同一条 _festival_for）。
+            try:
+                for _fe in _festival_for(dd):
+                    evs.append({"d": lab, "t": "🎉 " + _fe})
+            except Exception:
+                pass
             for tbl, nm in ((_MERCURY_RETRO, "水逆"),
                             (_VENUS_RETRO, "金逆"),
                             (_MARS_RETRO, "火逆")):
