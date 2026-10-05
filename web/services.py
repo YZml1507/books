@@ -7667,12 +7667,16 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # 同源，不再让她对着十二星座名干想）。
         _XZ = ("白羊", "金牛", "双子", "巨蟹", "狮子", "处女",
                "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼")
+        # R4426：「TA明天怎么样/TA最近怎么样」——人称+怎么样也出
+        # 日行（不带运势词的口语问法），挂在同一触发链。
         if any(k in _n for k in ("星座运势", "星座日运", "今日星座",
                                  "今天星座", "明日星座", "明天星座",
                                  "星座今天", "星座明天", "运势",
                                  "运气")) or \
            any((s + "座") in _n or (s + "今天") in _n or
-               (s + "明天") in _n for s in _XZ):
+               (s + "明天") in _n for s in _XZ) or \
+           ("怎么样" in _n and any(
+               k in _n for k in ("TA", "ta", "他", "她", "我"))):
             try:
                 _b0 = bazi_compute(_dd.year, _dd.month, _dd.day, 12, "男")
                 _hz = xingzuo_mod.daily_horoscope(_b0.day)
@@ -7694,7 +7698,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 # 档案生日→太阳座→同一条日行。
                 if any(k in _n for k in
                        ("TA星座", "ta星座", "他星座", "她星座",
-                        "我星座", "我的星座")):
+                        "我星座", "我的星座",
+                        "TA怎么样", "ta怎么样", "他怎么样",
+                        "她怎么样", "我怎么样", "对象怎么样",
+                        "TA明天", "ta明天", "TA最近", "ta最近")):
                     _ta9q = any(k in _n for k in
                                 ("TA", "ta", "他", "她"))
                     _re9q = (_BIRTHDAY_PARTNER_RE if _ta9q
