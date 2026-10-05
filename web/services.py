@@ -5414,6 +5414,69 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(f"{_pfx}你的盘：{_mn['line']}")
             except Exception:
                 pass
+        # R4216：时令日内坐标+农历行——「今天几九/几伏/农历几号」。
+        if any(k in _n for k in ("农历", "阴历", "旧历")):
+            try:
+                out.append(f"{_pfx}{_daily_lunar_str(_dd)}")
+            except Exception:
+                pass
+        if any(k in _n for k in ("几九", "数九", "出九")):
+            try:
+                from guji.bazi import term_time as _ttn
+                _hit9 = False
+                for _yyn in (_dd.year, _dd.year - 1):
+                    _dzn = (_ttn(_yyn, "冬至") + timedelta(hours=8)).date()
+                    _d99n = _dzn + timedelta(days=80)
+                    if _dzn <= _dd <= _d99n:
+                        _ofs = (_dd - _dzn).days
+                        _jn = "一二三四五六七八九"[_ofs // 9]
+                        out.append(
+                            f"{_pfx}数九：{_jn}九第{_ofs % 9 + 1}天"
+                            f"（{_d99n.month}月{_d99n.day}日出九）")
+                        _hit9 = True
+                        break
+                if (not _hit9
+                        and not any(k in _n for k in
+                                    ("什么时候", "几号", "哪天", "还有几"))):
+                    _nx9 = (_ttn(_dd.year, "冬至")
+                            + timedelta(hours=8)).date()
+                    if _nx9 <= _dd:
+                        _nx9 = (_ttn(_dd.year + 1, "冬至")
+                                + timedelta(hours=8)).date()
+                    out.append(
+                        f"{_pfx}数九：今天不在数九期，"
+                        f"{_nx9.month}月{_nx9.day}日起")
+            except Exception:
+                pass
+        if any(k in _n for k in ("几伏", "三伏", "入伏了", "出伏了",
+                                 "在伏天", "伏天")):
+            try:
+                _ru9, _mo9 = _sanfu(_dd.year)
+                if _ru9 <= _dd <= _mo9:
+                    _mf9 = _mo9 - timedelta(days=9)   # 末伏首日
+                    if _dd < _ru9 + timedelta(days=10):
+                        _ph9 = "初伏"
+                        _dn9 = (_dd - _ru9).days + 1
+                    elif _dd < _mf9:
+                        _ph9 = "中伏"
+                        _dn9 = (_dd - _ru9).days - 9
+                    else:
+                        _ph9 = "末伏"
+                        _dn9 = (_dd - _mf9).days + 1
+                    out.append(
+                        f"{_pfx}三伏：{_ph9}第{_dn9}天"
+                        f"（{_mo9.month}月{_mo9.day}日出伏）")
+                elif not any(k in _n for k in
+                             ("什么时候", "几号", "哪天", "还有几")):
+                    # 过了今年出伏给明年入伏日；问句态让给反查块答。
+                    _rv9 = _ru9
+                    if _dd > _mo9:
+                        _rv9 = _sanfu(_dd.year + 1)[0]
+                    out.append(
+                        f"{_pfx}三伏：今天不在伏天，"
+                        f"{_rv9.month}月{_rv9.day}日入伏")
+            except Exception:
+                pass
         # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
         # 点名假期给该段，没点名给「今天在不在放/下一假期/补班日」。
         if any(k in _n for k in ("放假", "假期", "调休", "补班",
@@ -5515,7 +5578,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         "满月", "新月", "月相", "值神", "冲", "煞",
                         "宜", "忌", "日子", "吉时", "财神", "幸运",
                         "贵人", "五行", "干支", "放假", "假期",
-                        "适合", "生日"))):
+                        "适合", "生日", "几伏", "几九", "数九",
+                        "农历", "阴历", "三伏", "入伏", "出伏"))):
                 _dl4 = (_nd2 - _d).days
                 _tip4 = _fest_tip(_v2)
                 out.append(
