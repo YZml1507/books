@@ -4870,10 +4870,15 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                                  "双十一", "光棍", "黑五", "七夕节")):
             try:
                 _fn = _festival_for(_dd, "")
-                if _fn:
-                    out.append(f"{_pfx}节日：{'、'.join(_fn)}")
-                elif any(k in _n for k in ("什么节", "啥节日", "节日",
-                                           "过节")):
+                # R4116：命名日已把节日名挂在前缀（「中秋节穿什么」）
+                # ——节日行复读同名属噪声，只剩「除夕、数九」式补充才留。
+                _fkeep = [x for x in _fn
+                          if x != _pfx and x not in _pfx] if _fn else []
+                if _fkeep:
+                    out.append(f"{_pfx}节日：{'、'.join(_fkeep)}")
+                elif not _fn and any(
+                        k in _n for k in ("什么节", "啥节日", "节日",
+                                          "过节")):
                     _nopf = _pfx if _pfx != "今日" else "今天"
                     out.append(f"{_pfx}节日：{_nopf}没排上节日名")
             except Exception:
