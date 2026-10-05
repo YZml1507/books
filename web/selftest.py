@@ -296,6 +296,18 @@ def _run_inner() -> list[str]:
                                           "hour": 12, "gender": "男"}).json()
     assert "hour_known" not in _hk2, "hour_known 缺省不得出现"
     ok.append("bazi.hour_unknown")
+    # R4671f：称骨钉扎——1990-01-01 午时 = 己巳5+腊月5+初五16+午10
+    # = 36钱=三两六钱；hour_known=False 时给 unavailable 不默认午时。
+    _cg = client.post("/api/bazi", json={"year": 1990, "month": 1, "day": 1,
+                                          "hour": 12, "gender": "男"}).json()
+    _cgo = (_cg.get("calc") or {}).get("chenggu") or {}
+    assert _cgo.get("available") is True and _cgo.get("weight_qian") == 36, \
+        ("bazi.chenggu.weight", _cgo)
+    assert "独自成家福不轻" in (_cgo.get("song") or ""), \
+        ("bazi.chenggu.song", _cgo.get("song"))
+    _cg2 = (_hk.get("calc") or {}).get("chenggu") or {}
+    assert _cg2.get("available") is False, "时辰未知不得硬称"
+    ok.append("bazi.chenggu")
     # R230a-21（R13-P0-1 钉扎）：补缺走「生我」方向——1989-02-24 缺水须
     # 说「从金的方向补」（金生水），而不是「我生」的反向（此前错指）。
     _bx = client.post("/api/bazi", json={"year": 1989, "month": 2, "day": 24,

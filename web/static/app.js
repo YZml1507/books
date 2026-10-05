@@ -3634,6 +3634,8 @@ function _chatFacts(facts, msg) {
     if (_me && _me.y && _me.m && _me.d) {
       var _mm = ('0' + _me.m).slice(-2), _dd = ('0' + _me.d).slice(-2);
       _f.push('生日：' + _me.y + '-' + _mm + '-' + _dd);
+      /* R4671c：时辰同步进事实——称骨要年月日时全才称得准 */
+      if (_me.h != null) _f.push('时辰：' + _me.h);
     }
     /* R3126（specs/013-P2）：partner 档案进上下文——合婚留下的
      * me:partner 此前只有合婚页自己用；聊「他/TA」时小满手里得有
@@ -3646,6 +3648,8 @@ function _chatFacts(facts, msg) {
       var _pm = ('0' + _p.m).slice(-2), _pd = ('0' + _p.d).slice(-2);
       _f.push('TA的生日：' + _p.y + '-' + _pm + '-' + _pd +
               (_p.n ? '（' + _meNickClean(_p.n) + '）' : ''));
+      /* R4671c：TA 时辰同口径 */
+      if (_p.h != null) _f.push('TA的时辰：' + _p.h);
     }
     /* R3352（审-高）：心情话题带近 7 天本机心情记录——此前小满手里
      * 既没数据也没周记路标，只能回「跟我说说」空话。mood:<date> 值
@@ -7690,6 +7694,7 @@ function buildBaziResult(j) {
    * 当月高亮。 */
   html += _yearlyStrip(j.calc);
   html += _klineFold(j.calc);
+  html += _chengguFold(j.calc);
   html += tailHook('bazi');
   html += '</div>';
   return html;
@@ -7730,6 +7735,34 @@ function _klineFold(calc) {
       '<p class="kline-note">大运+流年推的节奏线——看趋势不作断语，' +
         '低谷年攒劲，顺段年放手。</p>' +
       '</div></details>';
+  } catch (e) { return ''; }
+}
+/* R4671b：称骨折叠卡——calc.chenggu 服务端算好骨重+四项来源+歌诀。
+ * 时辰未知时后端给 available:false 附说明行，卡面照说。 */
+function _chengguFold(calc) {
+  try {
+    var c = calc && calc.chenggu;
+    if (!c) return '';
+    var inner;
+    if (!c.available) {
+      inner = '<p class="kline-note">' + esc(c.note || '') + '</p>';
+    } else {
+      var p = c.parts || {};
+      var seg = function (x) { return x ? esc(x.label) + ' ' + esc(x.w_cn) : ''; };
+      inner = '<div class="kline-wrap">' +
+        '<p class="chenggu-sum">骨重 <b>' + esc(c.weight_cn || '') + '</b></p>' +
+        '<p class="kline-note">' +
+          [seg(p.year), seg(p.month), seg(p.day), seg(p.hour)].join('　') +
+        '</p>' +
+        '<p class="chenggu-song">「' + esc(c.song || '') + '」</p>' +
+        (c.leap_note ? '<p class="kline-note">' + esc(c.leap_note) + '</p>' : '') +
+        (c.late_zi_note ? '<p class="kline-note">' + esc(c.late_zi_note) + '</p>' : '') +
+        '<p class="kline-note">称骨是民间口彩——年月日时合计斤两对歌诀，' +
+          '图个乐子不作断语。</p>' +
+        '</div>';
+    }
+    return '<details class="kline-fold chenggu-fold">' +
+      '<summary>⚖️ 称称你的骨重（称骨歌）</summary>' + inner + '</details>';
   } catch (e) { return ''; }
 }
 function _drawKlineEl(cv, k) {

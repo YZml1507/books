@@ -55,6 +55,7 @@ from guji import external as external_feed
 # ——web 层不再有任何 history_db 调用点（模块文件本体保留，见文件下方注释）。
 from guji import huangli as huangli_mod
 from guji import hehun as hehun_mod
+from guji import chenggu as chenggu_mod
 from guji import interpreter
 from guji import liuyao as liuyao_mod
 from guji import llm_polish
@@ -245,6 +246,20 @@ def bazi(req) -> dict:
     # R3393：流年K线全 scope 附带——只依赖出生年+命盘坐标，与范围无关。
     # day/range 用户也能拿到「人生走势」这块可晒件。
     calc_out["kline"] = calc_kline(b, by)
+    # R4671a：称骨民俗件全 scope 附带——公共领域定式表算骨重+歌诀；
+    # 时辰未知时给「要时辰才能称」的诚实口径不默认午时（称骨错一个
+    # 时辰就错一首诀，错诀不如不称）。
+    try:
+        if req.hour_known is False:
+            calc_out["chenggu"] = {"available": False,
+                                   "note": "称骨要出生时辰——补了时辰再称。"}
+        else:
+            calc_out["chenggu"] = {"available": True,
+                                   **chenggu_mod.chenggu_compute(
+                                       by, bm, bd, req.hour)}
+    except Exception:
+        calc_out["chenggu"] = {"available": False,
+                               "note": "这天农历表翻不出，称不了骨。"}
     if req.location:
         calc_out["location"] = req.location
 
@@ -10398,12 +10413,56 @@ def chat_daily_facts(message: str, now: datetime | None = None,
             out.append(
                 "喜用神要排全盘才定——八字页出盘后「✨盘里小惊喜」"
                 "里的晶石/方位就是按喜用推的，去那儿看")
-        # R4506e：称骨门——铺子没学，直说+指路。
+        # R4506e→R4671d：称骨门——学会了。档里生日+时辰齐就出真骨重
+        # 歌诀；缺时辰明说差哪块不拿默认午时硬称。
         if any(k in _n for k in ("称骨", "骨重", "几两命", "几斤几两",
                                  "命重", "骨轻", "骨重多少")):
-            out.append(
-                "称骨算命这门铺子里没学——年月日时合斤两的算法"
-                "她不会；手里的盘是八字，去八字页排")
+            _cg_me = _cg_ta = _h_me = _h_ta = None
+            for _cf in facts or []:
+                _cfs = str(_cf).strip()
+                _cm5 = _BIRTHDAY_FACT_RE.match(_cfs)
+                _cp5 = _BIRTHDAY_PARTNER_RE.match(_cfs)
+                if _cm5:
+                    _cg_me = (int(_cm5.group(1)), int(_cm5.group(2)),
+                              int(_cm5.group(3)))
+                if _cp5:
+                    _cg_ta = (int(_cp5.group(1)), int(_cp5.group(2)),
+                              int(_cp5.group(3)))
+                _chm = re.match(r"^时辰：(\d{1,2})", _cfs)
+                _chp = re.match(r"^TA的时辰：(\d{1,2})", _cfs)
+                if _chm:
+                    _h_me = int(_chm.group(1))
+                if _chp:
+                    _h_ta = int(_chp.group(1))
+            _ta_ctx = bool(_cg_ta) and any(
+                k in _n for k in ("TA", "ta", "TA的", "他", "她",
+                                  "对象", "另一半"))
+            _cg = _cg_ta if _ta_ctx else _cg_me
+            _hh = _h_ta if _ta_ctx else _h_me
+            _wn = "TA" if _ta_ctx else "你"
+            if _cg and _hh is not None:
+                try:
+                    _cr = chenggu_mod.chenggu_compute(*_cg, _hh)
+                    _cp2 = _cr["parts"]
+                    out.append(
+                        f"{_wn}的骨重：{_cr['weight_cn']}"
+                        f"（{_cp2['year']['label']}{_cp2['year']['w_cn']}、"
+                        f"{_cp2['month']['label']}{_cp2['month']['w_cn']}、"
+                        f"{_cp2['day']['label']}{_cp2['day']['w_cn']}、"
+                        f"{_cp2['hour']['label']}{_cp2['hour']['w_cn']}）。"
+                        f"称骨歌：「{_cr['song']}」"
+                        "——民间口彩图个乐子，不当真断。")
+                except Exception:
+                    out.append(
+                        "称骨这天农历表翻不出来——八字页有称骨卡能看。")
+            elif _cg:
+                out.append(
+                    f"{_wn}的生日在档但时辰没记——称骨要年月日时全才称"
+                    "得准，八字页补上时辰就能看到骨重卡。")
+            else:
+                out.append(
+                    "称骨要生日加时辰——八字页出盘后有「称称你的骨重」"
+                    "卡，那儿年月日时全算给你看。")
         # R4506f：寿数门——大题不编，老话温声。
         if any(k in _n for k in ("寿命", "寿元", "寿数", "活多久",
                                  "能活多久", "阳寿", "阴寿",

@@ -4656,6 +4656,11 @@ html[data-theme="dark"] .mc-eq-t, html[data-theme="dark"] .mc-eo-t {
 .kl-flag { color: #8A4A3C; font-weight: 700; }
 .kline-note { font-size: 12px; color: var(--text, #3e3428);
   opacity: .8; margin: 4px 0 0; }
+/* R4671e：称骨卡——骨重大字+歌诀行，令牌色不硬编 */
+.chenggu-sum { font-size: 15px; color: var(--text); margin: 8px 0 2px; }
+.chenggu-sum b { font-size: 22px; color: var(--primary-ink); }
+.chenggu-song { font-family: var(--font-serif); font-size: 14.5px;
+  line-height: 1.9; color: var(--text); margin: 8px 0 4px; }
 @media (max-width: 420px) {
   .kline-legend { font-size: 10.5px; gap: 3px 8px; }
 }
