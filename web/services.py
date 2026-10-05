@@ -4875,7 +4875,8 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
         _XZ = ("白羊", "金牛", "双子", "巨蟹", "狮子", "处女",
                "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼")
         if any(k in _n for k in ("星座运势", "星座日运", "今日星座",
-                                 "今天星座", "明日星座", "明天星座")) or \
+                                 "今天星座", "明日星座", "明天星座",
+                                 "运势", "运气")) or \
            any((s + "座") in _n or (s + "今天") in _n or
                (s + "明天") in _n for s in _XZ):
             try:
