@@ -5381,6 +5381,39 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     out.append(f"{_pfx}合拍信号：{_tag9}")
             except Exception:
                 pass
+        # R4211：个人能量/十神行——存了生日的人问「我今天怎么样/
+        # 我的运势/今天能量」给 daily(bday=) 的 personal 真行
+        # （日主×十神日 + 电量分 + 盘冲合），与能量卡同源。
+        if any(k in _n for k in ("我的运势", "我今天怎么样", "我今天如何",
+                                 "今天能量", "我的能量", "今天电量",
+                                 "我今天适合", "我今天的运势", "我运势",
+                                 "我明天怎么样", "我明天运势",
+                                 "明天的运势", "明天能量", "我后天")):
+            try:
+                _ub10 = None
+                for _pf10 in facts or []:
+                    _m10 = _BIRTHDAY_FACT_RE.match(str(_pf10).strip())
+                    if _m10:
+                        _ub10 = (int(_m10.group(1)), int(_m10.group(2)),
+                                 int(_m10.group(3)))
+                        break
+                if _ub10:
+                    _per = daily(_dd.isoformat(),
+                                 bday="{:04d}-{:02d}-{:02d}".format(
+                                     *_ub10)).get("personal") or {}
+                    _eg = _per.get("energy") or {}
+                    if _per.get("line"):
+                        out.append(f"{_pfx}你的十神日：{_per['line']}")
+                    if _eg.get("line"):
+                        out.append(
+                            f"{_pfx}电量：{_eg['line']}"
+                            + (f"（{_eg.get('score')}/100）"
+                               if _eg.get("score") is not None else ""))
+                    _mn = _per.get("mine") or {}
+                    if _mn.get("line") and _mn.get("tone") != "flat":
+                        out.append(f"{_pfx}你的盘：{_mn['line']}")
+            except Exception:
+                pass
         # R4141：放假/调休问句——_LEGAL_SPANS 与黄历「节后上班」同表：
         # 点名假期给该段，没点名给「今天在不在放/下一假期/补班日」。
         if any(k in _n for k in ("放假", "假期", "调休", "补班",
