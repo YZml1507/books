@@ -20692,3 +20692,11 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - R3843 数据面三十六轮：零键。
 - R3844 移动端二十一审：360px 副标换行无溢出。
 - R3845 收口闸全绿：selftest 457/contract 810/dollar 0/banned 0/ui_smoke 126/check_poster。
+
+## R3846-50（defer-var 全局扫描 + 审计轮转）
+
+- **R3846 defer-var 隐患全域扫描**：init() 于 app.js defer 执行中段（17741）直接运行——彼时 17742 行后的 var 声明已提升但未赋值。全量核查：init() 体/initViews/initBazi/initReading/initDivination/initChatSidebar/_meFillAll 绑定期对后段 var（_QIAN_CNY_WIN/_SM_ARCH/_FD_DIR/_GD_BEAST/_CR_GEM/_SA_COLOR/_IC_FIGURE/_EMB/_MANIFEST_MILES/_USAGE_LABEL/_DAY_QUOTES 等）零引用——R3841 功能卡徽是唯一中招件（已挂 load 根治）。其余 var 均用于事件回调/渲染期，无隐患。
+- R3847 口吻四十八审：功能卡徽/收官 toast 口吻同口径过。
+- R3848 数据面三十七轮：零键。
+- R3849 留存面十四轮/裂变域二十轮：窗宣三通道（行/卡徽/签页卡）覆盖矩阵复核齐。
+- R3850 收口：无代码改动，闸沿用 R3845 绿态。
