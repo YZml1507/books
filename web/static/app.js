@@ -19299,14 +19299,14 @@ function _ncCard(j) {
     }
     /* R3620：目标日上名片——定了日子的那份挂念与称号/好运
      * 并列；已过/当天不挂倒计时（那时数字没意义）。 */
-    var _ncDn = String(localStorage.getItem('dday:name') || '').trim();
+    var _ncName = String(localStorage.getItem('dday:name') || '').trim();
     var _ncDd = String(localStorage.getItem('dday:date') || '');
-    if (_ncDn && /^\d{4}-\d{2}-\d{2}$/.test(_ncDd)) {
+    if (_ncName && /^\d{4}-\d{2}-\d{2}$/.test(_ncDd)) {
       var _ncN = Math.round((new Date(_ncDd + 'T00:00:00') -
         new Date(todayIso() + 'T00:00:00')) / 86400000);
       if (_ncN > 0) {
         rows.push({ ic: '🎯', k: '目标日', g: '',
-          v: '离「' + _ncDn.slice(0, 12) + '」还有 ' + _ncN + ' 天' });
+          v: '离「' + _ncName.slice(0, 12) + '」还有 ' + _ncN + ' 天' });
       }
     }
   } catch (eNC) {}
