@@ -5449,6 +5449,16 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         f"{_dc9.get('meaning') or ''}")
             except Exception:
                 pass
+        # R4236：「现在几点/几点了」——中国时区时钟真值。
+        if any(k in _n for k in ("几点了", "几点钟", "现在几点",
+                                 "现在时间", "什么时候了")):
+            try:
+                _now9 = now or _now_cn()
+                out.append(
+                    f"现在：{_now9.hour}点{_now9.minute:02d}分"
+                    f"（{_d.month}月{_d.day}日）")
+            except Exception:
+                pass
         # R4231：「做什么好/吃点什么/有什么建议」——日课白话行
         #（daily.do 与卡面日课同源）+ 时令食俗（节气日 tip 或
         # 命名日 _fest_tip，与横幅/tip 同一张）。
