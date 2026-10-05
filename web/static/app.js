@@ -19802,6 +19802,33 @@ function _qianWinHook() {
                 _tqN + ' 天了——窗开到 11/11</span>');
             }
           }
+        } else if (_tqDays <= -6 && _tqDays >= -11) {
+          /* R3836：桃花签收官 toast——与捣蛋签同口径（窗后 6 天
+           * 首访弹一次，年旗 tqCloseTip 防重复）。 */
+          try {
+            if (localStorage.getItem('tqCloseTip') !==
+                String(_tqNow.getFullYear())) {
+              var _tqC = 0, _tqLast = 0;
+              var _tqY2 = _tqNow.getFullYear();
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.lv && x.d >= _tqY2 + '-11-06' &&
+                      x.d <= _tqY2 + '-11-11') {
+                    _tqC++;
+                    if (!_tqLast) _tqLast = x.n;
+                  }
+                });
+              if (_tqC >= 1) {
+                localStorage.setItem('tqCloseTip', String(_tqY2));
+                var _tqNm = (typeof QIAN !== 'undefined' &&
+                             QIAN[_tqLast - 1])
+                  ? QIAN[_tqLast - 1].name : '';
+                showToast('🌸 桃花签收官了——你抽到 ' + _tqC +
+                  ' 支' + (_tqNm ? '，最新是「' + _tqNm + '」' : '') +
+                  '，明年再开', 'info');
+              }
+            }
+          } catch (eTC) {}
         }
       } catch (eTQ) {}
       /* R3681：新春福签钩——与捣蛋/桃花同套窗机制（除夕—元宵，
@@ -19879,6 +19906,49 @@ function _qianWinHook() {
                 _cyN + ' 天了——窗开到元宵</span>');
             }
           }
+        }
+        else if (typeof _QIAN_CNY_WIN !== 'undefined') {
+          /* R3836：福签收官 toast——窗后 1-6 天首访弹一次
+           * （年旗 cyCloseTip），与捣蛋/桃花同口径。 */
+          try {
+            var _cyR1 = null, _cyY1 = 0, _cyClose = null;
+            for (var _cyk3 in _QIAN_CNY_WIN) {
+              if (!_QIAN_CNY_WIN.hasOwnProperty(_cyk3)) continue;
+              var _cyr3 = _QIAN_CNY_WIN[_cyk3];
+              var _cyC3 = new Date(+_cyk3,
+                Math.floor(_cyr3[1] / 100) - 1, _cyr3[1] % 100);
+              if (_cyC3 < _cyT0 && (!_cyClose || _cyC3 > _cyClose)) {
+                _cyClose = _cyC3; _cyR1 = _cyr3; _cyY1 = +_cyk3;
+              }
+            }
+            var _cyAfter = _cyClose
+              ? Math.round((_cyT0 - _cyClose) / 86400000) : 99;
+            if (_cyR1 && _cyAfter >= 1 && _cyAfter <= 6 &&
+                localStorage.getItem('cyCloseTip') !== String(_cyY1)) {
+              var _cyLo2 = String(Math.floor(_cyR1[0] / 100)).padStart(2, '0') +
+                '-' + String(_cyR1[0] % 100).padStart(2, '0');
+              var _cyHi2 = String(Math.floor(_cyR1[1] / 100)).padStart(2, '0') +
+                '-' + String(_cyR1[1] % 100).padStart(2, '0');
+              var _cyN2 = 0, _cyLast2 = 0;
+              JSON.parse(localStorage.getItem('qian:hist') || '[]')
+                .forEach(function (x) {
+                  if (x && x.cny && x.d >= _cyY1 + '-' + _cyLo2 &&
+                      x.d <= _cyY1 + '-' + _cyHi2) {
+                    _cyN2++;
+                    if (!_cyLast2) _cyLast2 = x.n;
+                  }
+                });
+              if (_cyN2 >= 1) {
+                localStorage.setItem('cyCloseTip', String(_cyY1));
+                var _cyNm2 = (typeof QIAN !== 'undefined' &&
+                              QIAN[_cyLast2 - 1])
+                  ? QIAN[_cyLast2 - 1].name : '';
+                showToast('🧧 新春福签收官了——你抽到 ' + _cyN2 +
+                  ' 支' + (_cyNm2 ? '，最新是「' + _cyNm2 + '」' : '') +
+                  '，明年再讨彩头', 'info');
+              }
+            }
+          } catch (eCT) {}
         }
       } catch (eCY) {}
   return _qh.join('<br>');
@@ -26665,7 +26735,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:|esPeakTip|hwCloseTip|st:cur|st:last|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:|esPeakTip|hwCloseTip|tqCloseTip|cyCloseTip|st:cur|st:last|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -27384,7 +27454,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|visit:first$|udY:|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$|st:cur$|st:last$|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:|rtY:)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|visit:first$|udY:|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$|tqCloseTip$|cyCloseTip$|st:cur$|st:last$|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:|rtY:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -27736,7 +27806,9 @@ function baziPersonaCard(j) {
                 k.indexOf('dday:') === 0 ||
                 /* R3634/R3635：es: 能量分落键+峰值提醒旗同收（足迹件）。 */
                 k.indexOf('es:') === 0 || k === 'esPeakTip' ||
-                k === 'hwCloseTip' ||
+                /* R3836：桃花/福签收官旗同收。 */
+                k === 'hwCloseTip' || k === 'tqCloseTip' ||
+                k === 'cyCloseTip' ||
                 /* R3756：连签/年汇总/年信旗同收（足迹件）。 */
                 k === 'st:cur' || k === 'st:last' ||
                 k.indexOf('udY:') === 0 ||
