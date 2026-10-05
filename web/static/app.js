@@ -22188,6 +22188,26 @@ function renderCheckin(dateKey) {
             : '🎄 圣诞快乐——愿望瓶还开着，再许一个') +
           '<button type="button" class="ck-quest-btn ck-xwish">去许愿 →</button></div>'
         : '';
+      /* R3867：跨年封愿窗宣——封口窗 12/25–31：开窗前 1-5 天挂
+       * 倒计时行；窗内还没封的挂「开着呢」行（封过的由瓶内
+       * 封口卡接管）。「去许愿 →」都落许愿瓶折叠。 */
+      var _nyD = Math.round((new Date(+dateKey.slice(0, 4), 11, 25) -
+        new Date(dateKey + 'T00:00:00')) / 86400000);
+      if (_nyD >= 1 && _nyD <= 5) {
+        _xmasHtml += '<div class="ck-quest ck-nytease">' +
+          '🧨 跨年许愿 ' + _nyD + ' 天后开——写给明年的话，' +
+          '封口存到元旦才启封' +
+          '<button type="button" class="ck-quest-btn ck-xwish">' +
+          '去许愿 →</button></div>';
+      } else if (typeof _wishNySealWin === 'function' &&
+                 _wishNySealWin() &&
+                 !(typeof _wishNyGet === 'function' && _wishNyGet())) {
+        _xmasHtml += '<div class="ck-quest ck-nytease">' +
+          '🧨 跨年许愿开着呢——写给明年的话，' +
+          '封口存到元旦才启封' +
+          '<button type="button" class="ck-quest-btn ck-xwish">' +
+          '去封一个 →</button></div>';
+      }
     } catch (eXM) {}
     _ddayHtml = '<div class="ck-quest ck-dday">' +
       (_ddLine || '🎯 <span class="dday-hint">' +
@@ -22424,19 +22444,22 @@ function renderCheckin(dateKey) {
   }
   /* R3497：本周小功课盖戳——wq:<周一> 落键后整卡重渲换「已盖戳」
    * 态（跨 tab 由 storage 事件监听同步，注册表见 wq: 族）。 */
-  var _xw = box.querySelector('.ck-xwish');
-  if (_xw && !_xw.dataset.bound) {
-    _xw.dataset.bound = '1';
-    _xw.addEventListener('click', function () {
-      try {
-        var _w3 = box.querySelector('.ck-wish');
-        if (_w3) {
-          _w3.open = true;
-          _w3.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      } catch (eXW) {}
-    });
-  }
+  /* R3867：改 querySelectorAll——12/24 平安夜与跨年预告两行并挂
+   * 时单选只绑第一颗，第二颗成死钮。 */
+  box.querySelectorAll('.ck-xwish').forEach(function (_xw) {
+    if (_xw && !_xw.dataset.bound) {
+      _xw.dataset.bound = '1';
+      _xw.addEventListener('click', function () {
+        try {
+          var _w3 = box.querySelector('.ck-wish');
+          if (_w3) {
+            _w3.open = true;
+            _w3.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } catch (eXW) {}
+      });
+    }
+  });
   var _wqd = box.querySelector('#wqDone');
   if (_wqd && !_wqd.dataset.bound) {
     _wqd.dataset.bound = '1';
