@@ -2596,6 +2596,18 @@ def _next_named_day(msg: str, today: date, allow_ambi: bool = False,
         if cand < today:
             cand = date(today.year + 1, 1, 1)
         return cand, "新年（元旦）"
+    # R4251：「年底/年末/岁尾」+「2026还有几天」年尾倒数——
+    # 非节名但用户当日子问，解到该年 12/31。
+    if any(k in msg for k in ("年底", "年末", "岁尾")):
+        _ey9 = today.year + (
+            1 if (today.month, today.day) > (12, 20) else 0)
+        return date(_ey9, 12, 31), "年底"
+    _ym9 = re.search(r"(20\d\d).*?(还有|剩|到|倒数)", msg)
+    if _ym9 and 2024 <= int(_ym9.group(1)) <= 2100:
+        _yy9 = int(_ym9.group(1))
+        _c9 = date(_yy9, 12, 31)
+        if _c9 >= today:
+            return _c9, f"{_yy9}年"
     for (mm2, dd2), fv in _FEST_SOLAR.items():
         if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
                for p2 in fv.split("·")):
@@ -5643,7 +5655,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # R4061：「X什么时候/几号」反查＋「今年还剩几天」——节气走
         # term_time 天文表（与节气横幅同源），节日走公历/农历双表，
         # 除夕走腊月末日；已过自动取明年。
-        if "今年还剩" in _n or ("今年" in _n and "几天" in _n):
+        if "今年还剩" in _n or ("今年" in _n and "几天" in _n) \
+                or ("今年" in _n and "倒计时" in _n):
             try:
                 out.append(
                     f"今年还剩{(date(_d.year, 12, 31) - _d).days}天")
