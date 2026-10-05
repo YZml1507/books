@@ -6154,15 +6154,25 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # bazi_calc 流年K线同一套表），不犯就直说还给下个本命年。
         if any(k in _n for k in ("本命年", "犯太岁", "冲太岁", "太岁",
                                  "流年")) or (
-                "今年我" in _n and any(
+                any(k in _n for k in ("今年我", "今年TA", "今年他",
+                                      "今年她", "今年对象", "TA今年",
+                                      "他今年", "她今年", "我今年",
+                                      "对象今年")) and any(
                     k in _n for k in ("运", "怎么样", "如何",
                                       "顺不", "好不好"))):
             try:
+                # R4376c：TA 人称同链——「TA今年运势」取档案里
+                # TA 的生日，判词称呼换 TA。
+                _ta9x = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _re9x = (_BIRTHDAY_PARTNER_RE if _ta9x
+                         else _BIRTHDAY_FACT_RE)
                 _m9 = next(
-                    (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
+                    (_re9x.match(str(_fp).strip())
                      for _fp in facts or []
-                     if _BIRTHDAY_FACT_RE.match(str(_fp).strip())),
+                     if _re9x.match(str(_fp).strip())),
                     None)
+                _w9x = "TA" if _ta9x else "你"
                 _yb9 = (bazi_compute(_dd.year, _dd.month, _dd.day, 12,
                                      "男").year or "  ")
                 _yz9 = _yb9[1]
@@ -6179,25 +6189,27 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         "子丑寅卯辰巳午未申酉戌亥".index(_uzhi9)]
                     if _uzhi9 == _yz9:
                         out.append(
-                            f"对你：属{_uan9}——今年就是你的本命年，"
-                            "红绳系好")
+                            f"对{_w9x}：属{_uan9}——今年就是"
+                            f"{_w9x}的本命年，红绳系好")
                     elif CHONG.get(_yz9) == _uzhi9:
                         out.append(
-                            f"对你：属{_uan9}——今年冲太岁，求稳别硬闯")
+                            f"对{_w9x}：属{_uan9}——今年冲太岁，"
+                            "求稳别硬闯")
                     elif ((_yz9, _uzhi9) in XING
                           or (_uzhi9, _yz9) in XING
                           or XIANG_HAI.get(_yz9) == _uzhi9
                           or XIANG_PO.get(_yz9) == _uzhi9):
                         out.append(
-                            f"对你：属{_uan9}——今年犯太岁，宜守不宜冲")
+                            f"对{_w9x}：属{_uan9}——今年犯太岁，"
+                            "宜守不宜冲")
                     else:
                         _ui9 = "子丑寅卯辰巳午未申酉戌亥".index(_uzhi9)
                         _nxb9 = _dd.year + 1
                         while (_nxb9 - 4) % 12 != _ui9:
                             _nxb9 += 1
                         out.append(
-                            f"对你：属{_uan9}——今年不犯太岁；"
-                            f"你的本命年是{_nxb9}年")
+                            f"对{_w9x}：属{_uan9}——今年不犯太岁；"
+                            f"{_w9x}的本命年是{_nxb9}年")
                     # R4316：流年十神——「今年我的运势/今年流年」
                     # 手里有日主×年干真值（与八字盘年度块同源）。
                     try:
@@ -6217,7 +6229,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                 "偏印": "偏门学问旺，想多做少",
                                 "正印": "贵人帮扶，宜学宜养"}
                         out.append(
-                            f"今年你的流年十神：{_tg9}年"
+                            f"今年{_w9x}的流年十神：{_tg9}年"
                             + (f"（{_TT9.get(_tg9, '')}）"
                                if _tg9 in _TT9 else ""))
                     except Exception:
@@ -6778,6 +6790,131 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                             out.append(
                                 f"{_who9}的年命纳音：{_ny9n}命"
                                 f"（{_bp9n.year}年）")
+            except Exception:
+                pass
+        # R4376a：星座配对——「天蝎配狮子/我们星座配吗」走
+        # xzmatch 同一套四象分（与星座卡/合婚页同表）。句内点名两
+        # 座直判；「我们/我俩」取档案双生日星座。
+        if ("配" in _n or "合不合" in _n or "合适吗" in _n
+                or "合吗" in _n) and (
+                any(k in _n for k in
+                    ("白羊", "金牛", "双子", "巨蟹", "狮子", "处女",
+                     "天秤", "天蝎", "射手", "摩羯", "水瓶", "双鱼"))
+                or "星座" in _n):
+            try:
+                _SIG9 = ("白羊", "金牛", "双子", "巨蟹", "狮子",
+                         "处女", "天秤", "天蝎", "射手", "摩羯",
+                         "水瓶", "双鱼")
+                _nm9 = [s for s in _SIG9 if s in _n]
+                _pa9 = None
+                if len(_nm9) >= 2:
+                    _pa9 = (_nm9[0], _nm9[1])
+                elif not _nm9 and any(
+                        k in _n for k in ("我们", "我俩", "我和她",
+                                          "我和他", "我跟她",
+                                          "我跟他", "两个人")):
+                    _b9a = next(
+                        (_BIRTHDAY_FACT_RE.match(str(_x).strip())
+                         for _x in facts or []
+                         if _BIRTHDAY_FACT_RE.match(
+                             str(_x).strip())), None)
+                    _b9b = next(
+                        (_BIRTHDAY_PARTNER_RE.match(str(_x).strip())
+                         for _x in facts or []
+                         if _BIRTHDAY_PARTNER_RE.match(
+                             str(_x).strip())), None)
+                    if _b9a and _b9b:
+                        from guji.xingzuo import sun_sign as _ss9x
+                        _sa9 = _ss9x(int(_b9a.group(2)),
+                                     int(_b9a.group(3)),
+                                     year=int(_b9a.group(1)))
+                        _sb9 = _ss9x(int(_b9b.group(2)),
+                                     int(_b9b.group(3)),
+                                     year=int(_b9b.group(1)))
+                        if _sa9 and _sb9:
+                            _pa9 = (_sa9, _sb9)
+                if _pa9:
+                    _xm9 = xzmatch(_pa9[0], _pa9[1])
+                    if _xm9:
+                        out.append(
+                            f"{_pa9[0]}×{_pa9[1]}："
+                            f"{_xm9.get('score', '')}分·"
+                            f"{_xm9.get('label', '')}——"
+                            f"{_xm9.get('line', '')}")
+            except Exception:
+                pass
+        # R4376b：属相流年——「属羊今年运势/我属羊今年怎么样」
+        # 本人或点名属相×当年太岁支，值/合/冲/刑/害/破白话判
+        #（与 R4286 属相对判同一张关系表）。
+        if ("属" in _n) and any(k in _n for k in
+                               ("今年", "明年", "后年", "流年")) \
+                and any(k in _n for k in
+                        ("运势", "运", "怎么样", "好不好", "顺不",
+                         "犯太岁", "冲不冲", "合不合")):
+            try:
+                _SXz2 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"
+                _ZI9z = "子丑寅卯辰巳午未申酉戌亥"
+                _mz9 = None
+                for _c9 in _SXz2:
+                    if f"属{_c9}" in _n:
+                        _mz9 = _c9
+                        break
+                _who9z = ""
+                if _mz9 is None:
+                    _ta9z = any(k in _n for k in
+                                ("TA", "ta", "他", "她"))
+                    _re9z = (_BIRTHDAY_PARTNER_RE if _ta9z
+                             else _BIRTHDAY_FACT_RE)
+                    _m9z = next(
+                        (_re9z.match(str(_x).strip())
+                         for _x in facts or []
+                         if _re9z.match(str(_x).strip())),
+                        None)
+                    if _m9z:
+                        _lz9z = lunar.solar_to_lunar(
+                            int(_m9z.group(1)), int(_m9z.group(2)),
+                            int(_m9z.group(3)))
+                        _mz9 = _SXz2[_ZI9z.index(
+                            _lz9z.get("ganzhi_year", "  ")[1])]
+                        _who9z = "TA" if _ta9z else "你"
+                if _mz9:
+                    _yz9f = _d.year + (1 if "明年" in _n else
+                                       2 if "后年" in _n else 0)
+                    _yv9 = bazi_compute(_yz9f, 7, 1, 12, "").year
+                    _yz2 = _yv9[1]
+                    _uz2 = _ZI9z[_SXz2.index(_mz9)]
+                    _tri9 = [frozenset(t) for t in (
+                        ("申", "子", "辰"), ("巳", "酉", "丑"),
+                        ("寅", "午", "戌"), ("亥", "卯", "未"))]
+                    # 值/冲/害/破/六合/三合/刑/平白话判。
+                    if _uz2 == _yz2:
+                        _vd9 = (f"{_yz9f}年是{_mz9}的本命年（值太岁）"
+                                f"——宜稳不宜大动，红色小物压一压")
+                    elif CHONG.get(_yz2) == _uz2:
+                        _vd9 = (f"属{_mz9}{_yz9f}年冲太岁"
+                                f"——变动多的年份，大事多留个后手")
+                    elif XIANG_HAI.get(_yz2) == _uz2:
+                        _vd9 = (f"属{_mz9}{_yz9f}年害太岁"
+                                f"——小事磕绊多，人际留点神")
+                    elif XIANG_PO.get(_yz2) == _uz2:
+                        _vd9 = (f"属{_mz9}{_yz9f}年破太岁"
+                                f"——损耗位，钱财合同细点看")
+                    elif LIU_HE.get(_yz2) == _uz2:
+                        _vd9 = (f"属{_mz9}{_yz9f}年与太岁六合"
+                                f"——贵人运在线，宜合作宜推进")
+                    elif frozenset((_uz2, _yz2)) in _tri9:
+                        _vd9 = (f"属{_mz9}{_yz9f}年与太岁三合"
+                                f"——人缘助力足，团队里吃香")
+                    elif any((_uz2 == a and _yz2 == b) or
+                             (_uz2 == b and _yz2 == a)
+                             for (a, b) in XING):
+                        _vd9 = (f"属{_mz9}{_yz9f}年刑太岁"
+                                f"——容易拧巴的年份，少硬碰硬")
+                    else:
+                        _vd9 = (f"属{_mz9}{_yz9f}年：与太岁无刑冲"
+                                f"——平常年，节奏自己定")
+                    out.append((_who9z + "：" if _who9z else "")
+                               + _vd9)
             except Exception:
                 pass
         # R4366：犯太岁属相榜——「今年/明年哪些属相犯太岁」值+冲+
