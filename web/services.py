@@ -2373,6 +2373,55 @@ _FEST_LUNAR = {
 }
 
 
+# R4106：命名日下一发生日反查——「X什么时候」与「X那天穿什么」
+# 共用一条解析。返回 (date, 名称)，没认出来的名字给 (None, "")。
+# 顺序：节气全表 → 跨年/新年口语词 → 公历节 → 除夕 → 农历节。
+def _next_named_day(msg: str, today: date):
+    from guji.bazi import TERM_LONGITUDE, term_time
+    tname = next((t for t in TERM_LONGITUDE if t in msg), "")
+    if tname:
+        for yy in (today.year, today.year + 1):
+            cand = (term_time(yy, tname) + timedelta(hours=8)).date()
+            if cand >= today:
+                return cand, tname
+        return None, ""
+    if "跨年" in msg:
+        cand = date(today.year, 12, 31)
+        if cand < today:
+            cand = date(today.year + 1, 12, 31)
+        return cand, "跨年夜"
+    if "新年" in msg:
+        cand = date(today.year, 1, 1)
+        if cand < today:
+            cand = date(today.year + 1, 1, 1)
+        return cand, "新年（元旦）"
+    for (mm2, dd2), fv in _FEST_SOLAR.items():
+        if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
+               for p2 in fv.split("·")):
+            cand = date(today.year, mm2, dd2)
+            if cand < today:
+                cand = date(today.year + 1, mm2, dd2)
+            return cand, fv
+    if "除夕" in msg:
+        from guji import lunar as _lx
+        for yy in (today.year, today.year + 1):
+            cand = _lx.lunar_to_solar(
+                yy - 1, 12, _lx.month_days(yy - 1, 12))
+            if cand >= today:
+                return cand, "除夕"
+        return None, ""
+    from guji import lunar as _ly
+    for (lm2, ld2), fv in _FEST_LUNAR.items():
+        if any((p2 in msg or (p2.endswith("节") and p2[:-1] in msg))
+               for p2 in fv.split("·")):
+            for yy in (today.year, today.year + 1):
+                cand = _ly.lunar_to_solar(yy, lm2, ld2)
+                if cand >= today:
+                    return cand, fv
+            return None, ""
+    return None, ""
+
+
 # R2349l（R73-P1-7）：星座速配——四象分组兼容表，确定性零 LLM。
 _SIGN_ELEM: dict[str, str] = {
     "白羊": "火", "狮子": "火", "射手": "火",
@@ -4582,6 +4631,16 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                         _dl = 6
                 _dd = _d + timedelta(days=_dl)
                 _pfx = "下周末" if "下周末" in _n else "周末"
+            # R4106：「立冬穿什么/中秋月亮圆不圆」命名日也走偏移——
+            # 只在日值域问句生效（穿/开运色/星座/运势/月相），
+            # 「中秋快乐」这类问候不挪日子。
+            if _dd == _d and any(
+                    k in _n for k in
+                    ("穿", "开运色", "运势", "运气", "星座",
+                     "月亮", "满月", "新月", "月相")):
+                _ndn, _vn = _next_named_day(_n, _d)
+                if _ndn is not None:
+                    _dd, _pfx = _ndn, _vn
         if any(k in _n for k in ("水逆", "水星逆行")):
             _m = _mercury_state(_d)
             if _m.get("on"):
@@ -4812,70 +4871,10 @@ def chat_daily_facts(message: str, now: datetime | None = None) -> list[str]:
                                  "还有几天", "还有多少天",
                                  "星期几", "周几", "什么日子")):
             try:
-                from guji.bazi import TERM_LONGITUDE, term_time
-                # 问「什么时候」语境无歧义（清明这类双节也按节气答日
-                # 期），直接全表匹配，不走 _SOLAR_TERMS 白名单。
-                _tname = next(
-                    (t for t in TERM_LONGITUDE if t in _n), "")
-                _nd = None
-                _v = ""
-                if _tname:
-                    for _yy2 in (_d.year, _d.year + 1):
-                        _cand = (term_time(_yy2, _tname)
-                                 + timedelta(hours=8)).date()
-                        if _cand >= _d:
-                            _nd = _cand
-                            _v = _tname
-                            break
-                else:
-                    # R4096：「跨年/新年」是口语词不在节日表——跨年指
-                    # 12/31 夜，新年指 1/1 元旦，各答各的下一发生日。
-                    if "跨年" in _n:
-                        _nd = date(_d.year, 12, 31)
-                        if _nd < _d:
-                            _nd = date(_d.year + 1, 12, 31)
-                        _v = "跨年夜"
-                    elif "新年" in _n:
-                        _nd = date(_d.year, 1, 1)
-                        if _nd < _d:
-                            _nd = date(_d.year + 1, 1, 1)
-                        _v = "新年（元旦）"
-                    if _nd is None:
-                        for (_mm2, _dd2), _fv in _FEST_SOLAR.items():
-                            if any((p2 in _n or
-                                    (p2.endswith("节") and p2[:-1] in _n))
-                                   for p2 in _fv.split("·")):
-                                _cand = date(_d.year, _mm2, _dd2)
-                                if _cand < _d:
-                                    _cand = date(_d.year + 1, _mm2, _dd2)
-                                _nd = _cand
-                                _v = _fv
-                                break
-                    if _nd is None and "除夕" in _n:
-                        from guji import lunar as _l3
-                        for _yy2 in (_d.year, _d.year + 1):
-                            _cand = _l3.lunar_to_solar(
-                                _yy2 - 1, 12,
-                                _l3.month_days(_yy2 - 1, 12))
-                            if _cand >= _d:
-                                _nd = _cand
-                                _v = "除夕"
-                                break
-                    if _nd is None:
-                        from guji import lunar as _l4
-                        for (_lm2, _ld2), _fv in _FEST_LUNAR.items():
-                            if any((p2 in _n or
-                                    (p2.endswith("节") and p2[:-1] in _n))
-                                   for p2 in _fv.split("·")):
-                                for _yy2 in (_d.year, _d.year + 1):
-                                    _cand = _l4.lunar_to_solar(
-                                        _yy2, _lm2, _ld2)
-                                    if _cand >= _d:
-                                        _nd = _cand
-                                        _v = _fv
-                                        break
-                                if _nd is not None:
-                                    break
+                # R4106：反查解析抽成 _next_named_day——「什么时候」
+                # 反查与「X那天穿什么」命名日偏移共用一条，顺序
+                # 节气→跨年/新年→公历节→除夕→农历节。
+                _nd, _v = _next_named_day(_n, _d)
                 # R4101：节日/节气名都没命中时，「星期几/周几/几号/什么
                 # 日子」要的是日期本身——按日偏移链的 _dd/_pfx 回声。
                 # （「生日几号」留给 profile_facts 的生日倒数答，别抢话。）
