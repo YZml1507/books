@@ -4517,6 +4517,8 @@ html[data-theme="dark"] .mc-eq-t, html[data-theme="dark"] .mc-eo-t {
 .qian-tube-s { font-size: 12px; color: var(--secondary); margin: 4px 0 14px; }
 .qian-draw { min-width: 168px; }
 .qian-note { font-size: 11.5px; color: var(--muted); margin: 10px 0 0; }
+/* R3861：签页窗前预告行（捣蛋/桃花/福签倒计时）。 */
+.qian-tease { margin: 0 0 12px; text-align: center; }
 .qian-slip { background: var(--card, #fffdfa);
   border: 1px solid var(--line, #e0d4c0); border-radius: 16px;
   padding: 18px 16px 14px; }

@@ -26316,6 +26316,45 @@ function _qianCnyHtml() {
     (_qianCaishenDay() ? '迎财神抽一支' : '抽一支新春福签') +
     '</button></div>';
 }
+function _qianWinTease() {
+  /* R3861：签页窗前预告——三窗各自独立判 1-5 天倒计时（与
+   * _qianWinHook 同口径；窗内该窗由窗卡本体接管，别的窗
+   * 预告不被憋回去——11/1 捣蛋签收尾时桃花签预告照挂）。 */
+  var _qt = [];
+  try {
+    var _n4 = new Date();
+    var _d4 = new Date(_n4.getFullYear(), _n4.getMonth(), _n4.getDate());
+    var _hd = Math.round((new Date(_n4.getFullYear(), 9, 25) - _d4)
+      / 86400000);
+    if (_hd >= 1 && _hd <= 5 &&
+        !(typeof _qianHwFest === 'function' && _qianHwFest()))
+      _qt.push('🎃 捣蛋签 ' + _hd + ' 天后开张——那几天来抽一支宜动签');
+    var _td = Math.round((new Date(_n4.getFullYear(), 10, 6) - _d4)
+      / 86400000);
+    if (_td >= 1 && _td <= 5 &&
+        !(typeof _qianLoveFest === 'function' && _qianLoveFest()))
+      _qt.push('🌸 桃花签 ' + _td + ' 天后开张——想心里那个人就来抽一支');
+    if (typeof _QIAN_CNY_WIN !== 'undefined' &&
+        !(typeof _qianCnyFest === 'function' && _qianCnyFest())) {
+      var _cO = null;
+      for (var _ck in _QIAN_CNY_WIN) {
+        if (!_QIAN_CNY_WIN.hasOwnProperty(_ck)) continue;
+        var _cw = _QIAN_CNY_WIN[_ck];
+        var _cd = new Date(+_ck,
+          Math.floor(_cw[0] / 100) - 1, _cw[0] % 100);
+        if (_cd > _d4 && (!_cO || _cd < _cO)) _cO = _cd;
+      }
+      var _cd2 = _cO ? Math.round((_cO - _d4) / 86400000) : 99;
+      if (_cd2 >= 1 && _cd2 <= 5)
+        _qt.push('🧧 新春福签 ' + _cd2 + ' 天后开张——过年讨彩头，抽支吉签');
+    }
+  } catch (eQT) {}
+  return _qt.length
+    ? '<div class="qian-tease"><span class="e-week-low">' +
+      _qt.join('</span><br><span class="e-week-low">') +
+      '</span></div>'
+    : '';
+}
 function _renderQian(review) {
   var qnBoxEl = document.getElementById('qianBox'); if (!qnBoxEl) return;
   _qianData(function () {
@@ -26336,8 +26375,9 @@ function _renderQian(review) {
           localStorage.getItem('qian:fact') || 'null');
         if (!_qf || _qf.d !== dk) _qianFactWrite(idx);
       } catch (eQF) { _qianFactWrite(idx); }
-      qnBoxEl.innerHTML = _qianSlipHtml(idx) + _qianLoveHtml() +
-        _qianHwHtml() + _qianCnyHtml() + _qianHistHtml();
+      qnBoxEl.innerHTML = _qianWinTease() + _qianSlipHtml(idx) +
+        _qianLoveHtml() + _qianHwHtml() + _qianCnyHtml() +
+        _qianHistHtml();
       return;
     }
     var _chips = _QIAN_TOPICS.map(function (t) {
@@ -26345,7 +26385,7 @@ function _renderQian(review) {
         (t === _qianPickedTopic ? ' is-on' : '') +
         '" data-qian="topic" data-t="' + esc(t) + '">' + esc(t) + '</button>';
     }).join('');
-    qnBoxEl.innerHTML =
+    qnBoxEl.innerHTML = _qianWinTease() +
       '<div class="qian-tube" id="qianTube">' +
         '<div class="qian-tube-img" aria-hidden="true">🎋</div>' +
         '<div class="qian-tube-t">心里默念一件想问的事</div>' +
