@@ -5496,6 +5496,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     "我属", "我什么命", "我五行", "TA属", "ta属", "他属",
                     "她属", "俺属", "对象属", "老公属", "老婆属",
                     "男朋友属", "女朋友属", "TA的五行", "TA什么命",
+                    # R4396b：「我什么日主/TA的日柱/我的天干地支」
+                    # 是问人八字柱——归 R4396 个人柱答，别发日干支。
+                    "日主", "日柱", "年柱", "月柱", "时柱", "三柱",
+                    "四柱", "八字", "我的天干地支", "TA的天干地支",
+                    "ta的天干地支", "他的天干地支", "她的天干地支",
                     "年属", "属什么年", "什么年", "岁次", "干支年")):
             try:
                 _gd9 = huangli_mod.day_ganzhi(
@@ -7093,6 +7098,49 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(
                             f"你的本命佛：{_BF9[_sx9]}"
                             f"（属{_sx9}）")
+            except Exception:
+                pass
+        # R4396：八字/柱域——「我的八字/TA的日柱/我什么日主」
+        # 三柱干支现算（时柱缺时直说去八字盘补）。
+        if any(k in _n for k in ("八字", "生辰八字", "三柱", "四柱",
+                                 "年柱", "月柱", "日柱", "时柱",
+                                 "日主", "天干地支")) and any(
+                k in _n for k in ("我", "TA", "ta", "他", "她",
+                                  "对象", "自己")):
+            try:
+                _ta9p = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象"))
+                _re9p = (_BIRTHDAY_PARTNER_RE if _ta9p
+                         else _BIRTHDAY_FACT_RE)
+                _m9p = next(
+                    (_re9p.match(str(_x).strip())
+                     for _x in facts or []
+                     if _re9p.match(str(_x).strip())),
+                    None)
+                if _m9p:
+                    _who9p = "TA" if _ta9p else "你"
+                    _bp9z = bazi_compute(
+                        int(_m9p.group(1)), int(_m9p.group(2)),
+                        int(_m9p.group(3)), 12, "")
+                    if "年柱" in _n:
+                        out.append(
+                            f"{_who9p}的年柱：{_bp9z.year}")
+                    elif "月柱" in _n:
+                        out.append(
+                            f"{_who9p}的月柱：{_bp9z.month}")
+                    elif "日柱" in _n or "日主" in _n:
+                        out.append(
+                            f"{_who9p}的日柱：{_bp9z.day}"
+                            f"（日主{_bp9z.day[0]}）")
+                    elif "时柱" in _n:
+                        out.append(
+                            f"{_who9p}的时柱：得出生时辰才排——"
+                            "档案只存了日期，去八字盘补个时辰")
+                    else:
+                        out.append(
+                            f"{_who9p}的八字（三柱）：{_bp9z.year}年·"
+                            f"{_bp9z.month}月·{_bp9z.day}日"
+                            "（时辰没存，第四柱去八字盘补）")
             except Exception:
                 pass
         # R4381c：「我们差几岁/TA比我大几岁」——双生日在档出
