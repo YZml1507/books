@@ -19845,12 +19845,15 @@ function _qianWinHook() {
             return (o2.m === 10 && o2.d >= 25) || (o2.m === 11 && o2.d <= 1);
           }));
           if (!_hwDk) {
-            /* R3921：窗末日点名——11/1 未抽行换「今晚截止」，
-             * 与元宵末日/迎财神单日点名同族。 */
+            /* R3921/R3941：窗末日点名 11/1「今晚截止」＋
+             * 开张日 10/25「今天开张」——单日点名族补开窗日。 */
             var _hwLast = _now2.getMonth() === 10 &&
                           _now2.getDate() === 1;
+            var _hwFirst = _now2.getMonth() === 9 &&
+                           _now2.getDate() === 25;
             _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🎃 捣蛋签' +
               (_hwLast ? '今晚截止——最后一支宜动签别错过' :
+               _hwFirst ? '今天开张——抽支宜动签讨个彩头' :
                '开着呢——去签页抽今天的宜动签') + '</span>');
           } else {
             /* R3657：窗内连抽计数——签史 hw 标 ≥2 天挂
@@ -19917,11 +19920,14 @@ function _qianWinHook() {
             return o3.m === 11 && o3.d >= 6 && o3.d <= 11;
           }));
           if (!_tqDk) {
-            /* R3921 对称：桃花签末日（11/11）未抽行换「今晚截止」。 */
+            /* R3921/R3941 对称：桃花签末日 11/11＋开张日 11/6。 */
             var _tqLast = _tqNow.getMonth() === 10 &&
                           _tqNow.getDate() === 11;
+            var _tqFirst = _tqNow.getMonth() === 10 &&
+                           _tqNow.getDate() === 6;
             _qh.push('<span class="e-week-low qw-nav" role="button" tabindex="0">🌸 桃花签' +
               (_tqLast ? '今晚截止——最后一支桃花签别错过' :
+               _tqFirst ? '今天开张——想心里那个人就来抽一支' :
                '开着呢——去签页抽今天的桃花签') + '</span>');
           } else {
             var _tqN = 0;
@@ -19976,26 +19982,34 @@ function _qianWinHook() {
               return (o5.m === 10 && o5.d >= 29) ||
                      (o5.m === 11 && o5.d <= 1);
             })) {
-          /* R3926：万圣夜末日（11/1）点名——「今晚截止」。 */
+          /* R3926/R3941：万圣夜末日 11/1＋开张日 10/29 点名。 */
           var _hwLast2 = _inBothDates(function (o5b) {
             return o5b.m === 11 && o5b.d === 1;
+          });
+          var _hwFirst2 = _inBothDates(function (o5c) {
+            return o5c.m === 10 && o5c.d === 29;
           });
           _qh.push('<span class="e-week-low qw-nav" role="button" ' +
             'tabindex="0" data-dv="tarot">🎃 万圣夜限定' +
             (_hwLast2 ? '今晚截止——不敢问的最后翻一张' :
+             _hwFirst2 ? '今天开张——塔罗页翻一张不敢问的' :
              '开着呢——塔罗页翻一张不敢问的') + '</span>');
         }
         if (typeof _inBothDates === 'function' &&
             _inBothDates(function (o6) {
               return o6.m === 12 && o6.d >= 20 && o6.d <= 25;
             })) {
-          /* R3926：圣诞心愿末日（12/25）点名——「今晚截止」。 */
+          /* R3926/R3941：圣诞心愿末日 12/25＋开张日 12/20 点名。 */
           var _xLast = _inBothDates(function (o6b) {
             return o6b.m === 12 && o6b.d === 25;
+          });
+          var _xFirst = _inBothDates(function (o6c) {
+            return o6c.m === 12 && o6c.d === 20;
           });
           _qh.push('<span class="e-week-low qw-nav" role="button" ' +
             'tabindex="0" data-dv="tarot">🎄 圣诞心愿限定' +
             (_xLast ? '今晚截止——心愿最后翻一张' :
+             _xFirst ? '今天开张——默念心愿翻一张' :
              '开着呢——塔罗页默念心愿翻一张') + '</span>');
         }
       } catch (eTH) {}
@@ -22319,12 +22333,17 @@ function renderCheckin(dateKey) {
       } else if (typeof _wishNySealWin === 'function' &&
                  _wishNySealWin() &&
                  !(typeof _wishNyGet === 'function' && _wishNyGet())) {
-        /* R3931：封愿末日（12/31）点名——「今晚截止」。 */
+        /* R3931/R3941：封愿末日 12/31＋开张日 12/25 点名。 */
         var _nyLast = _inBothDates(function (oNy) {
           return oNy.m === 12 && oNy.d === 31;
         });
+        var _nyFirst = _inBothDates(function (oNy2) {
+          return oNy2.m === 12 && oNy2.d === 25;
+        });
         _xmasHtml += '<div class="ck-quest ck-nytease">' +
           (_nyLast ? '🧨 跨年许愿今晚截止——写给明年的话，' +
+           '封口存到元旦才启封' :
+           _nyFirst ? '🧨 跨年许愿今天开——写给明年的话，' +
            '封口存到元旦才启封' :
            '🧨 跨年许愿开着呢——写给明年的话，' +
            '封口存到元旦才启封') +
