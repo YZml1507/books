@@ -671,6 +671,13 @@ def main() -> int:
         "dailyYearEnd": "跨年仪式行钩——动态粒内委托（12/29–1/2 "
                         "窗口才有 .daily-moon-go），纯本地开"
                         "flModal 弹层零请求；与 dailyMoon 同型豁免",
+        # R3746：今日古话「抄走」——dailyPersonal 粒容器委托监听
+        # .dq-line 子行 click/keydown→clipboard.writeText+toast，
+        # 零请求；与 moodRow 同型豁免。真实链路已手验
+        #（点行→toast/长按回退两态）。
+        "dailyPersonal": "古话抄走容器委托——.dq-line 子行"
+                         "click/keydown→clipboard+toast 零请求；"
+                         "与 moodRow 同型豁免；手验已覆盖",
     }
     _miss = sorted(_on_ids - _covered - set(NO_CASE))
     results.append({"name": "gate:on_coverage",

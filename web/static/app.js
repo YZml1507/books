@@ -19790,6 +19790,17 @@ function _isoShift(dateKey, n) {
   return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) +
     '-' + ('0' + d.getDate()).slice(-2);
 }
+/* R3756：心情年汇总——mdY:YYYY JSON {m:n}，mood: 键 150 天 GC
+ * 后年度小满信仍拿得到全年心情数与主心情。 */
+function _mdYBump(dateStr, m) {
+  try {
+    var k = 'mdY:' + dateStr.slice(0, 4);
+    var o = {};
+    try { o = JSON.parse(localStorage.getItem(k) || '{}'); } catch (eJ) {}
+    o[m] = (o[m] || 0) + 1;
+    localStorage.setItem(k, JSON.stringify(o));
+  } catch (eM) {}
+}
 function _checkinStreak(set, dateKey) {
   var n = 0, cur = set[dateKey] ? dateKey : _isoShift(dateKey, -1);
   while (set[cur]) { n++; cur = _isoShift(cur, -1); }
@@ -20651,6 +20662,7 @@ function _renderMoodRow(lv) {
         try {
           localStorage.setItem('mood:' + _bfb.dataset.d,
             String(_bfb.dataset.m));
+          _mdYBump(_bfb.dataset.d, String(_bfb.dataset.m));
         } catch (eB2) {}
         showToast('昨天的心情也补上啦', 'ok');
         _renderMoodRow();
@@ -20659,7 +20671,10 @@ function _renderMoodRow(lv) {
       var b = ev.target.closest('.mood-b');
       if (!b) return;
       var m = b.dataset.m;
-      try { localStorage.setItem('mood:' + todayIso(), m); } catch (eS) {}
+      try {
+        localStorage.setItem('mood:' + todayIso(), m);
+        _mdYBump(todayIso(), String(m));
+      } catch (eS) {}
       row.querySelectorAll('.mood-b').forEach(function (x) {
         x.classList.toggle('on', x === b);
         x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
@@ -21052,6 +21067,16 @@ function renderCheckin(dateKey) {
   catch (e0) { saved = null; }
   var _ckAll = _checkinAll();
   var _streak = dateKey ? _checkinStreak(_ckAll, dateKey) : 0;
+  /* R3756-P1：GC 截断后的连签按持久汇总兜底（st:last 接得上
+   * 今/昨才认——陈旧汇总不认，回退键走）。 */
+  try {
+    var _stlD = localStorage.getItem('st:last');
+    var _stcD = +(localStorage.getItem('st:cur') || 0);
+    if (_stcD > _streak &&
+        (_stlD === dateKey || _stlD === _isoShift(dateKey, -1))) {
+      _streak = _stcD;
+    }
+  } catch (eST) {}
   /* R3512：装到桌面后图标角标=连签天数（Badging API，安卓/
    * ChromeOS 生效；iOS/桌面不支持静默）。断签清零。 */
   try {
@@ -21625,6 +21650,115 @@ function renderCheckin(dateKey) {
       }
     }
   } catch (eML) {}
+  /* R3756：年度小满信——12/26–1/15 窗给「这一年小信」卡，一年
+   * 一封（yearlyLetter:YYYY 落档收官不再弹）。本地聚合全年打卡/
+   * 心情/小记/最长连签/好运收发/称号，门槛到了才写信。 */
+  var _ylHtml = '';
+  try {
+    var _ty0 = new Date(dateKey + 'T00:00:00');
+    var _tmm = _ty0.getMonth() + 1, _tdd = _ty0.getDate();
+    var _ylYear = (_tmm === 12 && _tdd >= 26)
+      ? _ty0.getFullYear()
+      : (_tmm === 1 && _tdd <= 15) ? _ty0.getFullYear() - 1 : 0;
+    var _ylKey = _ylYear ? ('yearlyLetter:' + _ylYear) : '';
+    if (_ylYear && !localStorage.getItem(_ylKey)) {
+      /* R3756-P1：checkin:/mood:/journal: 原始键 150 天 GC——
+       * 年信读写时汇总（ckY:/mdY:/jrY:/ckBest:），原始键只作
+       * 汇总前老数据的兜底（两者取大，不双计）。 */
+      var _yp = String(_ylYear) + '-';
+      var _yCk = 0, _yMd = 0, _yJ = 0, _yMdCnt = {};
+      var _yCkDates = [];
+      for (var _yi = 0; _yi < localStorage.length; _yi++) {
+        var _yk = localStorage.key(_yi);
+        if (typeof _yk !== 'string') continue;
+        if (_yk.indexOf('checkin:' + _yp) === 0) {
+          _yCk++; _yCkDates.push(_yk.slice(8));
+        } else if (_yk.indexOf('mood:' + _yp) === 0) {
+          var _yvv = localStorage.getItem(_yk);
+          if (_yvv !== null && _yvv !== '') {
+            _yMd++; _yMdCnt[_yvv] = (_yMdCnt[_yvv] || 0) + 1;
+          }
+        } else if (_yk.indexOf('journal:' + _yp) === 0) {
+          if (localStorage.getItem(_yk)) _yJ++;
+        }
+      }
+      _yCk = Math.max(_yCk,
+        +(localStorage.getItem('ckY:' + _ylYear) || 0));
+      try {
+        var _yMdR = JSON.parse(
+          localStorage.getItem('mdY:' + _ylYear) || '{}');
+        var _yMdRSum = 0;
+        Object.keys(_yMdR).forEach(function (k2) {
+          _yMdRSum += _yMdR[k2] || 0;
+        });
+        if (_yMdRSum > _yMd) { _yMd = _yMdRSum; _yMdCnt = _yMdR; }
+      } catch (eMR) {}
+      _yJ = Math.max(_yJ,
+        +(localStorage.getItem('jrY:' + _ylYear) || 0));
+      /* 最长连签：原始键走 + ckBest: 年汇总 + st:cur 现连签
+       *（跨年连签也算今年的份）三者取大。 */
+      var _yBest = +(localStorage.getItem('ckBest:' + _ylYear) || 0);
+      if (_yCkDates.length) {
+        _yCkDates.sort();
+        var _yCur = 1, _yPrev = _yCkDates[0];
+        for (var _yi2 = 1; _yi2 < _yCkDates.length; _yi2++) {
+          var _yn = _yCkDates[_yi2];
+          var _yd = (new Date(_yn + 'T00:00:00') -
+                     new Date(_yPrev + 'T00:00:00')) / 86400000;
+          _yCur = (_yd === 1) ? _yCur + 1 : 1;
+          if (_yCur > _yBest) _yBest = _yCur;
+          _yPrev = _yn;
+        }
+      }
+      var _stCY = +(localStorage.getItem('st:cur') || 0);
+      if (_stCY > _yBest) _yBest = _stCY;
+      /* 上门槛：这一年真来过的才写信（纯路过不下信）。 */
+      if (_yCk >= 10 || _yMd >= 12 || _yJ >= 3) {
+        var _yDom = -1, _yDomN = 0;
+        Object.keys(_yMdCnt).forEach(function (k) {
+          if (_yMdCnt[k] > _yDomN) { _yDomN = _yMdCnt[k]; _yDom = +k; }
+        });
+        var _yParts = [];
+        if (_yCk) _yParts.push('打卡 ' + _yCk + ' 天');
+        if (_yMd) {
+          _yParts.push('记下 ' + _yMd + ' 天心情' +
+            (_yDom >= 0 && _MOOD_META[_yDom]
+              ? '（多是「' + _MOOD_META[_yDom].t + '」）' : ''));
+        }
+        if (_yJ) _yParts.push('写了 ' + _yJ + ' 篇小记');
+        if (_yBest >= 7) _yParts.push('最长连签 ' + _yBest + ' 天');
+        var _yHugI = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
+        var _yHugO = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
+        if (_yHugI + _yHugO > 0) {
+          _yParts.push('好运收 ' + _yHugI + ' 个 · 递 ' + _yHugO + ' 次');
+        }
+        var _ySeen = +(localStorage.getItem('ckms:seen') || 0);
+        var _yTitle = '';
+        for (var _yi3 = 0; _yi3 < _MS.length; _yi3++) {
+          if (_MS[_yi3][0] <= _ySeen) _yTitle = _MS[_yi3][1];
+        }
+        /* 年锚古话——与周/月锚同族不同盐（yq|YYYY）。 */
+        var _yql = '';
+        try {
+          var _yqq = _hashPick(_DAY_QUOTES, 'yq|' + _ylYear);
+          if (_yqq && _yqq.t) {
+            _yql = ' 这一年小满想对你说：「' + _yqq.t + '」';
+          }
+        } catch (eYQ) {}
+        _ylHtml = '<div class="weekly-letter ml-letter" ' +
+          'id="yearlyLetter" data-yl="' + _ylYear + '">' +
+          '<div class="wl-head">🏮 ' + _ylYear +
+          ' 年的小满信' +
+          '<button type="button" class="wl-x" id="ylDismiss" ' +
+          'aria-label="收下了，不再显示">×</button></div>' +
+          '<div class="wl-body">' + _ylYear + ' 年，你' +
+          esc(_yParts.join('、')) + '，我都替你记着。' +
+          (_yTitle ? '称号走到「' + esc(_yTitle) + '」。' : '') +
+          '这一年辛苦啦，明年小满还在这儿等你。' +
+          esc(_yql) + '</div></div>';
+      }
+    }
+  } catch (eYL) {}
   /* R3325-D：写给未来的信——本地留存（futureLetters JSON 数组，
    * 清盘不丢）；到日信卡浮出，与周/月信同版式。 */
   var _flHtml = '';
@@ -21774,7 +21908,7 @@ function renderCheckin(dateKey) {
       (_ddLine ? '<button type="button" class="dday-clear">抹掉</button>'
                : '') + '</span></div>';
   } catch (eDD) {}
-  box.innerHTML = _wlHtml + _mlHtml + _flHtml + _flEntryHtml +
+  box.innerHTML = _wlHtml + _ylHtml + _mlHtml + _flHtml + _flEntryHtml +
     '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
@@ -21947,6 +22081,24 @@ function renderCheckin(dateKey) {
           '#dailyCard .checkin-opt, #dailyCard button, #funcGrid .func-card');
         if (_fm && _fm.focus) _fm.focus();
       } catch (eFM) {}
+    });
+  }
+  /* R3756：年信收下——写年档键，与月信同口径。 */
+  var _ylx = box.querySelector('#ylDismiss');
+  if (_ylx && !_ylx.dataset.bound) {
+    _ylx.dataset.bound = '1';
+    _ylx.addEventListener('click', function () {
+      try {
+        var _ly = el('yearlyLetter');
+        var _yy = _ly ? _ly.getAttribute('data-yl') : '';
+        if (_yy) localStorage.setItem('yearlyLetter:' + _yy, '1');
+        if (_ly) _ly.remove();
+      } catch (eYX) {}
+      try {
+        var _fy = document.querySelector(
+          '#dailyCard .checkin-opt, #dailyCard button, #funcGrid .func-card');
+        if (_fy && _fy.focus) _fy.focus();
+      } catch (eFY) {}
     });
   }
   /* R3596：晒这月——月度复盘海报（Wrapped-lite）。 */
@@ -22405,6 +22557,30 @@ function renderCheckin(dateKey) {
        * 打勾，写失败也显示「已打卡」静默丢数据（隐私模式/quota）。 */
       try {
         window.localStorage.setItem('checkin:' + dateKey, opt);
+        /* R3756-P1：连签持久汇总——原始 checkin: 键 150 天 GC，
+         * 只按键走连签封顶 ~151，180/365 档永不可达；st:cur/
+         * st:last 写时落盘，显示端取 max(键走, 汇总) 自愈。
+         * 年汇总 ckY:/ckBest: 喂年度小满信。 */
+        try {
+          var _stLast = localStorage.getItem('st:last');
+          var _stCur = +(localStorage.getItem('st:cur') || 0);
+          if (_stLast === _isoShift(dateKey, -1)) _stCur++;
+          else if (_stLast !== dateKey) _stCur = 1;
+          var _wk = dateKey, _wn = 0;
+          while (localStorage.getItem('checkin:' + _wk)) {
+            _wn++; _wk = _isoShift(_wk, -1);
+          }
+          _stCur = Math.max(1, _stCur, _wn);
+          localStorage.setItem('st:cur', String(_stCur));
+          localStorage.setItem('st:last', dateKey);
+          var _ckY = 'ckY:' + dateKey.slice(0, 4);
+          localStorage.setItem(_ckY,
+            String((+localStorage.getItem(_ckY) || 0) + 1));
+          var _ckB = 'ckBest:' + dateKey.slice(0, 4);
+          if (_stCur > (+localStorage.getItem(_ckB) || 0)) {
+            localStorage.setItem(_ckB, String(_stCur));
+          }
+        } catch (eSR) {}
         /* R3250c：翻牌签力——按签面语义给三维度之一 +1~3 加持
          * （同日同签同值，确定性可复验）。写入后 renderCheckin 与
          * 维度彩条同步显形。 */
@@ -23242,7 +23418,12 @@ function _chatChipsPersonalize() {
           /* R3336（审-中）：情绪自由文本过危机闸——「活着没意思」
            * 原样落键零承接是破口。命中不存、给承接句。 */
           if (feCrisis(v)) { showToast(_CRISIS_FE_REPLY, 'warn'); return; }
-          try { localStorage.setItem('journal:' + todayIso(), v); } catch (eS) {}
+          try {
+            localStorage.setItem('journal:' + todayIso(), v);
+            var _jy = 'jrY:' + todayIso().slice(0, 4);
+            localStorage.setItem(_jy,
+              String((+localStorage.getItem(_jy) || 0) + 1));
+          } catch (eS) {}
           _jb.innerHTML = '<summary>📝 今天一件小事</summary>' +
             '<div class="chat-journal-body">' +
             '<p class="chat-journal-done">今天的：' + esc(String(v)) + '</p></div>';
@@ -26289,7 +26470,7 @@ function baziPersonaCard(j) {
     { id: 'rit', icon: '🔮', label: '打卡与仪式',
       /* R3558（审）：pattern:seen 小规律已读标属仪式族——漏收
        * 时「忘掉打卡仪式」后规律弹标幸存复弹。 */
-      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:|esPeakTip|hwCloseTip)/,
+      re: /^(checkin:|checkinBuff:|checkinCeleb:|dailyRevealed:|ritual:|qian:|ansb:|manifest:|muyu:|pilePick:|weeklyLetter:|monthlyLetter:|wq:|ckms:seen|pattern:seen|anniv:seen:|hugin|hugout|hugseen|tr:hist|dday:|es:|esPeakTip|hwCloseTip|st:cur|st:last|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:)/,
       sum: function () {
         var cd = 0, qn = 0, mf = 0, my = 0;
         _xmKeys().forEach(function (k) {
@@ -27008,7 +27189,7 @@ function baziPersonaCard(j) {
    * R3420-P0-4：提层到 IIFE——原在 phBind 内 var，同层函数
    * _importBackupText 引用即 ReferenceError，备份文件导入与
    * 云端拉回整链静默全断（catch 出「导到一半」假错）。 */
-  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$)/;
+  var _DATA_RE = /^(checkin:|dailyRevealed:|checkinCeleb:|checkinBuff:|mood:|moodlv:|moodjar:|ritual:|journal:|usage:|rlast:|read:scroll:|me$|me:partner$|hlask$|visits$|welcomed$|wishbottle$|wishfulfilled$|mantraFav$|installTipDismissed$|ret_tip$|uiTheme$|voiceMode$|chatSessionId$|chat:topics$|chat:cards$|chat:events$|chatTranscript(:|$)|remind:|notify:time$|returnBannerDismissed$|futureLetters(:|$)|pilePick:|weeklyLetter:|monthlyLetter:|couple:|shred:|manifest:|mochi:|qian:|ansb:|muyu:|wq:|pattern:seen$|ckms:seen$|anniv:seen:|hugin$|hugout$|hugseen$|tr:hist$|dday:|es:|esPeakTip$|hwCloseTip$|st:cur$|st:last$|ckY:|ckBest:|mdY:|jrY:|yearlyLetter:)/;
   var _NO_BACKUP_RE = /^(voiceMode|chatSessionId)$/;
   /* sessionStorage 侧同口径（wipe 与换主清扫共用）——邀请态/
    * 分享归因/聊天会话锚/结果缓存都是跟「这个人」绑的。 */
@@ -27361,6 +27542,11 @@ function baziPersonaCard(j) {
                 /* R3634/R3635：es: 能量分落键+峰值提醒旗同收（足迹件）。 */
                 k.indexOf('es:') === 0 || k === 'esPeakTip' ||
                 k === 'hwCloseTip' ||
+                /* R3756：连签/年汇总/年信旗同收（足迹件）。 */
+                k === 'st:cur' || k === 'st:last' ||
+                k.indexOf('ckY:') === 0 || k.indexOf('ckBest:') === 0 ||
+                k.indexOf('mdY:') === 0 || k.indexOf('jrY:') === 0 ||
+                k.indexOf('yearlyLetter:') === 0 ||
                 /* R3421-P1-1（审）：历史小锁 PIN 哈希是安全件——「忘掉
                  * 我的数据」承诺「忘了可以重设」，不收=假承诺；同时
                  * 从备份白名单除名（PIN 明文哈希不落盘/不被伪造备份
