@@ -6105,7 +6105,10 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         #（同支本命年、六冲冲太岁、刑/害/破犯太岁，口径与
         # bazi_calc 流年K线同一套表），不犯就直说还给下个本命年。
         if any(k in _n for k in ("本命年", "犯太岁", "冲太岁", "太岁",
-                                 "流年")):
+                                 "流年")) or (
+                "今年我" in _n and any(
+                    k in _n for k in ("运", "怎么样", "如何",
+                                      "顺不", "好不好"))):
             try:
                 _m9 = next(
                     (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
@@ -6147,6 +6150,30 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(
                             f"对你：属{_uan9}——今年不犯太岁；"
                             f"你的本命年是{_nxb9}年")
+                    # R4316：流年十神——「今年我的运势/今年流年」
+                    # 手里有日主×年干真值（与八字盘年度块同源）。
+                    try:
+                        _dmz9, _ = _bazi_day_ganzhi(
+                            datetime(int(_m9.group(1)),
+                                     int(_m9.group(2)),
+                                     int(_m9.group(3))))
+                        _tg9 = ten_god(_dmz9[0], _ygan9)
+                        _TT9 = {"比肩": "同行者多，互助也分力",
+                                "劫财": "财来财去，守为上",
+                                "食神": "产出顺，宜展示宜享受",
+                                "伤官": "想法多也易顶撞，收着点",
+                                "偏财": "外财流动，宜副业宜社交",
+                                "正财": "实干进账，稳打稳扎",
+                                "七杀": "压力大但出活，扛住就赢",
+                                "正官": "名分正位，宜求稳宜上进",
+                                "偏印": "偏门学问旺，想多做少",
+                                "正印": "贵人帮扶，宜学宜养"}
+                        out.append(
+                            f"今年你的流年十神：{_tg9}年"
+                            + (f"（{_TT9.get(_tg9, '')}）"
+                               if _tg9 in _TT9 else ""))
+                    except Exception:
+                        pass
             except Exception:
                 pass
         # R4262：「今年有闰月吗」——lunar.leap_month 天文表真值；
