@@ -7170,24 +7170,99 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 _sh9 = _SH9[((_h9 + 1) // 2) % 12]
                 _sw9 = f"{(2 * ((_h9 + 1) // 2) - 1) % 24}点到" \
                        f"{(2 * ((_h9 + 1) // 2) + 1) % 24}点"
-                _ask9 = next(
-                    (_s for _s in _SH9
-                     if f"{_s}时" in _n and _s != _sh9),
-                    None)
-                _vd9 = ""
-                if _ask9 and any(k in _n for k in
-                                 ("到了吗", "到没", "来了吗", "过了吗",
-                                  "几点到", "几点是")):
-                    _ia9 = _SH9.index(_ask9)
-                    _st9 = (2 * _ia9 - 1) % 24
-                    _gap9 = (_st9 - _h9) % 24
-                    _vd9 = (f"；{_ask9}时（{_st9}点起）"
-                            f"还有{_gap9}小时"
-                            if _gap9 else f"；{_ask9}时马上")
-                out.append(
-                    f"现在：{_sh9}时（{_sw9}）{_vd9}")
+                # R4711a：三种语境分流——
+                # ① 点名时辰+定义问法（「子时是什么/几点算子时」）→
+                #    出区间白话不再报当前时辰；
+                # ② 档案语境（「我的时辰/改时辰/我几点生」）→ 让位给
+                #    下方档案回声/指引门；
+                # ③ 其余照旧报现在什么时辰。
+                _named9 = [s for s in _SH9 if f"{s}时" in _n]
+                _def9 = any(k in _n for k in
+                            ("是什么", "什么是", "是几点", "几点算",
+                             "啥意思", "几点到几点", "几点开始",
+                             "几点钟", "是啥时候", "指几点"))
+                _prof9 = any(k in _n for k in
+                             ("我的时辰", "我时辰", "改时辰", "忘记时辰",
+                              "不记得", "填错", "几点生", "我是几点",
+                              "时辰能改", "能改时辰",
+                              "算哪天", "算次日", "算明天", "算当天"))
+                # R4711e：显式点数反查——「晚上11点算什么时辰」
+                # 出那个点的时辰名，不报现在。
+                _hm9 = re.search(r"(\d{1,2})\s*点", _n)
+                _hask9 = _hm9 and int(_hm9.group(1)) <= 23 and any(
+                    k in _n for k in ("什么时辰", "啥时辰", "算",
+                                      "哪个时辰", "几时"))
+                if _named9 and _def9:
+                    out.append(
+                        "老话时辰白话：" + "，".join(
+                            f"{_s}时≈{(2 * _SH9.index(_s) - 1) % 24}点到"
+                            f"{(2 * _SH9.index(_s) + 1) % 24}点"
+                            for _s in _named9)
+                        + "（晚 11 点后老话算次日）")
+                elif _prof9:
+                    pass
+                elif _hask9:
+                    _eh9 = int(_hm9.group(1))
+                    # R4711g：口语 PM 折算——「下午3点/晚上11点」
+                    # 是 15/23 点不是 3/11 点。「晚」单字只在 6–11 点
+                    # 档折算（「夜里2点」是凌晨不是 14 点）。
+                    if _eh9 < 12 and (any(k in _n for k in
+                                          ("下午", "晚上", "傍晚", "天黑"))
+                                      or ("晚" in _n and _eh9 >= 6)):
+                        _eh9 += 12
+                    _eb9 = _SH9[((_eh9 + 1) // 2) % 12]
+                    out.append(
+                        f"{_eh9}点≈{_eb9}时（"
+                        f"{(2 * ((_eh9 + 1) // 2) - 1) % 24}点到"
+                        f"{(2 * ((_eh9 + 1) // 2) + 1) % 24}点）")
+                else:
+                    _ask9 = next(
+                        (_s for _s in _SH9
+                         if f"{_s}时" in _n and _s != _sh9),
+                        None)
+                    _vd9 = ""
+                    if _ask9 and any(k in _n for k in
+                                     ("到了吗", "到没", "来了吗", "过了吗",
+                                      "几点到", "几点是")):
+                        _ia9 = _SH9.index(_ask9)
+                        _st9 = (2 * _ia9 - 1) % 24
+                        _gap9 = (_st9 - _h9) % 24
+                        _vd9 = (f"；{_ask9}时（{_st9}点起）"
+                                f"还有{_gap9}小时"
+                                if _gap9 else f"；{_ask9}时马上")
+                    out.append(
+                        f"现在：{_sh9}时（{_sw9}）{_vd9}")
             except Exception:
                 pass
+        # R4711b：时辰档案回声——「我的时辰/我几点生的」报档案值，
+        # 没记明说+指路（称骨/排盘都要时辰）。
+        if any(k in _n for k in ("我的时辰", "我时辰", "我几点生",
+                                 "几点生的", "我是几点", "几点出生",
+                                 "时辰不记得", "不知道几点")) and \
+                not any(k in _n for k in
+                        ("现在", "几点了", "几点钟", "几点了")):
+            _hf = None
+            for _cf in facts or []:
+                _m9h = re.match(r"^时辰：(\d{1,2})", str(_cf).strip())
+                if _m9h and int(_m9h.group(1)) <= 23:
+                    _hf = int(_m9h.group(1))
+            if _hf is not None:
+                _SHH = "子丑寅卯辰巳午未申酉戌亥"
+                _bhh = _SHH[((_hf + 1) // 2) % 12]
+                out.append(
+                    f"你记的时辰：{_bhh}时（{_hf}点）——"
+                    "档案卡点「改」能改")
+            else:
+                out.append(
+                    "档案里没记时辰——首页「我的小档案」卡点「改」"
+                    "补上，称骨、排盘都要它")
+        # R4711c：跨日口径——「11点算当天还是第二天/24点算哪天」
+        # 给晚子时定式（与称骨/排盘同口径）。
+        if any(k in _n for k in ("算哪天", "算次日", "算明天", "算当天")) and \
+                any(k in _n for k in ("点", "时辰", "凌晨", "半夜", "晚上")):
+            out.append(
+                "老路口径晚 11 点（子时头）后算次日——铺子里称骨、"
+                "排盘都照这个数")
         # R4291：时间坐标族——ISO 周数/下周日期段/当月天数/闰年/
         # 任意日星期反查（M月D日星期几）。
         if any(k in _n for k in ("第几周", "几周了", "周数",
@@ -7897,9 +7972,11 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     # 静态反查（它那边只在「到了吗/几点到」给倒计时）。
                     _zq9 = re.search(
                         r"([子丑寅卯辰巳午未申酉戌亥])时", _n)
+                    # R4711f：R4711a 白话行已答定义问法——同义行不双发。
                     if _zq9 and any(
                             k in _n for k in
-                            ("几点", "什么时候", "是几", "到几点")):
+                            ("几点", "什么时候", "是几", "到几点")) and \
+                            not any("时辰白话" in _x for _x in out):
                         _h9 = _ZH9[_zq9.group(1)]
                         out.append(
                             f"{_zq9.group(1)}时：{_h9[0]}点到"
@@ -10717,7 +10794,13 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                 "起名、六爻、默契挑战；我就在「和小满聊聊」")
         if any(k in _n for k in ("改生日", "生日填错", "生日填",
                                  "改TA生日", "删除生日", "改昵称",
-                                 "改名字", "改性别", "档案在哪")):
+                                 "改名字", "改性别", "档案在哪",
+                                 # R4711d：时辰/档案改法键——「生日怎么改」
+                                 # 「改时辰」此前静默或误报现在时辰。
+                                 "生日怎么改", "档案怎么改", "怎么改档案",
+                                 "改时辰", "时辰填错", "忘记时辰",
+                                 "时辰能改", "能改时辰", "改几点",
+                                 "忘记生日", "改档案")):
             out.append(
                 "首页「我的小档案」卡点「改」就开抽屉——生日/"
                 "昵称/性别/TA 档案都在那儿改")
