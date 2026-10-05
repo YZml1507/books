@@ -10416,7 +10416,7 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # R4506e→R4671d：称骨门——学会了。档里生日+时辰齐就出真骨重
         # 歌诀；缺时辰明说差哪块不拿默认午时硬称。
         if any(k in _n for k in ("称骨", "骨重", "几两命", "几斤几两",
-                                 "命重", "骨轻", "骨重多少")):
+                                 "命重", "骨轻", "骨重多少", "命轻")):
             _cg_me = _cg_ta = _h_me = _h_ta = None
             for _cf in facts or []:
                 _cfs = str(_cf).strip()
