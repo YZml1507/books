@@ -7229,6 +7229,15 @@ function _renderBirthdayBanner() {
       _bbd = _bdayInYear(_bme.m, _bme.d, _bdt.getFullYear() + 1);
     }
     var _bdl = _bbd ? Math.round((_bbd - _bd0) / 86400000) : -1;
+    /* R4076：TA 生日同件——已存另一半的 TA 生日也进横幅位
+     *（当天点名 + 前 7 天倒数，优先级低于我的生日）。 */
+    var _bpa = _meGet('me:partner');
+    var _bbdP = _bpa && _bpa.y
+      ? _bdayInYear(_bpa.m, _bpa.d, _bdt.getFullYear()) : null;
+    if (_bbdP && _bbdP < _bd0) {
+      _bbdP = _bdayInYear(_bpa.m, _bpa.d, _bdt.getFullYear() + 1);
+    }
+    var _bdlP = _bbdP ? Math.round((_bbdP - _bd0) / 86400000) : -1;
     if (_bbd &&
         _bbd.getMonth() === _bdt.getMonth() &&
         _bbd.getDate() === _bdt.getDate()) {
@@ -7254,6 +7263,18 @@ function _renderBirthdayBanner() {
           if (_bd2) _bd2.open = true;
         });
       }
+    } else if (_bdlP === 0) {
+      if (!_bbar) {
+        _bbar = document.createElement('div');
+        _bbar.id = 'dailyBirthday';
+        _bbar.className = 'daily-birthday';
+        _bbar.setAttribute('role', 'note');
+        var _ckb3 = el('dailyCheckin');
+        if (_ckb3 && _ckb3.parentNode) {
+          _ckb3.parentNode.insertBefore(_bbar, _ckb3);
+        }
+      }
+      _bbar.innerHTML = '🎂 今天 TA 生日——记得说声生日快乐';
     } else if (_bdl >= 1 && _bdl <= 7) {
       if (!_bbar) {
         _bbar = document.createElement('div');
@@ -7268,6 +7289,19 @@ function _renderBirthdayBanner() {
       _bbar.innerHTML = '🎂 ' +
         (_bme.n ? esc(_bme.n) + '，' : '') +
         '生日还有 ' + _bdl + ' 天——想个愿望先攒着';
+    } else if (_bdlP >= 1 && _bdlP <= 7) {
+      if (!_bbar) {
+        _bbar = document.createElement('div');
+        _bbar.id = 'dailyBirthday';
+        _bbar.className = 'daily-birthday';
+        _bbar.setAttribute('role', 'note');
+        var _ckb4 = el('dailyCheckin');
+        if (_ckb4 && _ckb4.parentNode) {
+          _ckb4.parentNode.insertBefore(_bbar, _ckb4);
+        }
+      }
+      _bbar.innerHTML = '🎂 TA 生日还有 ' + _bdlP +
+        ' 天——想句甜话先攒着';
     } else if (_bbar) { _bbar.remove(); }
   } catch (e3) {}
 }
