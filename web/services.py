@@ -4935,11 +4935,15 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         except Exception:
             continue
         if _m5:
-            for _k5 in ("我生日", "我的生日", "自己生日"):
+            for _k5 in ("我生日", "我的生日", "自己生日",
+                        "我什么时候生日", "我的生日是",
+                        "我几号生日", "我哪天生日"):
                 _personal[_k5] = _nb5
         else:
             for _k5 in ("TA生日", "他生日", "她生日", "对象生日",
-                        "另一半生日", "伴侣生日"):
+                        "另一半生日", "伴侣生日", "TA什么时候生日",
+                        "他什么时候生日", "她什么时候生日",
+                        "TA的生日是", "TA几号生日", "TA哪天生日"):
                 _personal[_k5] = _nb5
     try:
         # R3991/R3996：「明天/明日/第二天/后天」问句族——穿搭/月相/
@@ -6876,7 +6880,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
         # R4264：诞生石/生日花/本命佛静态域——存了生日就有真值
         #（月→石/花、生肖→本命佛，均为通行口径）。
         if any(k in _n for k in ("诞生石", "生日石", "生日花", "本命佛",
-                                 "守护佛", "生辰石", "月份花")):
+                                 "守护佛", "生辰石", "月份花",
+                                 "守护神")):
             try:
                 _m9 = next(
                     (_BIRTHDAY_FACT_RE.match(str(_fp).strip())
@@ -6907,7 +6912,8 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(
                             f"你的生日花：{_FL9[_mo9]}"
                             f"（{_mo9}月）")
-                    if any(k in _n for k in ("本命佛", "守护佛")):
+                    if any(k in _n for k in ("本命佛", "守护佛",
+                                             "守护神")):
                         _lz9b = lunar.solar_to_lunar(_y9, _mo9, _dy9)
                         _zz9b = _lz9b.get("ganzhi_year", "  ")[1]
                         _sx9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
@@ -6915,6 +6921,40 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                         out.append(
                             f"你的本命佛：{_BF9[_sx9]}"
                             f"（属{_sx9}）")
+            except Exception:
+                pass
+        # R4371：「TA/我生日送什么」——拿档案生日给个有据方向
+        #（诞生石/生肖本命佛都是现成礼意象），不空泛说「送心意」。
+        if "生日" in _n and any(k in _n for k in
+                                ("送什么", "送礼", "礼物", "送点")):
+            try:
+                _ta9g = any(k in _n for k in
+                            ("TA", "ta", "他", "她", "对象", "另一半"))
+                _m9g = next(
+                    ((_BIRTHDAY_PARTNER_RE.match(str(_fp).strip())
+                      if _ta9g else
+                      _BIRTHDAY_FACT_RE.match(str(_fp).strip()))
+                     for _fp in facts or []
+                     if (_BIRTHDAY_PARTNER_RE.match(str(_fp).strip())
+                         if _ta9g else
+                         _BIRTHDAY_FACT_RE.match(str(_fp).strip()))),
+                    None)
+                if _m9g:
+                    _gy9, _gm9 = (int(_m9g.group(1)),
+                                  int(_m9g.group(2)))
+                    _who9g = "TA" if _ta9g else "你"
+                    _lz9g = lunar.solar_to_lunar(
+                        _gy9, _gm9, int(_m9g.group(3)))
+                    _zg9 = _lz9g.get("ganzhi_year", "  ")[1]
+                    _sg9 = "鼠牛虎兔龙蛇马羊猴鸡狗猪"[
+                        "子丑寅卯辰巳午未申酉戌亥".index(_zg9)]
+                    _SG9 = ["", "石榴石", "紫水晶", "海蓝宝", "钻石",
+                            "祖母绿", "珍珠", "红宝石", "橄榄石",
+                            "蓝宝石", "碧玺", "黄水晶", "绿松石"]
+                    out.append(
+                        f"{_who9g}生日送礼小方向：{_gm9}月生属{_sg9}"
+                        f"——{_SG9[_gm9]}色系的小物或本命佛挂件"
+                        f"都沾边；手写的比贵的更入心")
             except Exception:
                 pass
         # R4231：「做什么好/吃点什么/有什么建议」——日课白话行
@@ -7241,8 +7281,14 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                                f"{(_sp3[2] - _sp3[1]).days + 1}天）"
                                if _left3 else "今天收尾）"))
                     else:
+                        # R4371b：人称变体键回显归一——「我什么时候
+                        # 生日」命中也报「我生日：…」不念整串问法。
+                        _lb3 = _v
+                        if "生日" in _v and _v in _personal:
+                            _lb3 = ("我生日" if _v.startswith(
+                                ("我", "自己")) else "TA生日")
                         out.append(
-                            f"{_v}：{_nd.month}月{_nd.day}日"
+                            f"{_lb3}：{_nd.month}月{_nd.day}日"
                             + ("（就是今天）" if _dl3 == 0
                                else f"（还有{_dl3}天）" if _dl3 > 0
                                else "（今年已过）"))
