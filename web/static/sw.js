@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-9ebfc6fb8ca7';   // shell-hash: 9ebfc6fb8ca7
+var CACHE = 'books-shell-e1e21f8a5d59';   // shell-hash: e1e21f8a5d59
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -100,6 +100,18 @@ self.addEventListener('install', function (e) {
     return Promise.all(SHELL.map(function (u) {
       var _req = _VMAP[u] ? new Request(_VMAP[u])
                           : new Request(u, {cache: 'reload'});
+      /* R4927（用户直报）：闸下无 cookie 的设备取 '/' 得 403 门页，
+       * c.add 对非 2xx reject → CORE 缺件 → 安装整轮失败——旧 SW
+       * 永远升不上来，客户端修复件全到不了（死循环最深一条腿）。
+       * '/' 改手工 fetch：200 入壳、401/403 视为「门后活着」本件
+       * 略过（壳位留给进门后的 200 回填），其余非 2xx 仍算缺件。 */
+      if (u === '/') {
+        return _settle(fetch(_req).then(function (resp) {
+          if (resp.ok) return c.put('/', resp);
+          if (resp.status === 401 || resp.status === 403) return;
+          throw new Error('gate-' + resp.status);
+        }));
+      }
       return _settle(c.add(_req));
     })).then(function (rs) {
       var coreMiss = [];
@@ -170,6 +182,28 @@ self.addEventListener('fetch', function (e) {
           return caches.open(CACHE).then(function (c) {
             return c.put('/', resp.clone()).catch(function () {});
           });
+        }
+        /* R4927（用户直报）：冷启超时输给旧壳时——旧壳无门匙浮层，
+         * 401 裸 toast 是死路且壳位永远刷不新。晚到的 403 门页虽没
+         * 上屏，却证明服务器已醒——通知前台壳 reload，这次导航秒
+         * 拿真门页（服务器热了竞速必胜）。 */
+        if (resp && resp.status === 403) {
+          /* 无口令 cookie 时 '/' 恒 403——旧壳位是毒药：它装着
+           * 永远没有门匙浮层的老 app.js，还挡着门页上屏。删掉
+           * 壳位再请前台 reload；老壳不监听消息也无妨，用户手
+           * 动再刷一次同样能见真门页（服务器已醒竞速必胜）。 */
+          return Promise.all([
+            caches.open(CACHE).then(function (c) {
+              return c.delete('/').catch(function () {});
+            }).catch(function () {}),
+            self.clients.matchAll(
+              { type: 'window', includeUncontrolled: true })
+              .then(function (_cs) {
+                _cs.forEach(function (_c) {
+                  try { _c.postMessage({ type: 'books:gate' }); } catch (e) {}
+                });
+              }).catch(function () {})
+          ]);
         }
       } catch (xBF) {}
       return undefined;
