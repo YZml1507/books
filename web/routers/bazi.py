@@ -88,15 +88,23 @@ def chat(req: ChatRequest) -> dict:
     facts = list(req.facts or [])
     # R3115（specs/011 P1-1）：me 档案生日确定性展开——「生日：YYYY-MM-DD」
     # 进日主/太阳星座，小满知道「她是谁」而不是只知道「她生日」。
-    facts = services.chat_profile_facts(facts)
+    _prof = services.chat_profile_facts(facts)
+    # R4928（实测 F1/F2）：服务端自编事实行（档案展开/解梦口径/功能
+    # 路标/当日派生）走 trusted_facts 独立信道——与客户端坐标分层：
+    # 不过 _FACT_BAN_PAT 注入闸（闸防客户端文本，实测把「系统分享
+    # 面板」「黄历行话白话」等合法指路全杀）、也不进会话坐标快照
+    # （后端行存进快照会让上轮话题串进下轮——「发给闺蜜」带上轮
+    # 星座真值实锤）。客户端 facts 保持原样进坐标通道照过滤。
+    _cset = set(facts)
+    _trusted = [f for f in _prof if f not in _cset]
     # R3178：梦见类消息→解梦册子口径进参考事实（非权威信道）。
     try:
-        facts += services.chat_dream_facts(req.message)
+        _trusted += services.chat_dream_facts(req.message)
         # R3180c：抽牌/起卦类请求→功能路标（别让她在聊里假抽）。
-        facts += services.chat_action_facts(req.message)
+        _trusted += services.chat_action_facts(req.message)
         # R3331（审-中2/3/4）：水逆/穿搭/咒语问句→当日派生事实，
         # 防模型自由发挥与卡面口径分裂。
-        facts += services.chat_daily_facts(req.message, facts=facts)
+        _trusted += services.chat_daily_facts(req.message, facts=_prof)
         # R3195：路标同步给前端可点跳转 chip——「去塔罗抽一把」
         # 比纯文字指路少一步寻找。
         # R3197：危机消息禁挂跳转——「不想活了给我抽张牌」走罐头
@@ -119,6 +127,7 @@ def chat(req: ChatRequest) -> dict:
             pass   # validate_ranges 已挡；此处再兜底不炸
     tid = llm_polish.spawn_chat_task(
         req.session_id, req.message, facts=facts,
+        trusted_facts=_trusted,
         verdict_facts=services.chat_huangli_facts(
             req.message, now=_now, session_id=req.session_id),
         # R3124b（specs/012-P0）：卡面判词层升格权威信道——按 ref 从
