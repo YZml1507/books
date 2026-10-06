@@ -1234,6 +1234,20 @@ function _gateOverlay() {
   }, 80);
 }
 
+/* R4927（用户直报）：SW 竞速输给旧壳、晚到响应是 403 门页时——
+ * 服务器已醒，SW 让前台壳 reload 一次直接见真门页（比等用户再
+ * 刷一次省一跳；没有本监听的老壳不受影响，门匙浮层照旧兜底）。 */
+if (typeof navigator !== 'undefined' && navigator.serviceWorker &&
+    navigator.serviceWorker.addEventListener) {
+  navigator.serviceWorker.addEventListener('message', function (ev) {
+    var d = ev && ev.data;
+    if (d && d.type === 'books:gate' && !window.__booksGateReload) {
+      window.__booksGateReload = 1;
+      location.reload();
+    }
+  });
+}
+
 async function api(path, options) {
   options = options || {};
   /* R228k：fetch 无超时——请求挂起时 busy() 占位与 on() 在途锁永不复位，
@@ -28257,6 +28271,11 @@ function baziPersonaCard(j) {
       } catch (e) {}
       /* R2400（R139-P1-2）：裸 Error 没有 .status——下游 401/403
        * 「门匙失效不走镜像」判据从此真的够得着。 */
+      /* R4927（用户直报）：排盘台账不走 api()，401 原只吐裸
+       * 「需要钥匙才能进来哦」——同款门匙浮层补上。 */
+      if (r.status === 401 && typeof _gateOverlay === 'function') {
+        _gateOverlay();
+      }
       var _err = new Error(m);
       _err.status = r.status;
       throw _err;
