@@ -1499,10 +1499,16 @@ def chat(session_id: str, user_msg: str,
          config: dict | None = None, _transport=None,
          verdict_day: str | None = None,
          result_verdicts: list[str] | None = None,
+         trusted_facts: list[str] | None = None,
          _task_started=None) -> str | None:
     """多轮陪伴对话：session 内存上下文 + 用户消息 → 回复文本。
 
     facts：前端透传的坐标事实，只作「话题参考」。
+    trusted_facts：后端算好的话题参考（档案展开/功能路标/白话真值
+        等）——服务端自编字符串，不过 _FACT_BAN_PAT（那道闸防的是
+        客户端注入文本，实测把「系统分享面板」「黄历行话白话」这类
+        合法指路全杀了）；也不进 sess["coords"] 快照——它们是逐消息
+        按本条内容算出的，存进快照会让上轮话题串进下轮。
     verdict_facts：后端算好的权威判定（黄历判定等）——独立信道，
         客户端永远摸不到（R12-P2-2：此前按「含『黄历判定』子串」升格，
         任客户端可伪造权威事实）。
@@ -1626,11 +1632,21 @@ def chat(session_id: str, user_msg: str,
             # 注入用的是快照，整个会话期内坐标都是话题锚。
             # R2400（R135-P1-5a）：入档即过闸——此前原样存档，靠渲染
             # 时每轮滤一次；恶意行会在会话期内一直被携带。只存干净行。
-            _coords_new = [f for f in (facts or [])
-                           if f and _fact_is_safe(f)]
-            if _coords_new and _coords_new != sess.get("coords"):
-                sess["coords"] = _coords_new
+            if facts is not None:
+                _coords_new = [f for f in facts
+                               if f and _fact_is_safe(f)]
+                # R4928（实测 F2）：快照只在「有干净行」时更新——本轮
+                # 一条都没算出（被压/裸问）就留上轮的旧事实，模型读
+                # 到串味坐标（「发给闺蜜」带上轮星座真值）。差量就换，
+                # 空表也算正常落档。
+                if _coords_new != sess.get("coords"):
+                    sess["coords"] = _coords_new
             _coords_snap = list(sess.get("coords") or [])
+            # R4928（实测 F1）：服务端自编参考行——不过注入闸（闸防
+            # 的是客户端文本，误杀了「系统分享面板」「黄历行话白话」
+            # 等合法指路）；只做非空清洗，渲染时照旧压换行。
+            _trusted = [str(f).strip() for f in (trusted_facts or [])
+                        if f and str(f).strip()]
 
         # R228w：坐标事实与「黄历判定」分量不同——前者是话题参考
         # 「不要逐条念」，后者是已算好的权威结论必须照说。
@@ -1696,22 +1712,33 @@ def chat(session_id: str, user_msg: str,
         payload_msgs = [{"role": "system", "content": _sys}]
         _coords = _coords_snap
         _user_msg = msg
-        if _coords:
-            # R230a-41（R15-P1-3）：客户端 facts 直进 system 角色是可注入
-            # 通道（"忽略所有先前的指令"/伪造「黄历判定：…」均以 system
-            # 特权送达，mock 日志实锤）。降为 user 角色的上下文块，
-            # 并剥掉仿冒权威判定口径的行——权威判定只走 _verdicts 一条道。
-            _safe = [f for f in _coords if _fact_is_safe(f)]
-            if _safe:
-                # R2400（R135-P2-5）：prompt 总长无帽——facts 段按 3K
-                # 截（单条坐标 ≤500、20 条上限本就该 ~10K 内，帽是给
-                # 将来字段膨胀兜底）。
-                _blk = "\n- ".join(_fact_line(f) for f in _safe)
-                if len(_blk) > 3000:
-                    _blk = _blk[:3000].rstrip() + "……"
-                _user_msg = ("（我的排盘坐标事实，只作话题参考，"
-                             "不要逐条念）：\n- " + _blk
-                             + "\n\n" + msg)
+        # R230a-41（R15-P1-3）：客户端 facts 直进 system 角色是可注入
+        # 通道（"忽略所有先前的指令"/伪造「黄历判定：…」均以 system
+        # 特权送达，mock 日志实锤）。降为 user 角色的上下文块，
+        # 并剥掉仿冒权威判定口径的行——权威判定只走 _verdicts 一条道。
+        _safe = [f for f in _coords if _fact_is_safe(f)]
+        _parts: list[str] = []
+        if _safe:
+            # R2400（R135-P2-5）：prompt 总长无帽——facts 段按 3K
+            # 截（单条坐标 ≤500、20 条上限本就该 ~10K 内，帽是给
+            # 将来字段膨胀兜底）。
+            _blk = "\n- ".join(_fact_line(f) for f in _safe)
+            if len(_blk) > 3000:
+                _blk = _blk[:3000].rstrip() + "……"
+            _parts.append("（我的排盘坐标事实，只作话题参考，"
+                          "不要逐条念）：\n- " + _blk)
+        # R4928（实测 F1）：服务端自编参考行同走 user 上下文块、
+        # 独立小节——与坐标同角色（话题参考非权威判定），但不过
+        # 注入闸（否则会杀掉「系统分享面板」「黄历行话白话」）。
+        if _trusted:
+            _tblk = "\n- ".join(_fact_line(f) for f in _trusted)
+            if len(_tblk) > 3000:
+                _tblk = _tblk[:3000].rstrip() + "……"
+            _parts.append("（铺子里现成的答法和路标，是手里算好的"
+                          "真值——问到对应事就照用，不许说不知道）："
+                          "\n- " + _tblk)
+        if _parts:
+            _user_msg = "\n\n".join(_parts) + "\n\n" + msg
         payload_msgs.extend(history)
         payload_msgs.append({"role": "user", "content": _user_msg})
 
@@ -2159,7 +2186,8 @@ def spawn_chat_task(session_id: str, user_msg: str,
                     config: dict | None = None,
                     _transport=None,
                     verdict_day: str | None = None,
-                    result_verdicts: list[str] | None = None) -> str | None:
+                    result_verdicts: list[str] | None = None,
+                    trusted_facts: list[str] | None = None) -> str | None:
     """后台起一个 chat 任务，复用 _tasks/GC/轮询端点。关闭时返回 None。
 
     verdict_day：判定所锚定的日子（透传 chat() 的跨日作废判断）。"""
@@ -2242,6 +2270,7 @@ def spawn_chat_task(session_id: str, user_msg: str,
                         verdict_facts=verdict_facts, config=cfg,
                         _transport=_transport, verdict_day=verdict_day,
                         result_verdicts=result_verdicts,
+                        trusted_facts=trusted_facts,
                         _task_started=_mark_started)
             status = "done" if text else "failed"
         except BaseException as _wexc:    # R2511：同 polish 径防 pending 泄漏
