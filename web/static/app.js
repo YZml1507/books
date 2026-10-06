@@ -1158,6 +1158,82 @@ function buildQimingResult(j) {
   return html;
 }
 
+/* R4921（用户直报）：壳内门浮层——与 app.py _GATE_PAGE 同款式同
+ * 口径（白卡+🌾+口令框+开门钮+错匙/限速提示）。只在 401 时挂：
+ * 去重、置顶、回车提交、成功后 reload 让干净导航重新走门页/首页。 */
+function _gateOverlay() {
+  var ov = document.getElementById('gateOverlay');
+  if (ov) { ov.style.display = 'flex'; return; }
+  ov = document.createElement('div');
+  ov.id = 'gateOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;'
+    + 'display:flex;align-items:center;justify-content:center;'
+    + 'background:rgba(60,40,30,.45);backdrop-filter:blur(4px)';
+  ov.innerHTML =
+    '<div style="background:#fff;margin:0 24px;max-width:320px;width:100%;'
+    + 'box-sizing:border-box;padding:32px 28px;border-radius:18px;'
+    + 'box-shadow:0 8px 30px rgba(120,80,40,.18);text-align:center">'
+    + '<div style="font-size:34px">🌾</div>'
+    + '<p style="color:#7a6650;margin:10px 0 16px">这里是小满的解忧铺，'
+    + '带钥匙的朋友请进～</p>'
+    + '<input id="gateKey" type="password" placeholder="口令" '
+    + 'autocomplete="off" style="width:100%;box-sizing:border-box;'
+    + 'padding:10px 12px;border:1.5px solid #e5d5c0;border-radius:12px;'
+    + 'font-size:15px">'
+    + '<button id="gateGo" style="margin-top:14px;width:100%;padding:10px 0;'
+    + 'border:0;border-radius:12px;'
+    + 'background:linear-gradient(135deg,#B04E40,#A8435F);color:#fff;'
+    + 'font-size:15px;cursor:pointer">开门</button>'
+    + '<p id="gateHint" style="color:#c0504a;font-size:13px;margin:10px 0 0;'
+    + 'display:none"></p></div>';
+  document.body.appendChild(ov);
+  var _hint = document.getElementById('gateHint');
+  function _gateErr(t) {
+    _hint.textContent = t;
+    _hint.style.display = 'block';
+  }
+  function _gateTry() {
+    var inp = document.getElementById('gateKey');
+    var key = inp && inp.value ? inp.value : '';
+    if (!key) { _gateErr('先写上口令再敲门～'); return; }
+    var btn = document.getElementById('gateGo');
+    btn.disabled = true;
+    btn.textContent = '敲门中…';
+    fetch('/_gate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'key=' + encodeURIComponent(key) + '&next=' +
+            encodeURIComponent('/' + (location.hash || '')),
+      credentials: 'same-origin'
+    }).then(function (r) {
+      if (r.status === 429) {
+        _gateErr('敲太多次门啦——歇一分钟再来');
+      } else if (r.status === 403) {
+        _gateErr('钥匙不对——再想想？');
+      } else if (r.ok || r.status === 302 || r.status === 301) {
+        location.reload();
+        return;
+      } else {
+        _gateErr('门后头没动静——再敲一次？');
+      }
+      btn.disabled = false;
+      btn.textContent = '开门';
+    }).catch(function () {
+      _gateErr('网这会儿不太顺——歇会儿再试');
+      btn.disabled = false;
+      btn.textContent = '开门';
+    });
+  }
+  document.getElementById('gateGo').onclick = _gateTry;
+  document.getElementById('gateKey').onkeydown = function (ev) {
+    if (ev && ev.key === 'Enter') _gateTry();
+  };
+  setTimeout(function () {
+    var k = document.getElementById('gateKey');
+    if (k && k.focus) k.focus();
+  }, 80);
+}
+
 async function api(path, options) {
   options = options || {};
   /* R228k：fetch 无超时——请求挂起时 busy() 占位与 on() 在途锁永不复位，
@@ -1261,7 +1337,13 @@ async function api(path, options) {
     /* R3341（审-低）：闸 cookie 过期 → API 全 401——裸「需要钥匙
      * 才能进来哦」用户不知道下一步。点名刷新重新进门。 */
     if (status === 401) {
-      err.message = '门好像又关上了——刷新页面重新输口令进门';
+      err.message = '门好像又关上了——输口令重新进门';
+      /* R4921（用户直报）：门匙 401 只弹 toast 是死路——SW 导航
+       * 8s 竞速在 Render 冷启（30–60s）下恒回落缓存壳，刷新也永远
+       * 看不到门页、找不到口令框。改为壳内直挂同款「小满的门」
+       * 浮层：POST /_gate 在 SW 里 POST 直连不接管、API 也永不缓存，
+       * 服务器一醒就验通。 */
+      if (typeof _gateOverlay === 'function') _gateOverlay();
     }
     if (!options.silent) {
       showToast(typeof err.message === 'string' ? err.message
