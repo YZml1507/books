@@ -6644,12 +6644,16 @@ def chat_daily_facts(message: str, now: datetime | None = None,
                     k in _n for k in ("克我", "旺我", "冲我",
                                       "跟我冲", "跟我合", "对我"))
                 # R4456b：点名句不重复发泛冲煞行。
-                if (_cs9.get("chong_animal") and any(
-                        k in _n for k in ("冲", "煞", "克我", "旺我"))) \
+                # R4930y：「克什么属相/克谁」——克+限定词进发射；
+                # 裸「克」不加（巧克力/克星/相克全撞）。
+                _ke9 = re.search(r"克(?:什么|啥|哪|谁|属)", _n)
+                if (_cs9.get("chong_animal") and (any(
+                        k in _n for k in ("冲", "煞", "克我", "旺我"))
+                        or _ke9)) \
                         or _taq9:
-                    if _cs9.get("chong_animal") and any(
+                    if _cs9.get("chong_animal") and (any(
                             k in _n for k in
-                            ("冲", "煞", "克我", "旺我")) \
+                            ("冲", "煞", "克我", "旺我")) or _ke9) \
                             and not _taq9 and not _qa9m \
                             and not (_tap9 and "犯冲" in _n) \
                             and "斜冲煞" not in _n \
