@@ -36,13 +36,16 @@ description: How to set up and drive end-to-end UI testing for 「小满的解�
 - Backend fact merge: `services.chat_huangli_facts` handles 明天/后天/大后天 offsets (+1/+2/+3) and emits `黄历判定` strings — verify in the mock request log.
 
 ## Chat session turn cap & reset
-- After ~6 LLM replies per session, the next send gets a canned close「今天先聊到这里啦～盘一直在…记得好好吃饭。」+ a `🌱 聊够啦？开个新话题` button — NO LLM call is made (the message is swallowed, not answered). Long batteries need session resets; plan ~6 sends per window.
-- The 🌱 reset button is **two-click arm/confirm** (within ~3s): first click flips its label to「这轮聊天记录会清空，再点一次确认」, second click actually clears the transcript and regenerates `chatSid()` + `_CHAT_SEND_COUNT`. It sits inside the last bubble — scroll the transcript down to reach it.
+- After 7 LLM replies per session (observed R4930 round; earlier estimate ~6 was low), the next send gets a canned close「今天先聊到这里啦～盘一直在…记得好好吃饭。」+ a `🌱 聊够啦？开个新话题` button — NO LLM call is made (the message is swallowed, not answered). Long batteries need session resets; plan 6-7 sends per window and don't leave a battery item for the capped send — it will be swallowed.
+- The 🌱 reset button is **two-click arm/confirm** (within ~3s): first click flips its label to「这轮聊天记录会清空，再点一次确认」, second click actually clears the transcript and regenerates `chatSid()` + `_CHAT_SEND_COUNT`. It sits inside the last bubble — scroll the transcript down to reach it. Put BOTH clicks in ONE `computer` actions array; the arm state can expire between separate tool calls.
+- Fresh-session pitfall: after reset the sidebar shows suggestion chips (今天运势怎么样/帮我看看我的八字…) right above the input — a click meant for the input can land on a chip and AUTO-SEND it (consumes a turn). Click the empty input field precisely and verify `.value` focus before `type_cjk.sh`.
 
 ## Verifying gate emissions with the echo-facts mock — pitfalls
 - The mock reply only parrots what reached the request; two layers can silently swallow facts BEFORE the mock sees them: `_fact_is_safe`/`_FACT_BAN_PAT` on the coords channel (`src/guji/llm_polish.py`), and `sess["coords"]` snapshot semantics (only updated when the current message emits ≥1 SAFE fact — a banned-only or suppressed message leaves the model reading the PREVIOUS topic's facts = stale echo).
 - For negative assertions ("should NOT emit X"), the bubble alone can't distinguish "suppressed" from "banned" — check `/tmp/mock_echo_requests.log` (or the mock's own log) for which `- ` lines actually shipped in the user coords block vs the system verdict block.
 - Quick offline triage of any key: `services.chat_daily_facts(msg)` for emission, then `lp._fact_is_safe(f)` for deliverability — predicts the live outcome before spending a send.
+- R4928 `trusted_facts` channel: verdict/guide facts ride a separate user-block section that bypasses `_FACT_BAN_PAT` (fix for the coords-ban losses). DOM bubbles clip long echo replies — when a gate fact seems missing from the bubble, check `/tmp/mock_echo_requests.log` for the request's `- ` lines AND read the full bubble via `browser_console` innerText tail before calling it a FAIL.
+- Known emission quirk (observed, not fixed): the same fact type can ship twice with DIFFERENT content — e.g. 今日吉时 in the system block (5h, 亥时 dropped) vs trusted block (6h). If a bubble shows two near-duplicate fact lines, diff them.
 
 ## 访问口令 / 门匙浮层 (gate) testing
 - Serve with `BOOKS_ACCESS_TOKEN=<k>`: no-cookie `GET /` → 403 gate page; wrong key →「钥匙不对」, right key → httponly cookie set.
