@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-e1e21f8a5d59';   // shell-hash: e1e21f8a5d59
+var CACHE = 'books-shell-af401f6e84ae';   // shell-hash: af401f6e84ae
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -172,6 +172,10 @@ self.addEventListener('fetch', function (e) {
       setTimeout(function () { _rj(new Error('nav-timeout')); }, 8000);
     });
     var _navF = fetch(e.request);
+    /* R4935（用户直报）：_servedShell 记录本导航是否真把缓存壳上屏
+     * 了——403 门页直接送达时 postMessage 不得发（老逻辑无门控，
+     * 门页每次都触发前台 reload→慢网冷启动闪屏死循环）。 */
+    var _servedShell = false;
     /* R3405-F10：8s 竞速超时后飞行中的响应被丢弃——Render 慢冷启
      * 首访拿旧壳还得再刷一次才是新内容。飞行 promise 也挂补写链：
      * 晚到的成功正壳导航顺手更新 '/' 壳位（竞速胜出的正常路径
@@ -187,7 +191,7 @@ self.addEventListener('fetch', function (e) {
          * 401 裸 toast 是死路且壳位永远刷不新。晚到的 403 门页虽没
          * 上屏，却证明服务器已醒——通知前台壳 reload，这次导航秒
          * 拿真门页（服务器热了竞速必胜）。 */
-        if (resp && resp.status === 403) {
+        if (resp && resp.status === 403 && _servedShell) {
           /* 无口令 cookie 时 '/' 恒 403——旧壳位是毒药：它装着
            * 永远没有门匙浮层的老 app.js，还挡着门页上屏。删掉
            * 壳位再请前台 reload；老壳不监听消息也无妨，用户手
@@ -239,6 +243,7 @@ self.addEventListener('fetch', function (e) {
            * undefined，respondWith 收到非 Response 等价白屏。离线
            * 且壳也丢了时给一句人话页兜底。 */
           return _hitP.then(function (hit) {
+            if (hit) _servedShell = true;
             return hit || new Response(
             '<!doctype html><meta charset="utf-8"><meta name="viewport" ' +
             'content="width=device-width,initial-scale=1"><body ' +

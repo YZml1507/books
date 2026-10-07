@@ -22492,3 +22492,20 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 电池复验：全部修点回测通过（双路全列 0 EMPTY）；原 EMPTY ~25 项全清零。
 - 闸：ruff E9,F 0 / banned 0 / dup_keys 0 / selftest 458 全绿。
 - 实测回填一处（echo-mock 33 发 32 过 1 挂）：「今天克什么属相」外层门已中但内层发射块触发集只有 冲/煞/克我/旺我——补 克+限定词 regex（克什么|克啥|克哪|克谁|克属），裸「克」不入（巧克力/克星/相克全撞实测验证）。
+
+## R4935（用户直报，2026-10-05）：books:gate 自愈通知闪屏死循环根治
+- 现象：手机端打开铺子「一直在闪、像不停刷新」——#28 自愈逻辑在慢网+Render 冷启动下成环：导航 8s 竞速输给缓存壳→晚到 403 门页 postMessage 让前台 reload→服务器未热又竞速输→再 reload，循环直到 Render 热透（门页本身无监听即断环）。
+- 根因（双缺）：① SW waitUntil 里 `resp.status===403` 无「旧壳真上屏」门控——门页直接送达的导航也发 books:gate；② 页面监听只查页内旗标 `__booksGateReload`，跨 reload 归零无法防环。
+- 修：SW 侧加 `_servedShell`——仅导航真回落缓存壳（race 输/断网）才置位，403 分支按 `_servedShell` 门控发消息（门页直达/503 兜底均不发）；页面侧监听加 sessionStorage「books:gtg」每 tab 会话一次刹车，任何年代 SW 重复发信都变不成闪屏。
+- 顺带语义修正：壳位删除此前对每个 403 导航都执行（含门页直达）——现同样按 _servedShell 门控，不再误删可达门页设备的离线壳。
+- 闸：sw 改动后 bump_sw 重烘（books-shell-28d77473738d）；selftest 458 全绿（含 sw.chain/syntax/shell_hash/navigate_order/shell_completeness 五闸）。
+
+## R4936（用户直报，2026-10-05）：今日牌展开卡插位移到缩略行紧邻下位
+- 现象：今日牌展开大图与缩略图隔太远——#tarotCard 插在 `#dailyCard .daily-meta` 之后，与 `.daily-main` 里的缩略行中间隔了打卡块+meta 横滚区，展开时大图在半个屏外。
+- 修：`_tc` 插入点改 `_dcEl.nextSibling`——展开卡紧贴缩略行下方（星符行之前）。
+- 闸：bump_sw 重烘（books-shell-f80ea5a7aaaa）；selftest 458 全绿。
+
+## R4937（用户直报，2026-10-05）：窄屏礼盒熊被长日期挤出卡缘裁掉
+- 现象：首页「甲寅日」右侧礼盒小熊手机端不显示——「YYYY-MM-DD 周X · 农历X月X · XX日」长日期 ~300px + 礼盒 72px 超出窄屏卡内宽（375px 下 ~311px），date flex-shrink:0 不缩 → 顶行溢出被 daily-card overflow:hidden 整只裁掉。
+- 修：@media ≤600px 给 .daily-date 加 flex-shrink:1; min-width:0——窄屏允许日期折两行，与 R3205「委屈字不裁图」同口径。
+- 闸：bump_sw 重烘（books-shell-af401f6e84ae）；selftest 458 全绿。

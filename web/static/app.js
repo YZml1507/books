@@ -1241,9 +1241,17 @@ if (typeof navigator !== 'undefined' && navigator.serviceWorker &&
     navigator.serviceWorker.addEventListener) {
   navigator.serviceWorker.addEventListener('message', function (ev) {
     var d = ev && ev.data;
+    /* R4935（用户直报）：SW 侧虽已按「旧壳真上屏」门控，这里再
+     * 加每 tab 会话一次刹车——任何年代 SW 重复发 books:gate 都
+     * 变不成刷新闪屏（sessionStorage 挂时退回页内旗标）。 */
     if (d && d.type === 'books:gate' && !window.__booksGateReload) {
       window.__booksGateReload = 1;
-      location.reload();
+      var _brake = false;
+      try {
+        _brake = sessionStorage.getItem('books:gtg') === '1';
+        sessionStorage.setItem('books:gtg', '1');
+      } catch (eSS) {}
+      if (!_brake) location.reload();
     }
   });
 }
@@ -6198,10 +6206,10 @@ async function loadDaily() {
         if (!_tc) {
           _tc = document.createElement('div');
           _tc.id = 'tarotCard'; _tc.className = 'sign-card'; _tc.hidden = true;
-          var _mr3 = document.querySelector('#dailyCard .daily-meta');
-          if (_mr3 && _mr3.parentNode) {
-            _mr3.parentNode.insertBefore(_tc, _mr3.nextSibling);
-          }
+          /* R4936（用户直报）：展开卡插到缩略行紧邻下一位——原先
+           * 塞 .daily-meta 后，中间隔着打卡块+meta 横滚区，展开
+           * 大图离小图半个屏。 */
+          _dcEl.parentNode.insertBefore(_tc, _dcEl.nextSibling);
         }
         if (_tc) {
           _tc.hidden = true;
