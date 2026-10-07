@@ -305,6 +305,14 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   box-shadow:0 4px 16px rgba(184,134,11,.12);
 }
 .daily-card-gift img{ width:100%; height:auto; display:block; }
+/* R4937（用户直报）：「2026-10-07 周三 · 农历八月廿四 · 甲寅日」
+ * 这类农历+干支长日期 ~300px，加礼盒 72px 超出窄屏卡内宽——
+ * date flex-shrink:0 不缩 → 顶行溢出被 daily-card overflow:hidden
+ * 把最右的熊整个裁掉。窄屏允许日期折行收缩（委屈字不裁图，
+ * 与 R3205 同口径）。 */
+@media (max-width:600px){
+  .daily-date{flex-shrink:1; min-width:0;}
+}
 /* R231c（R36-P3-4）：拆礼物封面——盖在每日卡上，点击淡出让位。 */
 /* R2349p（R80-P0-1）：封面闭合时日签卡仍被内容撑到 ~999px——折叠线内
  * 只剩一只熊，功能宫格全沉。封面态把卡高封顶，揭开后恢复自然高度。 */

@@ -22504,3 +22504,8 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 现象：今日牌展开大图与缩略图隔太远——#tarotCard 插在 `#dailyCard .daily-meta` 之后，与 `.daily-main` 里的缩略行中间隔了打卡块+meta 横滚区，展开时大图在半个屏外。
 - 修：`_tc` 插入点改 `_dcEl.nextSibling`——展开卡紧贴缩略行下方（星符行之前）。
 - 闸：bump_sw 重烘（books-shell-f80ea5a7aaaa）；selftest 458 全绿。
+
+## R4937（用户直报，2026-10-05）：窄屏礼盒熊被长日期挤出卡缘裁掉
+- 现象：首页「甲寅日」右侧礼盒小熊手机端不显示——「YYYY-MM-DD 周X · 农历X月X · XX日」长日期 ~300px + 礼盒 72px 超出窄屏卡内宽（375px 下 ~311px），date flex-shrink:0 不缩 → 顶行溢出被 daily-card overflow:hidden 整只裁掉。
+- 修：@media ≤600px 给 .daily-date 加 flex-shrink:1; min-width:0——窄屏允许日期折两行，与 R3205「委屈字不裁图」同口径。
+- 闸：bump_sw 重烘（books-shell-af401f6e84ae）；selftest 458 全绿。
