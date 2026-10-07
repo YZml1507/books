@@ -22499,3 +22499,8 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 修：SW 侧加 `_servedShell`——仅导航真回落缓存壳（race 输/断网）才置位，403 分支按 `_servedShell` 门控发消息（门页直达/503 兜底均不发）；页面侧监听加 sessionStorage「books:gtg」每 tab 会话一次刹车，任何年代 SW 重复发信都变不成闪屏。
 - 顺带语义修正：壳位删除此前对每个 403 导航都执行（含门页直达）——现同样按 _servedShell 门控，不再误删可达门页设备的离线壳。
 - 闸：sw 改动后 bump_sw 重烘（books-shell-28d77473738d）；selftest 458 全绿（含 sw.chain/syntax/shell_hash/navigate_order/shell_completeness 五闸）。
+
+## R4936（用户直报，2026-10-05）：今日牌展开卡插位移到缩略行紧邻下位
+- 现象：今日牌展开大图与缩略图隔太远——#tarotCard 插在 `#dailyCard .daily-meta` 之后，与 `.daily-main` 里的缩略行中间隔了打卡块+meta 横滚区，展开时大图在半个屏外。
+- 修：`_tc` 插入点改 `_dcEl.nextSibling`——展开卡紧贴缩略行下方（星符行之前）。
+- 闸：bump_sw 重烘（books-shell-f80ea5a7aaaa）；selftest 458 全绿。

@@ -6206,10 +6206,10 @@ async function loadDaily() {
         if (!_tc) {
           _tc = document.createElement('div');
           _tc.id = 'tarotCard'; _tc.className = 'sign-card'; _tc.hidden = true;
-          var _mr3 = document.querySelector('#dailyCard .daily-meta');
-          if (_mr3 && _mr3.parentNode) {
-            _mr3.parentNode.insertBefore(_tc, _mr3.nextSibling);
-          }
+          /* R4936（用户直报）：展开卡插到缩略行紧邻下一位——原先
+           * 塞 .daily-meta 后，中间隔着打卡块+meta 横滚区，展开
+           * 大图离小图半个屏。 */
+          _dcEl.parentNode.insertBefore(_tc, _dcEl.nextSibling);
         }
         if (_tc) {
           _tc.hidden = true;
