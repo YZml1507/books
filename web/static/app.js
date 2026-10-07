@@ -1241,9 +1241,17 @@ if (typeof navigator !== 'undefined' && navigator.serviceWorker &&
     navigator.serviceWorker.addEventListener) {
   navigator.serviceWorker.addEventListener('message', function (ev) {
     var d = ev && ev.data;
+    /* R4935（用户直报）：SW 侧虽已按「旧壳真上屏」门控，这里再
+     * 加每 tab 会话一次刹车——任何年代 SW 重复发 books:gate 都
+     * 变不成刷新闪屏（sessionStorage 挂时退回页内旗标）。 */
     if (d && d.type === 'books:gate' && !window.__booksGateReload) {
       window.__booksGateReload = 1;
-      location.reload();
+      var _brake = false;
+      try {
+        _brake = sessionStorage.getItem('books:gtg') === '1';
+        sessionStorage.setItem('books:gtg', '1');
+      } catch (eSS) {}
+      if (!_brake) location.reload();
     }
   });
 }
