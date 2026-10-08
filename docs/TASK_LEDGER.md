@@ -22528,3 +22528,9 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 表单挪位正确但展示断两截：renderCalc 的 _CALC_KEY_CN 缺 location 键 → 值兜底成「明细」下的裸「北京」；save_async 落 req 漏 location → 历史永久丢。
 - 修：_CALC_KEY_CN 补 location:'出生地'；save_async 有值才落 req.location。
 - 闸：ruff 0；selftest 458 全绿；bump_sw 重烘（books-shell-711b41dd2bd3）。
+
+## R4940（外部评测回执，2026-10-07）：缓存面复核 + og-card 补档 + 两条核实清
+- 评测复核：?v= immutable 已上线（app.js/styles.css 实测 31536000）——评测跑在 R4938 部署前；og-card.jpg 无 cache-control 实锤 → /static/shared/ 并进一天缓存档（与 fonts/cream 同口径）。
+- 「来过 1 次·无上次来」核实清：rlast:<view> 只在出过结果时写，纯首访没结果可记就只显示「来过 1 次」——刻意空态不是误删。
+- app.js 拆包判定：889KB/31K 行单文件跨视图全局耦合（SW 预缓存契约+selftest 壳完整性闸钉着），真拆包是独立工程轮不是打磨活——记档待排专项。
+- 闸：ruff E9,F 0；selftest 458 全绿（本轮改走后端文件无需 bump_sw）。

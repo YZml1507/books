@@ -500,7 +500,8 @@ def create_app() -> FastAPI:
         # 一天；POST 体积超限的 413 也吃到 3600。正缓存只盖 2xx。
         if resp.status_code < 300 and p.startswith(
                 ("/static/fonts/", "/static/cream/",
-                 "/static/tarot/", "/static/animotion/")):
+                 "/static/tarot/", "/static/animotion/",
+                 "/static/shared/")):
             resp.headers.setdefault("Cache-Control",
                                     "public, max-age=86400")
         elif resp.status_code < 300 and p.startswith(("/static/",)) \
