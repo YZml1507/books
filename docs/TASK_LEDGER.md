@@ -22516,3 +22516,10 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - ?v=<shell-hash> 静态资源升 immutable 长缓存（max-age=31536000）——内容钉死 URL 不必每次 304 校验，裸 ?v= 缺失的照旧 1h。
 - 评测其余条目处置：软 404 是 PWA 导航回退设计（selftest spa.fallback 钉着）不改；出生地点显性化/首页精简属设计改动留档待议；Render 冷启是部署面。
 - 闸：ruff E9,F 0；selftest 458 全绿；bump_sw 重烘（books-shell-1a92adf1056b）。
+
+## R4939（外部评测+用户拍板，2026-10-07）：首屏精简 + 出生地显性化
+- 首屏 17 卡 → 5 主入口（五行人格/塔罗/今日命盘/今天适合/和小满聊聊）+「更多玩法」开关一次点开 12 张副卡。func-more 类收合、DOM 序不变；开关钮不挂 func-card 类（避开 initViews 视图委托），自有 id 绑事件、aria-expanded 同步、状态不落存储（每次进店从简版开始）。
+- 出生地显性化：location 从「更多设置·问事组」挪进主表单时辰行，label 改「出生地（可选）」、title 注明「暂不参与真太阳时校正」——核实后端无真太阳时功能，仅随盘记录展示（历史字段名同步改「出生地」），不装假功能。
+- 探针/闸同步：probe_ui_smoke goto_view 副卡不可见时先点 #funcMoreBtn 展开；selftest 新增 home.ia.more/primary/morebtn 三断言钉扎新 IA。
+- 评测处置对照：①计数 bug 已修（R4938）②proxy 泄露已修（R4938）③app.js 缓存已修（R4938，拆包瘦身属工程活留档）④软 404 是 PWA 回退设计不动 ⑤出生地本条 ⑥首屏本条 ⑦Render 部署面留档。
+- 闸：ruff E9,F 0；banned_copy/dup_keys 0；selftest 458 全绿；bump_sw 重烘（books-shell-c6c2dd602e59）。

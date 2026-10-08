@@ -980,6 +980,13 @@ def main() -> int:
                         f".func-card[data-view='{view}']:visible")
                 if card.count() >= 1 and card.first.is_visible():
                     card.first.click()
+                elif card.count() >= 1:
+                    # R4939：次级卡收在「更多玩法」下——先展开再点
+                    page.evaluate(
+                        "() => { var b = document.getElementById"
+                        "('funcMoreBtn'); if (b) b.click(); }")
+                    page.wait_for_timeout(150)
+                    card.first.click()
                 else:
                     page.click(".func-card[data-view='bazi']")
                     page.wait_for_selector("#view-bazi.active", timeout=5000)
