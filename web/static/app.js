@@ -28429,8 +28429,13 @@ function baziPersonaCard(j) {
       sum: function () {
         var b = [];
         var v = 0;
-        try { v = parseInt(localStorage.getItem('visits') || '0', 10) || 0; }
-        catch (eV) {}
+        /* R4938（外部评测）：visits 是日期集（"2026-10-07,…"）——
+         * parseInt 只读到年份当次数，「来过 2026 次」；
+         * 数条目才是真实来访天数。 */
+        try {
+          v = String(localStorage.getItem('visits') || '')
+            .split(',').filter(Boolean).length;
+        } catch (eV) {}
         if (v) b.push('来过 ' + v + ' 次');
         var _last = '';
         _xmKeys().forEach(function (k) {

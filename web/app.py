@@ -507,8 +507,13 @@ def create_app() -> FastAPI:
                 and p.endswith((".js", ".css")):
             # R230n（R25-5.1）：主资源此前只有启发式缓存——SW 未装的回访
             # 用户每次全量重拉 ~400KB。1h 缓存+SW shell-hash 保证版本一致。
-            resp.headers.setdefault("Cache-Control",
-                                    "public, max-age=3600")
+            # R4938（外部评测）：?v=<shell-hash> 是内容钉死的 URL——
+            # 同 URL 字节永不变，immutable 长缓存免重复校验。
+            resp.headers.setdefault(
+                "Cache-Control",
+                "public, max-age=31536000, immutable"
+                if "v=" in request.url.query
+                else "public, max-age=3600")
         elif p == "/":
             resp.headers.setdefault("Cache-Control", "no-cache")
         elif p.startswith("/api/"):
