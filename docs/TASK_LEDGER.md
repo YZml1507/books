@@ -22509,3 +22509,10 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 现象：首页「甲寅日」右侧礼盒小熊手机端不显示——「YYYY-MM-DD 周X · 农历X月X · XX日」长日期 ~300px + 礼盒 72px 超出窄屏卡内宽（375px 下 ~311px），date flex-shrink:0 不缩 → 顶行溢出被 daily-card overflow:hidden 整只裁掉。
 - 修：@media ≤600px 给 .daily-date 加 flex-shrink:1; min-width:0——窄屏允许日期折两行，与 R3205「委屈字不裁图」同口径。
 - 闸：bump_sw 重烘（books-shell-af401f6e84ae）；selftest 458 全绿。
+
+## R4938（外部评测回填，2026-10-07）：来访计数/代理泄露/版本化缓存三修
+- 「来过 2026 次」实锤修：足迹汇总把 visits 日期集 parseInt——「2026-10-07,…」读出头一段年份当次数；改数条目（真实来访天数）。
+- /api/external/news 泄 proxy 实锤修：fetch_sources 返回带 127.0.0.1:7897 回环代理——服务层出界 pop，两处错误响应同步剥除；内部无消费者。
+- ?v=<shell-hash> 静态资源升 immutable 长缓存（max-age=31536000）——内容钉死 URL 不必每次 304 校验，裸 ?v= 缺失的照旧 1h。
+- 评测其余条目处置：软 404 是 PWA 导航回退设计（selftest spa.fallback 钉着）不改；出生地点显性化/首页精简属设计改动留档待议；Render 冷启是部署面。
+- 闸：ruff E9,F 0；selftest 458 全绿；bump_sw 重烘（books-shell-1a92adf1056b）。

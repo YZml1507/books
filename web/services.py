@@ -16064,14 +16064,18 @@ def external_news() -> dict:
     # 给「彻底离线」姿态一个开关（BOOKS_LLM_DISABLE 只管 LLM 层）。
     if os.getenv("BOOKS_EXTERNAL_DISABLE", "").strip().lower() in (
             "1", "on", "true", "yes"):
-        return {"fetched_at": None, "proxy": external_feed.PROXY,
+        return {"fetched_at": None,
                 "sources": [], "error": "外面的资讯今天歇着",
                 "disabled": True}
     try:
-        return external_feed.fetch_sources(max_sources=6)
+        # R4938（外部评测）：fetch_sources 附带 proxy 字段（回环代理
+        # 地址）——内部部署细节不经 API 外泄，出界剥掉。
+        out = external_feed.fetch_sources(max_sources=6)
+        out.pop("proxy", None)
+        return out
     except Exception:
         # R229n（R6-#13）：异常原文不外泄——与 external_fortune 同纪律。
-        return {"fetched_at": None, "proxy": external_feed.PROXY,
+        return {"fetched_at": None,
                 "sources": [], "error": "外面的消息暂时没拿到，稍后再看"}
 
 
