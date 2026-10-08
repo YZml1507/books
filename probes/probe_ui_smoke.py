@@ -425,7 +425,10 @@ def main() -> int:
                  "mochiBox",
                  # R3414：排盘历史小锁——btn:history.lock 用例覆盖
                  # （设/锁藏/错拒/开/撤全链）。
-                 "historyLockBtn", "historyLockGo"}
+                 "historyLockBtn", "historyLockGo",
+                 # R4939：更多玩法开关——ui:func_more 用例覆盖
+                 # （收合→展开→副卡可见→aria→收起全链）。
+                 "funcMoreBtn"}
     # 显式豁免：须写理由；空集合也要保留表结构（新按钮默认要进用例表）
     NO_CASE = {
         "chatSendBtn": "聊天流走 e2e（testing-xiaoman-e2e skill）+真实模型验证，"
@@ -948,6 +951,41 @@ def main() -> int:
                 results.append({"name": "ui:theme_toggle", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})
 
+            # R4939：「更多玩法」开关——默认 12 副卡收合，点 #funcMoreBtn
+            # 一次展开（.more-open + 副卡可见 + 按钮换文案），再点收起。
+            try:
+                _fm0 = page.evaluate(
+                    "() => { var g = document.getElementById('funcGrid');"
+                    " var m = document.querySelector("
+                    "'.func-card[data-view=\"muyu\"]');"
+                    " return { open: g && g.classList.contains('more-open'),"
+                    "  vis: m && m.offsetParent !== null }; }")
+                page.click('#funcMoreBtn')
+                page.wait_for_timeout(250)
+                _fm1 = page.evaluate(
+                    "() => { var g = document.getElementById('funcGrid');"
+                    " var m = document.querySelector("
+                    "'.func-card[data-view=\"muyu\"]');"
+                    " var b = document.getElementById('funcMoreBtn');"
+                    " return { open: g.classList.contains('more-open'),"
+                    "  vis: m.offsetParent !== null,"
+                    "  exp: b.getAttribute('aria-expanded') }; }")
+                page.click('#funcMoreBtn')
+                page.wait_for_timeout(250)
+                _fm2 = page.evaluate(
+                    "() => document.getElementById('funcGrid')"
+                    ".classList.contains('more-open')")
+                ok = (not _fm0["open"] and not _fm0["vis"]
+                      and _fm1["open"] and _fm1["vis"]
+                      and _fm1["exp"] == "true" and not _fm2)
+                results.append({"name": "ui:func_more", "ok": ok,
+                                "detail": ("初态=%s 展开=%s(aria=%s) 收合=%s"
+                                           % (_fm0, _fm1["open"],
+                                              _fm1["exp"], not _fm2))})
+            except Exception as exc:
+                results.append({"name": "ui:func_more", "ok": False,
+                                "detail": f"{type(exc).__name__}: {exc}"})
+
             def goto_view(view: str):
                 # R200b（US3 方案①）：首页五张直达卡（bazi/tarot/liuyao/read/
                 # huangli）；qiming/taohua/hehun 在 view-bazi 底部「相关功能」区。
@@ -979,6 +1017,13 @@ def main() -> int:
                     card = page.locator(
                         f".func-card[data-view='{view}']:visible")
                 if card.count() >= 1 and card.first.is_visible():
+                    card.first.click()
+                elif card.count() >= 1:
+                    # R4939：次级卡收在「更多玩法」下——先展开再点
+                    page.evaluate(
+                        "() => { var b = document.getElementById"
+                        "('funcMoreBtn'); if (b) b.click(); }")
+                    page.wait_for_timeout(150)
                     card.first.click()
                 else:
                     page.click(".func-card[data-view='bazi']")

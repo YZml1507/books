@@ -1086,6 +1086,19 @@ html[data-theme="dark"] .daily-mantra b{
 .func-card:hover .func-icon{filter:grayscale(0);}
 .func-name{font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px;}
 .func-desc{font-size:12px; color:var(--secondary); line-height:1.4;}
+/* R4939（外部评测）：首屏 5 主入口+「更多玩法」开关——次级玩法卡
+ * 默认收合，一次点开展全（不删功能、不藏深抽屉）。 */
+.func-more{display:none;}
+.func-grid.more-open .func-more{display:block;}
+.func-more-btn{
+  background:transparent; border:1.5px dashed var(--border); border-radius:var(--radius);
+  padding:24px 16px; text-align:center; cursor:pointer; font:inherit;
+  color:var(--secondary); transition:all .25s ease;
+}
+.func-more-btn:hover{border-color:var(--primary); color:var(--text); transform:translateY(-3px);}
+.func-more-btn:focus-visible{outline:3px solid var(--text); outline-offset:2px;}
+.func-more-btn .func-name{display:block; font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px;}
+.func-more-btn .func-desc{display:block; font-size:12px; color:var(--secondary);}
 /* 每模块一色 */
 .func-card[data-view="bazi"]   {--card-accent:var(--c-bazi);}
 .func-card[data-view="read"]   {--card-accent:var(--c-book);}

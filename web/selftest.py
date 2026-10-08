@@ -2616,7 +2616,7 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)  # R3424 敲敲木鱼卡入格（ansb 后 chat 前）——17 卡全平铺
+    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)  # R3424 敲敲木鱼卡入格（ansb 后 chat 前）——17 卡（R4939 起 12 张收进更多玩法）
     # R208b：read 卡移除（用户裁决不提供读书渠道）
     # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
     assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
@@ -2628,6 +2628,21 @@ def _run_inner() -> list[str]:
                           "history", "oracle", "mochi", "qian", "ansb",
                           "muyu", "chat"], \
         ("home.ia.drawer", _cards)
+    # R4939（外部评测+用户拍板）：首屏减负——5 主入口可见，12 张副卡
+    # 带 func-more 收进「更多玩法」开关（一次点开展全，DOM 序不变）。
+    _more = _re.findall(
+        r'class="func-card[^"]*func-more[^"]*" data-view="([a-z]+)"',
+        _home_seg)
+    assert sorted(_more) == sorted(
+        ["taohua", "hehun", "xingzuo", "dream", "qiming", "liuyao",
+         "history", "oracle", "mochi", "qian", "ansb", "muyu"]), \
+        ("home.ia.more", _more)
+    _prim = [c for c in _cards if c not in _more]
+    assert _prim == ["renge", "tarot", "bazi", "huangli", "chat"], \
+        ("home.ia.primary", _prim)
+    assert 'id="funcMoreBtn"' in _home_seg and \
+        'aria-expanded="false"' in _home_seg and \
+        "func-more-btn" in _home_seg, ("home.ia.morebtn",)
     # 判据 a：默认视线零研究型元素（抽屉已撤，全 home 段都扫）
     for _kw in ("检索", "比对", "书目", "研究线程", "书 ID", "编址"):
         assert _kw not in _home_seg, ("home.ia.no-research-kw", _kw)

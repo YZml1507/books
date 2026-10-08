@@ -560,7 +560,7 @@ var _FIELD_CN = { year: '年份', month: '月份', day: '日期', hour: '时辰'
   b_year: '乙年', b_month: '乙月', b_day: '乙日',
   b_hour: '乙时辰', b_gender: '乙性别', calendar_type: '历法',
   scope: '范围', range_start: '区间起始', range_end: '区间结束',
-  ask_date: '哪天问的', ask_hour: '几点问的', location: '所在地',
+  ask_date: '哪天问的', ask_hour: '几点问的', location: '出生地',
   question: '问题', facts: '事实上下文', n: '张数',
   date: '日期', days: '天数', limit: '条数', style: '风格',
   topic: '主题', kind: '类型', claim: '论点', method: '方法',
@@ -5785,7 +5785,10 @@ var _CALC_KEY_CN = {
   chenggu: '称骨', weight_qian: '骨重钱数', weight_cn: '骨重',
   parts: '四项来源', song: '称骨歌', available: '可称', note: '说明',
   label: '名目', w_cn: '骨重', leap_note: '闰月口径',
-  late_zi_note: '夜子口径'
+  late_zi_note: '夜子口径',
+  /* R4939-B2（实测）：出生地挪主表单后，renderCalc 原表缺键兜底成
+   * 「明细」裸值——补中文名，「出生地：北京」才看得见。 */
+  location: '出生地'
 };
 function _calcKeyCn(k) {
   return _CALC_KEY_CN[k] || _BASIS_KEY_CN['calc.' + k] ||
@@ -15549,6 +15552,19 @@ function initViews() {
         showView(card.dataset.view);
       }
     });
+  });
+  /* R4939（外部评测）：「更多玩法」开关——收合 12 个次级卡，一次
+   * 点开展全；状态不落 localStorage（每次进店都从简版开始）。 */
+  var _fmb = el('funcMoreBtn');
+  if (_fmb) _fmb.addEventListener('click', function () {
+    var g = el('funcGrid');
+    if (!g) return;
+    var open = g.classList.toggle('more-open');
+    _fmb.setAttribute('aria-expanded', open ? 'true' : 'false');
+    var _nm = _fmb.querySelector('.func-name');
+    var _ds = _fmb.querySelector('.func-desc');
+    if (_nm) _nm.textContent = open ? '收起 ↑' : '更多玩法 🎐';
+    if (_ds) _ds.textContent = open ? '回到常用入口' : '还有 12 个 · 点开看看';
   });
   /* R200b（US3）：顶层返回条 → 回首页（簇页/叶页通用） */
   var back = el('viewBack');
