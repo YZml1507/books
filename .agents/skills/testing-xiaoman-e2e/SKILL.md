@@ -56,3 +56,11 @@ description: How to set up and drive end-to-end UI testing for 「小满的解�
 - `probe_ui_smoke` 75/75 全绿（`btn:huangli` 曾基线抖动，R228k 修 @import 后稳定 PASS——再挂是真回归）；`probe_dollar_misuse` PASS（240 函数 0 命中）。
 - `probe_contract`：565 读点全钉扎，exit 0 **PASS**。SKIP 形态已清偿——出现 INCONCLUSIVE/FAIL 一律当回归上报。
 - Typed date prefixes in the huangli 问一嘴 input (明天/后天/大后天/昨天/前天) DO offset the judged day since commit 054f7e0 (`_hlDayOffset`): asking「明天适合出行吗」re-queries tomorrow and the verdict says「明天适合/不宜…」; a date-word-only question (「明天怎么样」) navigates to that day and writes a「明天主推…」note. If an older checkout lacks this, the symptom is: judged on displayed day with hardcoded「今天」wording. Chips and chat backend `_hl_day_part` offset the same way.
+
+## Echo-mock reply pitfalls (PR34 round)
+- `_sanitize` (llm_polish.py) can silently empty an LLM reply — no `[llm]` log line, task goes `status:failed`/`text:null` → frontend「走神了/没接到」. A reply that verbatim-echoes raw coords/fact lines (四柱/排盘坐标 blocks) trips it. Verify with `curl /api/ai/{tid}` — `done`=reply rendered.
+- Chat session id lives in `sessionStorage['chatSessionId']`; server-side `sess["coords"]` snapshot persists per sid across reloads and keeps echo-poisoning every send. For a clean send: `sessionStorage.removeItem('chatSessionId')` + reload.
+- The send button can sit below the aside fold; Enter key in #chatInput submits (keydown+keyup dispatched on focused input works).
+
+## B2-class check recipe (label coverage)
+When a form field is "moved/made visible", verify the *submitted value has a labeled surface*: response JSON (`calc.<key>`), the result render label map (app.js `_CALC_KEY_CN`/`_FIELD_CN` — a missing key falls back to bare value under「明细」), and the history-record input_json (services.py `save_async` field list may drop new keys).

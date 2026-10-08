@@ -5785,7 +5785,10 @@ var _CALC_KEY_CN = {
   chenggu: '称骨', weight_qian: '骨重钱数', weight_cn: '骨重',
   parts: '四项来源', song: '称骨歌', available: '可称', note: '说明',
   label: '名目', w_cn: '骨重', leap_note: '闰月口径',
-  late_zi_note: '夜子口径'
+  late_zi_note: '夜子口径',
+  /* R4939-B2（实测）：出生地挪主表单后，renderCalc 原表缺键兜底成
+   * 「明细」裸值——补中文名，「出生地：北京」才看得见。 */
+  location: '出生地'
 };
 function _calcKeyCn(k) {
   return _CALC_KEY_CN[k] || _BASIS_KEY_CN['calc.' + k] ||

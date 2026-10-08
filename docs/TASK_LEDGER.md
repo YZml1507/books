@@ -22523,3 +22523,8 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 探针/闸同步：probe_ui_smoke goto_view 副卡不可见时先点 #funcMoreBtn 展开；selftest 新增 home.ia.more/primary/morebtn 三断言钉扎新 IA。
 - 评测处置对照：①计数 bug 已修（R4938）②proxy 泄露已修（R4938）③app.js 缓存已修（R4938，拆包瘦身属工程活留档）④软 404 是 PWA 回退设计不动 ⑤出生地本条 ⑥首屏本条 ⑦Render 部署面留档。
 - 闸：ruff E9,F 0；banned_copy/dup_keys 0；selftest 458 全绿；bump_sw 重烘（books-shell-c6c2dd602e59）。
+
+### R4939-B2（实测抓回）：出生地展示面补链
+- 表单挪位正确但展示断两截：renderCalc 的 _CALC_KEY_CN 缺 location 键 → 值兜底成「明细」下的裸「北京」；save_async 落 req 漏 location → 历史永久丢。
+- 修：_CALC_KEY_CN 补 location:'出生地'；save_async 有值才落 req.location。
+- 闸：ruff 0；selftest 458 全绿；bump_sw 重烘（books-shell-711b41dd2bd3）。

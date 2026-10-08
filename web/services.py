@@ -348,6 +348,8 @@ def bazi(req) -> dict:
         "lunar_year": req.lunar_year, "lunar_month": req.lunar_month,
         "lunar_day": req.lunar_day, "lunar_leap": req.lunar_leap,
         "scope": req.scope, "question": req.question,
+        # R4939-B2（实测）：出生地进台账——不落库历史/复看永远丢。
+        **({"location": req.location} if req.location else {}),
     }, out)
     # R3124b（specs/012-P0）：结果快照 ref——前端聊这张卡时带上，
     # 服务端按 ref 提取判词层进权威信道，小满口径=卡面口径。
