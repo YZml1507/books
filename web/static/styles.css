@@ -390,7 +390,10 @@ button, input, select, textarea{ font-family:var(--font-sans); }
  * 任何设备完整可见；判档显隐由 _bindDailyAsk。 */
 .daily-ask{margin:10px auto 2px; padding:14px 16px 12px; border-radius:16px;
   background:var(--card,#FFFDFB); border:1px dashed var(--border);
-  box-shadow:0 4px 14px rgba(184,134,11,.10); max-width:min(94%, 520px);
+  box-shadow:0 4px 14px rgba(184,134,11,.10);
+  /* R4941（用户实测·布局 B4）：首页宽度两档制——全宽卡同宽，窄卡
+   * 统一 520px 档；原 94%/96% 让本卡比日卡窄一图、边缘对不齐。 */
+  max-width:min(100%, 520px);
   cursor:default;}
 .da-title{font-size:13px; color:var(--secondary); font-weight:600;
   text-align:center; margin-bottom:10px;}
@@ -416,7 +419,8 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 .da-note{margin-top:8px; text-align:center; font-size:11.5px;
   color:var(--muted); letter-spacing:.02em;}
 @media (max-width:600px){
-  .daily-ask{max-width:96%; padding:12px 10px 10px;}
+  /* R4941（布局 B4）：窄屏同全宽卡齐边（原 96% 差一图） */
+  .daily-ask{max-width:100%; padding:12px 10px 10px;}
   .da-title{font-size:12px;}
   input.da-in, select.da-cal, select.da-gender{font-size:16px;}
   .da-btn{flex-basis:100%;}
@@ -702,9 +706,16 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
   border:1px solid var(--border); border-radius:999px; padding:2px 10px;
   cursor:pointer; white-space:nowrap;}
 .daily-moon-go:hover{border-color:var(--accent-ink);}
-/* R3264（R28）：显式 PWA 安装按钮 */
-.install-pwa-row{margin:12px 0 0; text-align:center;}
-.install-pwa-row .ghost{font-size:12px; padding:6px 14px;}
+/* R3264（R28）：显式 PWA 安装按钮。
+ * R4941（用户实测·布局 B2）：安装/提醒两钮收进 .bottom-cta-row 同行
+ * 两列等宽成组（原各占一行、宽窄随文字飘 208px vs 140px）；
+ * 容器 520px 窄档与 .daily-ask 同宽对齐（首页宽度两档制）。 */
+.bottom-cta-row{display:flex; align-items:flex-start; gap:10px;
+  margin:12px auto 0; max-width:min(100%, 520px);}
+.bottom-cta-row > *{flex:1 1 0; min-width:0;}
+.install-pwa-row{margin:0; text-align:center;}
+.install-pwa-row .ghost,
+.notify-soft-row .ghost{width:100%; font-size:12px; padding:8px 10px;}
 /* R4441（直报）：手动步骤小卡——常驻可关，不再一闪而过。 */
 .install-howto{display:flex; align-items:center; justify-content:center;
   gap:8px; margin-top:8px; font-size:12px; color:var(--muted);}
@@ -753,10 +764,9 @@ html[data-theme="dark"] .mb-act.mb-del:hover{color:#E8A288;
   font-size:13px; border-bottom:1px solid var(--border);}
 .return-banner span{flex:1; text-align:center;}
 .return-banner .ghost{font-size:12px; padding:4px 12px;}
-/* R3264（R38）：通知软提示 */
-.notify-soft-row{margin:12px 0 0; text-align:center; color:var(--muted);
+/* R3264（R38）：通知软提示（R4941 B2：并进 bottom-cta-row 等宽列） */
+.notify-soft-row{margin:0; text-align:center; color:var(--muted);
   font-size:11px;}
-.notify-soft-row .ghost{font-size:12px; padding:6px 14px;}
 .notify-soft-row p{margin:4px 0 0;}
 /* R3264（R32）：今日仪式——宜试试后面的「做完了」按钮 */
 .daily-ritual{display:block; margin:8px auto 0; font-size:12px;
@@ -1056,7 +1066,9 @@ html[data-theme="dark"] .daily-mantra b{
 
 /* ── 功能卡片网格 ── */
 .func-grid{
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  /* R4941（布局 B4）：auto-fill 在多于实际卡数的轨道里会留空轨
+     （1060px 撑出 6 轨只坐 5 卡）——auto-fit 收掉空轨铺满行。 */
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
   gap:16px; margin-bottom:32px;
 }
 @media (max-width:560px){ .func-grid{grid-template-columns:repeat(2,1fr);} }
@@ -2430,21 +2442,31 @@ html[data-theme="dark"] .tr-xfest-strip{
   transform:translateY(-1px);}
 @media (max-width:360px){.tr-quick-btn b{font-size:13px;}}
 /* R3249g（UX-AUDIT B4）：场景快捷条——按「现在的状态」分流，
- * 四枚横排小卡，在学科九宫格上方。 */
-.scene-bar{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
-  margin-bottom:12px;}
-.scene-chip{padding:10px 4px; border-radius:12px;
+ * 五枚横排小卡，在学科九宫格上方。
+ * R4941（用户实测·布局 B1）：4+1 掉行修复——原 grid 4 列写死，
+ * 390px 下第 5 枚孤行。改 flex 弹性分宽，≥361px 五枚一行均分
+ * （min-width:0 保窄栏不撑破）；≤360px 3+2 两行均匀（grow 补齐
+ * 行尾，不留大空档）。高度统一 72px。 */
+.scene-bar{display:flex; gap:8px; margin-bottom:12px;}
+.scene-chip{flex:1 1 0; min-width:0; padding:8px 2px; border-radius:12px;
   border:1px solid var(--border); background:var(--card);
   color:var(--text); font-family:var(--font-sans); cursor:pointer;
-  min-height:var(--tap); line-height:1.3;
+  min-height:72px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  line-height:1.25;
   transition:transform .15s ease, border-color .15s ease;}
-.scene-chip b{display:block; font-size:13px; font-weight:600;}
+.scene-chip b{display:block; font-size:12px; font-weight:600; line-height:1.25;}
 .scene-chip i{display:block; font-style:normal; font-size:10.5px;
   opacity:.66; margin-top:3px;}
 .scene-chip:hover{border-color:var(--hover-line);
   transform:translateY(-1px);}
-@media (max-width:360px){.scene-chip b{font-size:12px;}
+@media (max-width:360px){
+  .scene-bar{flex-wrap:wrap;}
+  .scene-chip{flex:1 1 calc(33.333% - 6px); min-width:calc(33.333% - 6px);}
+  .scene-chip b{font-size:12px;}
   .scene-chip i{font-size:10px;}}
+@media (min-width:700px){.scene-chip b{font-size:14px;}
+  .scene-chip i{font-size:11.5px;}}
 /* R3249i（UX-AUDIT D）：五行人格小卡——大字型名+暖行，轻测试结果页 */
 .renge-card{margin-top:6px; text-align:center; padding:18px 14px;}
 .renge-nick{font-size:30px; font-weight:800; color:var(--primary-ink);
@@ -2723,6 +2745,21 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
  * 矮屏横幅档见下（contain+左锚：熊缩到横幅高、右侧空奶油底自然
  * 延伸，永不裁内容）。 */
 .ink-hero img{width:100%;display:block;aspect-ratio:1440/384;object-fit:contain;}
+/* R4941（用户实测·布局 B3）：桌面 hero 两栏——1440px 下横幅图内容
+ * （小熊）只占左 ~1/3、右侧 ~700px 全空。≥1024px 横屏改两栏：
+ * 品牌文字左、小熊视觉右。图改 cover+左锚裁掉右半空白——R3248 的
+ * 「零裁切」是防竖向断头断脚；这里缩放仍按高度等比（熊全高保留），
+ * 只裁右侧空白，小熊全身不动。窄屏/竖屏维持现状逐块堆叠。
+ * 竖屏 ≥1024px（iPad Pro 竖）时 home-main 被限 680px，两栏过挤
+ * 不启用（只在横屏开）。 */
+@media (min-width:1024px) and (orientation:landscape){
+  .hero-band{display:grid; grid-template-columns:minmax(260px, 5fr) minmax(0, 7fr);
+    gap:20px 40px; align-items:center; margin:0 0 14px;}
+  .hero-band .brand{grid-column:1; grid-row:1; margin-bottom:0;}
+  .hero-band .ink-hero{grid-column:2; grid-row:1; margin:0;}
+  .hero-band .ink-hero img{aspect-ratio:auto; height:300px;
+    object-fit:cover; object-position:left center;}
+}
 /* R129-P2-5 裁决：深底下 .ink-hero 调光 .88 后仍是首页最亮区块——
  * 它是吉祥物主视觉，有意保留亮度（见 R129 报告 P2-5 记录为有意）。 */
 .ink-hero.is-missing{display:none;}
@@ -3009,6 +3046,10 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
  * 点了静默无反应。降透明度并禁止 hover 态。 */
 .checkin-share:disabled{opacity:.55; cursor:default;}
 .checkin-share:disabled:hover{background:#FFF2EA; transform:none;}
+/* R4941（去重 A2）：checkin 区提醒指引——纯文案不带钮，
+ * 开/关统一走底部「让小满轻轻叫我」（同功能单入口）。 */
+.checkin-remind-hint{display:inline-block; font-size:11.5px;
+  color:var(--muted); padding:6px 6px; line-height:1.5;}
 
 /* R231d：未来 7 天宜忌速览 */
 .hl-week{margin-top:14px;}

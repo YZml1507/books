@@ -279,6 +279,11 @@ try {
     aria-label="切换深色模式" title="换个眼睛友好的色调">🌙</button>
   <div class="home-main" id="homeMain">
 
+  <!-- R4941（用户实测·布局 B3）：hero 横幅+品牌收进 hero-band——
+       1440px 下横幅图内容（小熊）只占左侧 ~1/3、右侧 ~700px 全空。
+       ≥1024px 走两栏：品牌文字左、小熊视觉右（图裁到内容区），
+       空白两侧都被内容占住；窄屏维持现状逐块堆叠。 -->
+  <div class="hero-band">
   <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
   <div class="ink-hero" aria-hidden="true">
     <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="low"
@@ -294,6 +299,7 @@ try {
       <div class="brand-tagline">今天也要好好生活呀 ✨</div>
     </div>
   </div>
+  </div><!-- /hero-band -->
 
   <!-- 每日运势 -->
   <div class="daily-card" id="dailyCard">
@@ -333,9 +339,11 @@ try {
             style="margin:6px 14px 0; flex-shrink:0;">🧸 开运头像</button>
     <!-- R3325：.ics 日历提醒——下载即入系统日历每天准点喊你，
          Render 免费档无推送通道的零基建留存替代。 -->
+    <!-- R4941（去重 A2）：这颗是 .ics 下载进系统日历（和 in-app 提醒
+         不同功能）——文案改「加到系统日历」，不再和 🔔 提醒引导撞脸。 -->
     <button class="ghost" type="button" id="dailyIcs"
             title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
-            style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
+            style="margin:6px 14px 0; flex-shrink:0;">📅 加到系统日历</button>
     </div>
     <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
          打卡块移到判词下面。 -->
@@ -462,19 +470,21 @@ try {
          「点进去就出结果」入口，对标题测测 MBTI/幸运地图那类
          轻测试获客位。引擎就是命盘内核的人话小卡层。 -->
     <div class="func-card func-entry" data-view="renge" role="button" tabindex="0" aria-label="五行人格">
-      <img class="func-icon-img" loading="lazy" decoding="async" data-view="renge" src="/static/cream/icon-renge.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行人格</div><div class="func-desc">填个生日 · 看你是哪一型</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="renge" src="/static/cream/icon-renge.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行人格</div><div class="func-desc">看你是哪一型 · 一次排清</div>
     </div>
     <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0" aria-label="塔罗占卜">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="tarot" src="/static/cream/cream-icon-tarot.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
     </div>
     <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0" aria-label="今日命盘">
-      <img class="func-icon-img" loading="lazy" decoding="async" data-view="bazi" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="bazi" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今日命盘</div><div class="func-desc">今日专属 · 大白话解读</div>
     </div>
     <div class="func-card func-entry func-more" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="taohua" src="/static/cream/cream-icon-taohua.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
     </div>
+    <!-- R4941（用户实测·去重 A3）：与场景条「我俩行不行」同功能——
+         留在全量目录但标「（上面直达）」，不再当独立入口吆喝。 -->
     <div class="func-card func-entry func-more" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
-      <img class="func-icon-img" loading="lazy" decoding="async" data-view="hehun" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">和 TA 配不配 · 看缘分</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="hehun" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">和 TA 配不配 · 看缘分（上面直达）</div>
     </div>
     <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0" aria-label="今天适合">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="huangli" src="/static/cream/cream-icon-huangli.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
@@ -483,7 +493,7 @@ try {
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="xingzuo" src="/static/cream/cream-icon-xingzuo.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
     </div>
     <div class="func-card func-entry func-more" data-view="dream" role="button" tabindex="0" aria-label="解梦">
-      <img class="func-icon-img" loading="lazy" decoding="async" data-view="dream" src="/static/shared/icon-set-moon-cat.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">解梦</div><div class="func-desc">说说昨晚的梦 · 帮你翻翻</div>
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="dream" src="/static/shared/icon-set-moon-cat.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">解梦</div><div class="func-desc">说说昨晚的梦 · 帮你翻翻（上面直达）</div>
     </div>
     <!-- R3210（用户决策项）：起名上提主格——受众给 CP/游戏角色/圈名
          起名是高频玩法，抽屉埋太深；六爻留进阶抽屉（术语门槛高、
@@ -534,7 +544,7 @@ try {
          不给（避开 initViews 的视图委托），自有 class+id 绑事件。 -->
     <button type="button" class="func-more-btn" id="funcMoreBtn" aria-expanded="false" aria-controls="funcGrid">
       <span class="func-name">更多玩法 🎐</span>
-      <span class="func-desc">还有 12 个 · 点开看看</span>
+      <span class="func-desc">还有 14 个 · 点开看看</span>
     </button>
     </nav>
   </div>
@@ -544,13 +554,21 @@ try {
   <!-- R3264（R28）：显式 PWA 安装按钮。R3415（用户裁决）：常驻
        显示——能弹安装就弹，不能弹（iOS/国产浏览器阉割了 prompt）
        给手动步骤指引。已装过自动隐藏（standalone 检测在 JS 侧）。 -->
-  <div class="install-pwa-row" id="installPwaWrap">
-    <button type="button" class="ghost" id="installPwa">📲 装到桌面（点开当 app 用）</button>
-  </div>
-  <!-- R3264（R38）→R3420：提醒是纯 in-app toast，未布防时常显 -->
-  <div class="notify-soft-row" id="notifySoftRow" hidden>
-    <button type="button" class="ghost" id="notifySoftAsk">🔔 让小满轻轻叫我</button>
-    <p>每天你打开铺子时喊你领今日签，只本机，可关</p>
+  <!-- R4941（用户实测·布局 B2）：安装/提醒两颗底部钮原各占一行、宽窄
+       随文字飘（208px vs 140px）——收进 bottom-cta-row 同行两列等宽
+       成组；容器走 520px 窄档与 .daily-ask 边缘对齐。显隐照旧由 JS 管
+       （installPwaWrap/notifySoftRow 的 hidden 不动）。R4941（去重 A2）：
+       提醒单入口——checkin 区同功能的「每天开张喊我」钮已撤，此钮
+       改开/关一体（常显、按 remind:1 显示状态），「可关」不再失约。 -->
+  <div class="bottom-cta-row">
+    <div class="install-pwa-row" id="installPwaWrap">
+      <button type="button" class="ghost" id="installPwa">📲 装到桌面（点开当 app 用）</button>
+    </div>
+    <!-- R3264（R38）→R3420：提醒是纯 in-app toast -->
+    <div class="notify-soft-row" id="notifySoftRow">
+      <button type="button" class="ghost" id="notifySoftAsk">🔔 让小满轻轻叫我</button>
+      <p>每天你打开铺子时喊你领今日签，只本机，可关</p>
+    </div>
   </div>
   </div><!-- /home-main -->
 
@@ -1152,7 +1170,7 @@ try {
        专业全表留给「看完整命盘」。 -->
   <div class="view" id="view-renge">
     <div class="card">
-      <h2><span aria-hidden="true">✨</span> 五行人格 <span class="card-sub">填个生日 · 看你是哪一型</span></h2>
+      <h2><span aria-hidden="true">✨</span> 五行人格 <span class="card-sub">看看你是哪一派 · 超准小卡</span></h2>
       <div class="row">
         <div class="field"><label for="rg_year">出生年</label>
           <input id="rg_year" type="number" inputmode="numeric" min="1900" max="2100" value="2000" autocomplete="bday-year"></div>

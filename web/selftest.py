@@ -2616,7 +2616,7 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)  # R3424 敲敲木鱼卡入格（ansb 后 chat 前）——17 卡（R4939 起 12 张收进更多玩法）
+    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)  # R3424 敲敲木鱼卡入格（ansb 后 chat 前）——17 卡（R4939 起 12 张收进更多玩法；R4941 去重后 14 张收合，DOM 序不变）
     # R208b：read 卡移除（用户裁决不提供读书渠道）
     # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
     assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
@@ -2630,6 +2630,8 @@ def _run_inner() -> list[str]:
         ("home.ia.drawer", _cards)
     # R4939（外部评测+用户拍板）：首屏减负——5 主入口可见，12 张副卡
     # 带 func-more 收进「更多玩法」开关（一次点开展全，DOM 序不变）。
+    # R4941（去重）：主格 5 张维持 R4939 用户拍板不动；仅目录内
+    # chips 覆盖的 hehun/dream 两张 desc 加「（上面直达）」标注。
     _more = _re.findall(
         r'class="func-card[^"]*func-more[^"]*" data-view="([a-z]+)"',
         _home_seg)
