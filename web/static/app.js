@@ -16877,18 +16877,29 @@ function initDivination() {
     try { localStorage.setItem('returnBannerDismissed', todayIso()); } catch (eS) {}
   });
   /* R3264（R38）：通知软提示——先解释价值，再请求浏览器权限。
-   * 本地 reminders 需要后端/VAPID 才真推，这里只做权限软询问。 */
+   * 本地 reminders 需要后端/VAPID 才真推，这里只做权限软询问。
+   * R4941（用户实测·去重 A2）：提醒全站单入口——checkin 区同功能的
+   * 「每天开张喊我」钮已撤（同写 remind:1，纯重复），此钮改为开/关
+   * 一体（常显、按 remind:1 切状态文案），行内「可关」不再失约。 */
   on('notifySoftAsk', function () {
     /* R3314（R3309-P1）→R3420-P1-1：不再请求 Notification 权限——
      * 提醒是纯 in-app toast，请求权限等于白要一次系统授权。
      * notify:time 照写（.ics 导出的提醒钟点消费它）。 */
+    var _nb = el('notifySoftAsk');
+    var _onN = false;
+    try { _onN = localStorage.getItem('remind:1') === '1'; } catch (eN) {}
+    if (_onN) {
+      try { localStorage.removeItem('remind:1'); } catch (eOff) {}
+      if (_nb) _nb.innerHTML = '🔔 让小满轻轻叫我';
+      showToast('好，不喊你了——想再被喊随时来开', 'info');
+      return;
+    }
     try {
       localStorage.setItem('notify:time', '21:00');
       localStorage.setItem('remind:1', '1');
     } catch (eT) {}
+    if (_nb) _nb.innerHTML = '🔔 天天喊着呢 · 点我关';
     showToast('好啦，以后你每天打开铺子小满都喊你领签～', 'ok');
-    var _nr2 = el('notifySoftRow');
-    if (_nr2) _nr2.hidden = true;
   });
   /* R3264（R24）：日签小红书文案——一键复制含判词/宜忌/链路的短文案。 */
   on('copyXhs', function () {
@@ -17573,11 +17584,17 @@ function init() {
   try { initDivination(); } catch (eD) { console.warn('[init] divination', eD); }
   _meFillAll();   /* R230y（R36-P1-4）：生日 profile 代入同人表单 */
   /* R3264（R38）→R3420-P1-1：软提示行不再查 Notification 权限——
-   * 功能是 in-app toast，denied 用户也该有入口。已布防不再重复露。 */
+   * 功能是 in-app toast，denied 用户也该有入口。
+   * R4941（去重 A2）：行常显做唯一开关——已布防时按钮换状态文案
+   * （「天天喊着呢 · 点我关」），不再布防后藏行（藏了就没地方关）。 */
   try {
     var _nr = el('notifySoftRow');
-    if (_nr && localStorage.getItem('remind:1') !== '1') {
+    if (_nr) {
       _nr.hidden = false;
+      var _nb0 = el('notifySoftAsk');
+      if (_nb0 && localStorage.getItem('remind:1') === '1') {
+        _nb0.innerHTML = '🔔 天天喊着呢 · 点我关';
+      }
     }
   } catch (eN) {}
   /* R3207：时辰对照表——「知道子时不知道几点」的用户此前要切出去查；
@@ -18244,6 +18261,12 @@ function init() {
     }
     if (e.key === 'installTipDismissed' && e.newValue) {
       var _it = el('installTip'); if (_it) _it.remove();
+      /* R4941（去重 A1）：跨 tab 关横幅同样把安装钮还回来 */
+      var _ipwS = el('installPwaWrap');
+      if (_ipwS && _ipwS.getAttribute('data-tip-hid') === '1') {
+        _ipwS.removeAttribute('data-tip-hid');
+        _ipwS.hidden = false;
+      }
       return;
     }
     /* R3265（R3250-P2）：voiceMode 键已无写入方——口吻跨 tab 死
@@ -23811,13 +23834,12 @@ function renderCheckin(dateKey) {
     })() +
     /* R2350f（R102-P2-8/P2-13）→R3420：「每天开张喊我」纯 in-app
      * toast（零 Notification 依赖，布防不再过权限）；「安利铺子」
-     * 产出 文案+链 一键复制给闺蜜。 */
-    '<button type="button" class="checkin-share" id="checkinRemind" ' +
-      'title="每天你打开铺子时提醒你抽新签">🔔 ' +
-      ((function () {
-        try { return localStorage.getItem('remind:1') === '1'; }
-        catch (e) { return false; }
-      })() ? '每天来都喊你' : '每天开张喊我') + '</button>' +
+     * 产出 文案+链 一键复制给闺蜜。
+     * R4941（去重 A2）：「每天开张喊我」钮撤除——和「让小满轻轻叫我」
+     * 同写 remind:1 是同一功能两个入口；留纯文案指引不带钮，
+     * 开/关统一走底部那颗（唯一入口）。 */
+    '<span class="checkin-remind-hint">🔔 想每天开张被喊一声？' +
+      '底部「让小满轻轻叫我」是开关（本机提醒，随时能关）</span>' +
     '<button type="button" class="checkin-share" id="shopShare" ' +
       'title="把这铺子发给闺蜜">📮 安利铺子</button>' +
     /* R233p（R47-P2）：签册——存量 checkin:* 渲成可回看的迷你签墙
@@ -24302,21 +24324,9 @@ function renderCheckin(dateKey) {
    * （打开时首渲弹，全仓零 new Notification），跟浏览器通知权限
    * 毫无关系——原实现把布防绑死在权限上，拒绝过权限的用户永远
    * 开不了一个不需要权限的功能。改直挂本地标记，文案说人话
-   * （按日弹，不是只喊明天——R3420-P2-1）。 */
-  var _ckr = box.querySelector('#checkinRemind');
-  if (_ckr) _ckr.addEventListener('click', function () {
-    var _on = false;
-    try { _on = localStorage.getItem('remind:1') === '1'; } catch (e) {}
-    if (_on) {
-      try { localStorage.removeItem('remind:1'); } catch (e2) {}
-      _ckr.innerHTML = '🔔 每天开张喊我';
-      showToast('好，不喊你了', 'info');
-      return;
-    }
-    try { localStorage.setItem('remind:1', '1'); } catch (e3) {}
-    _ckr.innerHTML = '🔔 每天来都喊你';
-    showToast('好嘞，每天你打开铺子小满都喊一声', 'ok');
-  });
+   * （按日弹，不是只喊明天——R3420-P2-1）。
+   * R4941（去重 A2）：#checkinRemind 开关随钮撤除——开/关统一在
+   * 底部「让小满轻轻叫我」一颗钮上（同功能单入口）。 */
   /* R2350f（R102-P2-13）：「安利铺子」——应用级分享出口，不挂结果件。
    * 复制 钩子文案+链接；支持系统分享面板的走面板。 */
   var _shops = box.querySelector('#shopShare');
@@ -25628,10 +25638,11 @@ window.addEventListener('beforeinstallprompt', function (e) {
   e.preventDefault();
   _deferredInstall = e;
   /* R3264（R28）：显式「加到桌面」按钮——在首页露出来，
-   * 用户可主动安装，不再只等 8s 后的横幅。 */
+   * 用户可主动安装，不再只等 8s 后的横幅。
+   * R4941（去重 A1）：横幅在屏时别把按钮翻回来（二选一）。 */
   try {
     var _ipw = el('installPwaWrap');
-    if (_ipw) _ipw.hidden = false;
+    if (_ipw && !el('installTip')) _ipw.hidden = false;
   } catch (e3) {}
   /* R2350d（R100-P1-3）：beforeinstallprompt 在首屏早期就发——
    * 左下角横幅会盖住刚渲染的日卡（主视觉位）。延迟到 8s 后、且
@@ -25686,8 +25697,15 @@ function _renderInstallTip() {
   }
   var go = bar.querySelector('.install-tip-go');
   var xx = bar.querySelector('.install-tip-x');
-  /* R2349h（R69-P2-7）：自毁前先还焦点到功能区落点。 */
+  /* R2349h（R69-P2-7）：自毁前先还焦点到功能区落点。
+   * R4941（用户实测·去重 A1）：横幅与「装到桌面」钮同屏二选一——
+   * 横幅退场（知道了/装好/先不了）时把按钮还回来做唯一重入口。 */
   var _retire = function () {
+    var _ipwR = el('installPwaWrap');
+    if (_ipwR && _ipwR.getAttribute('data-tip-hid') === '1') {
+      _ipwR.removeAttribute('data-tip-hid');
+      _ipwR.hidden = false;
+    }
     var _nx = el('funcGrid');
     if (_nx && _nx.focus) { try { _nx.focus(); } catch (e) {} }
     bar.remove();
@@ -25710,6 +25728,16 @@ function _renderInstallTip() {
     _retire();
   });
   document.body.appendChild(bar);
+  /* R4941（用户实测·去重 A1）：横幅在屏期间藏掉 #installPwa——
+   * 两处安装引导同屏是重复入口；横幅退场后按钮回来（已装成 app 的
+   * standalone 态本来就不显示按钮，别把 hidden 翻回来）。 */
+  try {
+    var _ipwT = el('installPwaWrap');
+    if (_ipwT && !_ipwT.hidden) {
+      _ipwT.setAttribute('data-tip-hid', '1');
+      _ipwT.hidden = true;
+    }
+  } catch (eIT) {}
 }
 /* 用户手动输入即解除预填标记——下次 _meFill 不再碰这个字段 */
 ['input', 'change'].forEach(function (ev) {
