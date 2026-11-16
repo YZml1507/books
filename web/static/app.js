@@ -1488,8 +1488,8 @@ function postJSON(path, payload, opts) {
  * 会令旧轮询自动作废，防止慢任务回来后污染新一轮结果。 */
 var RESULT_GEN = {};
 var AI_POLL_INTERVAL_MS = 500;
-var AI_POLL_CAP_S = 62;            // 与后端 _POLL_BUDGET_S(50s)+余量对齐
-var NR_POLL_CAP_S = 88;            // 点评链 78s 预算+余量（底卡先行可等）
+var AI_POLL_CAP_S = 125;           // 与后端 _POLL_BUDGET_S(110s)+余量对齐（S4：AMD 端 20s 前摇）
+var NR_POLL_CAP_S = 165;           // 点评链 150s 预算+余量（底卡先行可等）
                                    // R3243：推理模型拥挤期生成 15-30s/次，
                                    // 40s 帽会在兜底即将成功时提前放弃
 

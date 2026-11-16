@@ -267,6 +267,19 @@ def polish(facts: list[str], question: str | None = None,
     return None
 
 
+def _merge_extra_body(payload: dict, cfg: dict) -> dict:
+    """S4：provider 专属参数透传（llm_config.json 的 extra_body 段）。
+
+    Qwen3 系推理模型的 chat_template_kwargs.enable_thinking=false 一关，
+    AMD 开发端实测从「46s 全烧推理 token、正文 0 字」变成「4s 直接
+    出文」——但这是端点差异不是通用语义，硬编码会砸别家 provider，
+    故走配置透传：payload.update(extra_body)，未配置则原样。"""
+    _extra = cfg.get("extra_body")
+    if isinstance(_extra, dict):
+        payload.update(_extra)
+    return payload
+
+
 def _polish_node(facts: list[str], question: str | None, cfg: dict,
                  _transport=None, _attempts: int = 3,
                  deadline: float | None = None) -> str | None:
@@ -284,6 +297,7 @@ def _polish_node(facts: list[str], question: str | None, cfg: dict,
         # 是「没查到」类漂移的温度贡献项，降到 0.5。
         "temperature": 0.5,
     }
+    _merge_extra_body(payload, cfg)   # S4：端点专属参数（如关思考）透传
     url = cfg["base_url"].rstrip("/") + "/chat/completions"
     headers = {"Authorization": "Bearer " + cfg["api_key"],
                "Content-Type": "application/json"}
@@ -452,10 +466,15 @@ _BANNED_QUOTE_PAT = re.compile(
 # R3243（用户实测）：三家提供方全是推理模型，拥挤期单次生成 15–30s
 # 常见——34s 只装得下 1.5 个节点，兜底救不回。50s 让主节点帽
 # (timeout_s+2≈26s) 后仍给快节点留 ~20s+ 真实窗口。
-_POLL_BUDGET_S = 50.0
+_POLL_BUDGET_S = 110.0
+# S4（AMD 开发端实测调参）：developer.amd.com.cn 的 Qwen3.8-27B 是
+# 推理模型，流式实测「首内容 token ≈20s 前摇（10–35s 抖动含排队）
+# + 17.6 tok/s 生成」——350 token 回应 ≈40s 典型 / 55s+ 拥挤。50s 帽
+# 下前摇一抖就死、LLM 层名存实亡。110s = 最坏前摇 35s + 生成 25s +
+# 重试余量；前端 AI_POLL_CAP_S 同步放到 125s。
 # R3245：起名点评链专用预算——三节点满载 68s，共用 50s 帽时末节
 # 拿不到窗口；点评有确定性底卡托底，值得让链跑完。
-_REVIEW_BUDGET_S = 78.0
+_REVIEW_BUDGET_S = 150.0
 
 
 def _is_loopback(url: str) -> bool:
@@ -1867,6 +1886,7 @@ def _chat_call(payload_msgs: list[dict], cfg: dict,
             * (2 if _doubled else 1),
             "temperature": 0.8,
         }
+        _merge_extra_body(payload, cfg)   # S4：与 polish 同款端点参数透传
         try:
             if _transport is not None:
                 data = _transport(payload, headers, url, _to)

@@ -36,6 +36,10 @@ from fastapi.testclient import TestClient                       # noqa: E402
 from web.app import app                                         # noqa: E402
 from web.deps import KNOWLEDGE_DB                               # noqa: E402
 
+# F-01（2026-11-15）配套：环境性 SKIP 登记表——语义检索等依赖 Git LFS
+# 权重或 vision key 的检查在不可用时记名跳过（环境状态，非代码缺陷），由 main() 末尾统一打印。模块级单例，run() 每轮不清空（单进程一轮）。
+_SKIPPED: list[str] = []
+
 # R68b：P2 子平书集合（bazi_lookup.MINGLI_WORKS 中的 9 部本地入库书）
 ZI_PING_WORKS = {"ditiansui", "lantai-miaoxuan", "mingli-tanyuan",
                  "mingli-yueyan", "qiongtongbaojian", "sanming-tonghui",
@@ -504,10 +508,23 @@ def _run_inner() -> list[str]:
     from guji.bazi import compute as _bazi_compute
     from guji.bazi_lookup import retrieve_semantic as _retrieve_semantic
 
-    sem = _retrieve_semantic(_bazi_compute(1990, 1, 1, 12, "男"), top_k=8)
-    assert sem and any(e["work_id"] in ZI_PING_WORKS for e in sem), \
-        "semantic retrieval must hit P2 books"
-    ok.append("bazi.semantic")
+    # F-01（2026-11-15）：bge 权重未 git lfs pull 的环境（免费部署档常见）
+    # 语义路径不可用是环境状态而非代码缺陷——显式记 SKIP(env) 并继续跑完
+    # 其余检查，不再让整套 selftest 崩在半路（README 明示「没拉也能正常用」）。
+    try:
+        sem = _retrieve_semantic(_bazi_compute(1990, 1, 1, 12, "男"), top_k=8)
+    except RuntimeError as _ex:
+        # S3 修（studio）：缺 sentence_transformers 与缺 LFS 权重同属
+        # 环境不可用，都走 SKIP；其余 RuntimeError 是真损坏，照抛。
+        _sem_ex = str(_ex)
+        if "LFS" not in _sem_ex and "sentence_transformers" not in _sem_ex:
+            raise
+        _SKIPPED.append("bazi.semantic（语义检索环境不可用：LFS 权重/依赖缺失）")
+        sem = None
+    if sem is not None:
+        assert sem and any(e["work_id"] in ZI_PING_WORKS for e in sem), \
+            "semantic retrieval must hit P2 books"
+        ok.append("bazi.semantic")
     check("liuyao", client.post("/api/liuyao", json={"method": "coins",
           "seed": 42}),
           lambda j: j.get("ben") and j["ben"].get("gua_number") == 22)
@@ -5526,6 +5543,8 @@ def main() -> int:
         pass
     ok = run()
     print(f"web self-test PASS ({len(ok)} checks): {', '.join(ok)}")
+    for _s in _SKIPPED:
+        print(f"SKIP(env) {_s}")
     return 0
 
 
