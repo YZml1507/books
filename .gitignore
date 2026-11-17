@@ -64,6 +64,9 @@ logs/p2_tmp/
 llm_config.json
 web/llm_config.json
 
+# Local secrets dir (agnes image key etc.) — never commit
+secrets/
+
 # OS junk
 Thumbs.db
 desktop.ini
