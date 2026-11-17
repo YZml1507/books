@@ -525,8 +525,12 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 .daily-summary{font-size:16px; color:var(--text); margin-top:14px; line-height:1.8;}
 /* R3259（N1）：小满留言——判词配署名+头像，系统播报→有人惦念 */
 .xm-say{display:flex; gap:10px; align-items:flex-start; margin-top:12px;}
-.xm-say-ava{width:30px; height:30px; border-radius:50%; flex-shrink:0;
-  border:2px solid var(--border); object-fit:cover;}
+/* R72（本轮首页六审·抱怨2）：小熊头像 30px 圆裁——圆裁原理是「聚焦
+   中央、切掉四角」，带白边的贴纸插画被切得只剩一团糊；且 30px 低于
+   44px 最小触达线。放大到 48px 并改圆角方形：方源图进方框，封面不裁
+   主体，贴纸完整展示。 */
+.xm-say-ava{width:48px; height:48px; border-radius:14px; flex-shrink:0;
+  border:1.5px solid var(--border); object-fit:cover;}
 .xm-say-b{min-width:0;}
 .xm-say-tag{display:inline-block; font-size:11px; color:var(--secondary);
   background:var(--accent-soft); border:1px solid var(--border);
@@ -706,7 +710,11 @@ body.auth-locked{overflow:hidden;}
 /* R20（用户直报）：日卡顶行账号钮——紧凑 ghost 粒，跟礼盒并排。
  * 未登录「🔐 账号」；已登录改显昵称（_dailyAcctText 维护）。 */
 .daily-acct{flex:0 0 auto; margin-left:auto; font-size:12px; line-height:1;
-  padding:7px 11px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  /* R72（本轮首页六审·抱怨1）：头像从 26→36px、pill 补 44px 触达线
+     ——iOS 44pt/Android 48dp 是最小触达（多源一致），身份入口的
+     头像不能停在「评论级缩略图」尺寸。 */
+  min-height:44px; box-sizing:border-box;
+  padding:7px 12px 7px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
   color:var(--accent-ink); background:var(--card);
   border:1px solid var(--border); font-family:inherit;
   transition:background .15s, border-color .15s;}
@@ -715,7 +723,7 @@ body.auth-locked{overflow:hidden;}
 /* R26（用户原话「右上角用户名旁边为什么加个锁而不是加一个头像」）：
    头像替代 🔓 开锁表情——用户名旁边该是一张脸。 */
 .daily-acct{display:inline-flex; align-items:center; gap:7px;}
-.daily-acct-face{width:26px; height:26px; border-radius:50%; object-fit:cover;
+.daily-acct-face{width:36px; height:36px; border-radius:50%; object-fit:cover;
   flex:0 0 auto; border:1.5px solid var(--border);
   box-shadow:0 2px 8px rgba(184,134,11,.18);}
 .daily-acct-name{font-weight:600;}
@@ -726,22 +734,19 @@ body.auth-locked{overflow:hidden;}
   0%,12%{box-shadow:0 0 0 3px var(--accent-soft);}
   100%{box-shadow:0 0 0 3px transparent;}}
 @media (prefers-reduced-motion:reduce){.acct-flash{animation:none;}}
-.daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:nowrap;
-  overflow-x:auto; scrollbar-width:none;
-  padding-bottom:2px;
-  /* R2345（R62-P2）：横滚带右缘渐隐，提示可滑（裁切感→设计感）。 */
-  -webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);
-  mask-image:linear-gradient(90deg,#000 90%,transparent);}
+/* R72（本轮首页六审·抱怨4）：窄屏横滚+右缘渐隐 mask 取消——小屏
+   标签列表的通行做法是换行（横滚+遮罩在截图里就是「粒被切一半」
+   的裁切感，属空间重叠型杂乱）；可见数仍由 R2363 的 5 粒硬上限
+   把关，收起/展开语义不变。 */
+.daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:wrap;
+  padding-bottom:0;}
 .daily-meta::-webkit-scrollbar{display:none;}
-/* R2349l.7（R74-P2-b）：宽屏不省空间——meta 项多时直接换行全展示，
- * 横滚条只留给窄屏（375px 仍单行滑动）。 */
-@media (min-width:640px){.daily-meta{flex-wrap:wrap; overflow:visible;
-  -webkit-mask-image:none; mask-image:none;}}
 .daily-meta-item{
-  display:flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap;
-  /* R2500（R142-P2-1）：宜试试类长胶囊单粒 583px 独霸两屏——
-   * 限制视口宽内截断省略，多粒至少能露头。 */
-  max-width:76vw; overflow:hidden; text-overflow:ellipsis;
+  display:flex; align-items:center; gap:6px; flex-shrink:0;
+  /* R72（本轮首页六审·抱怨4）：取消 nowrap+76vw 截断——换行后长粒
+     （心晴罐子/下周早知道）整句可读，不再从半中间被切掉；单行短粒
+     形态不变。 */
+  white-space:normal; max-width:100%;
   font-size:14px; color:var(--secondary); background:var(--card);
   padding:6px 14px; border-radius:999px; border:1px solid var(--border);
 }
@@ -761,6 +766,18 @@ body.auth-locked{overflow:hidden;}
   font:inherit; font-size:12px; color:var(--accent-ink); cursor:pointer;
   transition:background .15s;}
 .daily-meta-more:hover{background:var(--accent-soft);}
+/* R72（本轮首页六审·抱怨4）：展开态分组标签——15 粒全展开时按
+   「今日宜忌/开运指南/铺子动态」三组切块（认知分块 5±2：一组一屏
+   扫得完；分组是降低空间密度型杂乱的手段，不删任何内容）。收起态
+   标签不占位。 */
+.daily-meta-group{display:none; flex-basis:100%;
+  font-size:11px; font-weight:600; letter-spacing:.1em;
+  color:var(--muted); margin:12px 2px 2px;}
+.daily-meta[data-expanded="1"] .daily-meta-group{display:block;}
+/* R72：收起钮上方加一根发丝线——展开态那根光秃秃的「收起」条
+   有了视觉归属（分隔内容与操作）。 */
+.daily-meta-more{border-top:1px dashed var(--line);
+  padding-top:8px; margin-top:10px;}
 /* R3314（R3311-低）：月相行许愿瓶小钩——胶囊内轻按钮。 */
 .daily-moon-go{font-size:12px; color:var(--accent-ink); background:none;
   border:1px solid var(--border); border-radius:999px; padding:2px 10px;
@@ -873,10 +890,15 @@ html[data-theme="dark"] .e-today .e-bar{background:#e0bb6e;}
 #dailyPersonal.daily-meta-item{background:var(--accent-soft);
   border-color:var(--accent); color:var(--primary-ink);}
 /* R3248b：个人判词独立块——多行自然换行，不再被胶囊行裁切。 */
+/* R72（本轮首页六审·抱怨6）：个人判词块去桃色大填充——「60-30-10」
+   原则下高饱和大色块只留给唯一主 CTA；个人块改用统一白卡面+左侧
+   一根强调线，层级靠边框与字重表达，不再靠整块变色（原态与普通
+   粒、 ghost 钮、CTA 四种填充并排=无意义的颜色变化）。 */
 .daily-mine-block{display:block; margin:10px 0 0; padding:10px 14px;
-  background:var(--accent-soft); border:1px solid var(--accent);
+  background:var(--card); border:1px solid var(--line);
+  border-left:4px solid var(--accent-ink);
   border-radius:12px; font-size:13px; line-height:1.75;
-  color:var(--primary-ink); white-space:normal;}
+  color:var(--text); white-space:normal;}
 .daily-mine-block[hidden]{display:none;}
 /* R3249a（UX-AUDIT A1）：今日能量分——数字是不需要前置知识的
  * 通用语言，排在星级前最先被扫到。 */
@@ -3220,7 +3242,11 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
   /* R2349h（R69-P2-5/6）：div role=button 不吃 button 全局规则——
    * 触控高度 31px 提到 40px，补 focus-visible 环。 */
   min-height:40px; box-sizing:border-box; display:flex; align-items:center;
-  padding:6px 10px; border-radius:12px; background:rgba(122,95,184,.06);
+  padding:6px 10px; border-radius:12px;
+  /* R72（本轮首页六审·抱怨6）：紫调底（rgba(122,95,184,.06)）是卡面
+     第五种填充——统一成白卡面+细线，紫只留在 ghost 钮描边那 30% 辅
+     助色角色里，不再到处铺。 */
+  background:var(--card); border:1px solid var(--line);
   cursor:pointer;
 }
 .daily-tomorrow:focus-visible{
@@ -3262,8 +3288,13 @@ html{-webkit-text-size-adjust:100%;}
 }
 
 /* ── R231g（R39）：小档案条 + 装桌面提示 ── */
+/* R72（本轮首页六审·抱怨3）：档案行从日卡最底部上移到品牌行正下方
+   ——NN/g 眼动研究：移动用户 74% 浏览时间花在首页顶部，注意力随滚动
+   明显衰减；「你是谁」属信任建立信息，不该埋在一屏黄历内容之后。
+   上移后它是身份簇（品牌行+账号 pill+档案行）的收尾，不再是日卡
+   内容的尾巴。 */
 .daily-me{
-  display:flex; align-items:center; gap:8px; margin-top:8px;
+  display:flex; align-items:center; gap:8px; margin:0 0 14px;
   font-size:12px; color:var(--secondary);
 }
 .daily-me-txt{flex:1;}

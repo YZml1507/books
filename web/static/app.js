@@ -22625,6 +22625,37 @@ function _renderMoodRow(lv) {
  * 在 loadDaily 内部，_moodJarSync/storage 监听等模块级调用点抛
  * ReferenceError 被 catch 吞（解锁当帧入口永不渲染=死代码）。
  * _metaRow 改每次现查（节点生命周期随 #dailyCard 内联结构）。 */
+/* R72（本轮首页六审·抱怨4）：展开态分组——15 粒全展开时按语义切三
+ * 组（今日宜忌/开运指南/铺子动态）。依据：视觉杂乱研究里「空间密度
+ * 是最强驱动」+ 认知分块 5±2——分组不删任何内容，把一面墙折成三块
+ * 一屏扫得完的组。收起态标签不占位。 */
+var _META_GROUP_LABEL = {yiji: '今日宜忌', lucky: '开运指南', life: '铺子动态'};
+var _META_GROUP_OF = {
+  dailyTarot: 'yiji', dailyFest: 'yiji',
+  dailyLucky: 'lucky', dailyOutfit: 'lucky', dailyCai: 'lucky',
+  dailyMercury: 'lucky', dailyMercCare: 'lucky', dailyMercKit: 'lucky',
+  dailyVenus: 'lucky', dailyMars: 'lucky',
+  dailyWeekSky: 'life', dailyDays: 'life', dailyMoodJar: 'life',
+  dailyMoon: 'life', dailyYearEnd: 'life'
+};
+function _metaGroupOf(n) {
+  return (n && (n.dataset.group || _META_GROUP_OF[n.id])) || '';
+}
+function _metaGroupSync(metaRow, vis, open) {
+  var _olds = metaRow.querySelectorAll('.daily-meta-group');
+  for (var i = 0; i < _olds.length; i++) _olds[i].remove();
+  if (!open) return;
+  var _seen = {};
+  for (var j = 0; j < vis.length; j++) {
+    var g = _metaGroupOf(vis[j]);
+    if (!g || _seen[g]) continue;
+    _seen[g] = 1;
+    var lab = document.createElement('div');
+    lab.className = 'daily-meta-group';
+    lab.textContent = _META_GROUP_LABEL[g] || g;
+    metaRow.insertBefore(lab, vis[j]);
+  }
+}
 function _dailyMetaCap() {
   var _metaRow = document.querySelector('#dailyCard .daily-meta');
   if (!_metaRow) return;
@@ -22635,6 +22666,9 @@ function _dailyMetaCap() {
     });
   var _vis = _kids.filter(function (n) { return !n.hidden; });
   _kids.forEach(function (n) { n.dataset.capped = ''; });
+  /* R72（抱怨4）：分组标签随展开态增删（放在 early return 之前——
+     ≤5 粒时展开态也可能挂着）。 */
+  _metaGroupSync(_metaRow, _vis, _metaRow.dataset.expanded === '1');
   /* R3412-P2-1（裂变终扫）：跨年仪式行一年只有 5 天有效，恰好
    * 排最末被「+N 条」折叠藏掉——pin 标目永不进折叠池也不占
    * 5 粒名额（它是限时位不是常驻粒）。 */
@@ -22685,6 +22719,8 @@ function _dailyMetaItem(id, html) {
   if (!n) {
     n = document.createElement('div');
     n.id = id;
+    /* R72（抱怨4）：JS 粒也带上分组标记，与 index.html 静态粒一致。 */
+    n.dataset.group = _META_GROUP_OF[id] || '';
     /* R3248b：personal 粒是多行文本块——挪出胶囊行自立一块（不进 +N）。 */
     n.className = (id === 'dailyPersonal' || id === 'dailyQianWin')
                             ? 'daily-mine-block' : 'daily-meta-item';
@@ -25125,16 +25161,32 @@ function _meFillAll() {
  * 就看到档案卡（生日自动代入的明示+打卡数+TA档案），点「改」开抽屉。 */
 function _renderMeStrip() {
   var card = el('dailyCard');
-  if (!card) return;
+  /* R72（本轮首页六审·抱怨3）：挂点从「日卡内 .daily-meta 之后」改为
+     「品牌行之后」——NN/g 眼动研究：移动用户 74% 浏览时间花在首页顶
+     部、注意力随滚动明显衰减；「你是谁」是信任建立信息，不该埋在一整
+     屏黄历内容之后。上移后档案行是身份簇（品牌行+账号 pill）的收尾。
+     老会话里已挂在日卡内的节点就地迁走，不必等重建。 */
+  var brand = document.querySelector('.brand');
   var box = el('dailyMe');
   if (!box) {
     box = document.createElement('div');
     box.id = 'dailyMe'; box.className = 'daily-me';
-    var meta = card.querySelector('.daily-meta');
-    if (meta && meta.parentNode) {
-      meta.parentNode.insertBefore(box, meta.nextSibling);
-    } else { card.appendChild(box); }
   }
+  if (brand) {
+    var _bp = brand.parentNode;
+    if (_bp && (box.parentNode !== _bp ||
+                box.previousElementSibling !== brand)) {
+      _bp.insertBefore(box, brand.nextSibling);
+    }
+  } else if (card) {
+    /* 无品牌行的兜底：保持旧行为（meta 之后）。 */
+    if (box.parentNode !== card) {
+      var meta = card.querySelector('.daily-meta');
+      if (meta && meta.parentNode) {
+        meta.parentNode.insertBefore(box, meta.nextSibling);
+      } else { card.appendChild(box); }
+    }
+  } else { return; }
   var me = _meGet('me');
   if (!me || !me.y) { box.hidden = true; return; }
   var ck = 0;
