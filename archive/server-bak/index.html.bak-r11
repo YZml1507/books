@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="小满的解忧铺，黄历择日、八字排盘、塔罗占卜，古籍佐证，温柔解读。">
+<meta property="og:title" content="小满的解忧铺">
+<meta property="og:description" content="黄历择日 · 八字塔罗 · 每日一签，测测你今天什么签">
+<meta property="og:type" content="website">
+<!-- R229d：链接分享卡——此前 og 无图，微信/iMessage/Twitter 展开只有文字。 -->
+<meta property="og:image" content="/static/shared/og-card.jpg">
+<!-- R2349i：1200×630 专用分享卡（Agnes 底图+东方大凯标题字），
+     原 hero 图 1440×384 会被各平台裁剩一条。 -->
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="小满的解忧铺">
+<meta name="twitter:description" content="黄历择日 · 八字塔罗 · 每日一签，测测你今天什么签">
+<meta name="twitter:image" content="/static/shared/og-card.jpg">
+<!-- R231f（R38-P3-5）：与 --bg #FFF8E7 对齐，不再是旧版残留色 -->
+<!-- R3368（审-P2-10）：深色 standalone 启动瞬间顶栏不再奶白——
+     双 meta 按系统深浅分流，applyTheme 同步改写两者。 -->
+<meta name="theme-color" content="#FFF8E7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#221D20" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——已随 R6 撤销，本注释只作史注。 -->
+<!-- R6（周期二·首页 IA）：welcomed 预绘隐藏脚本随新人条一起撤销——它唯一的职责就是给新人条消 CLS。app.js 傅层的老用户补写（访次>1/checkin:键）与存储事件监听原样保留，与本脚本无依赖。 -->
+  <!-- R2349m（R76-P0-2 附带）：resizes-content 让 Android Chrome 键盘
+     弹起时收缩 layout viewport，fixed 底栏跟随；iOS 忽略无副作用。 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>小满的解忧铺 · 知命</title>
+<!-- R178b：CSS 与 JS 从内联抽成独立文件（原单文件 1485 行，396 行 CSS +
+     643 行 JS 内联，浏览器无法独立缓存）。/static 由 web/app.py 挂载。 -->
+<!-- R8 P2-1：原 styles.css 内 @import 造成 HTML→styles→字体 串行瀑布；
+     提成并行 link（顺序保持原 import 语义：这两份先加载）。 -->
+<link rel="stylesheet" href="/static/animotion/web-lite.css">
+<!-- R233d（R42-#8）：品牌字 zcool 是首屏字体，preload 去掉 swap 闪烁 -->
+<link rel="preload" href="/static/fonts/zcool-kuaile-subset.woff2" as="font" type="font/woff2" crossorigin>
+<!-- R2364（R122-P1-3）：拆礼物的熊是首屏 LCP 图——preload 省 ~0.4s slow4G -->
+<link rel="preload" href="/static/cream/daily-gift-bear.png" as="image" fetchpriority="high">
+<!-- R2349u（R90-P0-1）：LXGW ~976KB 分片 render-blocking 压过日卡——
+     print→all 换非阻塞加载，字体文件本身 font-display:swap 早就是异步的。
+     R2353（R110-P1-3）：media 翻 all 改由下方 __lxgwFlip 控制——
+     等 /api/daily 预取 resolve（或 4s 兜底）再放行 ~500KB 字体分片，
+     弱网下日卡 JSON 不再被字体抢带宽（FCP 由系统字体兜底，视觉无损）。 -->
+<!-- R3371（审-低-4）：lxgw.css 不再静态挂 link——media=print 的
+     link 浏览器仍在首屏窗口低优下载 64KB。改由下方 flip 到点再
+     注入，字节真正推迟到 load+800ms；SW SHELL 已收，离线照样有。 -->
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/cream/icon-180.png">
+<!-- R229f：iOS「添加到主屏幕」——manifest 之外苹果读自己的 meta，
+     不加则主屏启动仍是带地址栏的网页壳。 -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小满的解忧铺">
+<!-- R2349m（R76-P2-11）：iOS Safari 会把长数字串自动包成 tel: 链接染色 -->
+<meta name="format-detection" content="telephone=no">
+<!-- R218a-巡4（E-c）：离线兜底——SW 缓存 app shell，断网刷新不再白屏 -->
+<script>
+if ('serviceWorker' in navigator) {
+  /* R3364（审-P0/P1）：保险丝挪 parse 期——?v 混版刷新环里
+   * deferred app.js 先于 load 执行 reload，住 load 回调的计数
+   * 永远计不到（实测环中 load 恒 0）。这里每趟必跑：滚动 15s
+   * 窗（时间戳数组，旧 timer 误杀/NaN 坑一并修）≥4 次进入才
+   * 有环嫌疑，且要求页仍被 SW 控制——再拉一手错版本 app.js
+   * 确证：管版本的 SW 会回限频刷新脚本（短体），真字节=无
+   * SW/非环（手动连刷误杀防），拉不到=断网宕机（离线壳误杀
+   * 防 P1）。确证才全量注销（Promise.all 等落地）+自刷。 */
+  try {
+    var _bk = '__bootflap', _now = Date.now(),
+        _bt = JSON.parse(sessionStorage.getItem(_bk) || '[]')
+          .filter(function (t) { return _now - t < 30000; });
+    _bt.push(_now);
+    sessionStorage.setItem(_bk, JSON.stringify(_bt));
+    if (_bt.length >= 4 && navigator.serviceWorker.controller) {
+      /* R3405-F4：15s 窗对慢网太紧——往返 >5s/趟时计数被滑动窗
+       * 淘汰永远攒不到 4，保险丝永不跳只剩限频环无限刷。放宽 30s。
+       * R3405-F5：探针改拉 /sw.js?bf=<ts>——app.js 探针有盲区：
+       * 无 ?v 闸年代的老 SW 会把旧 app.js 当真字节回探（>2000B
+       * 误判健康）。/sw.js 正文正则 books-shell-<hash> 与本页
+       * ?v= 核对，版本判定不依赖在任 SW 的行为。 */
+      var _src = '';
+      try {
+        var _sj = document.querySelector('script[src*="/static/app.js"]');
+        if (_sj) _src = _sj.getAttribute('src') || '';
+      } catch (eS) {}
+      var _pv = (_src.match(/[?&]v=([\w]+)/) || [])[1] || '';
+      fetch('/sw.js?bf=' + _now, { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (tx) {
+          var _m = tx && tx.match(/books-shell-(\w+)/);
+          /* 拉不到/无 hash（断网宕机）→收手不误杀；本页无 ?v
+           * →无从核对收手；版本一致=健康收手。 */
+          if (!_pv || !_m || _m[1] === _pv) return;
+          try { sessionStorage.removeItem(_bk); } catch (e) {}
+          return navigator.serviceWorker.getRegistrations()
+            .then(function (rs) {
+              return Promise.all(rs.map(function (r) {
+                return r.unregister();
+              }));
+            })
+            .then(function () { location.reload(); });
+        })
+        .catch(function () {});
+    }
+  } catch (eB) {}
+  window.addEventListener('load', function () {
+    /* R228k：/static/sw.js 的作用域是 /static/，永远管不到 '/'。
+       改从根路径下发（web/app.py 加 /sw.js 路由带 Service-Worker-Allowed 头）。
+       R2349u（R91-P0-3）：084b5bf 时代注册过 /static/sw.js（scope=/static/，
+       固定桶名 books-shell-v1），老用户浏览器里它还活着，按最长前缀
+       匹配抢走 /static/* 喂旧代码，且 scope 内无导航几乎不再检查更新。
+       注册成功后注销一切非根 scope，一次性清掉存量。 */
+    navigator.serviceWorker.register('/sw.js', {updateViaCache: 'none'}).then(function (reg) {
+      if (!reg) return;
+      try {
+        navigator.serviceWorker.getRegistrations().then(function (rs) {
+          rs.forEach(function (r) {
+            var sc = new URL(r.scope).pathname;
+            if (sc !== '/' && sc !== '') { r.unregister(); }
+          });
+        });
+      } catch (eU) {}
+      /* R2349u（R91-P2-1/P2-2）：旧设计注释假定「waiting 态提示刷新」，
+       * 但 sw.js 里 skipWaiting() 无条件立即接管——reg.waiting 分支是
+       * 死代码，toast 弹起时新 SW 其实已激活。改为 controllerchange
+       * （新 SW 真接管的那一下）再提示；页面回前台时主动检查更新，
+       * 长开 SPA 不再缺席更新检查。 */
+      var _toasted = false;
+      /* R2349z（R96-P2-2）：首次安装（此前无 controller）也弹
+       * 「换好新版本」——新客没有旧版可换，文案错乱。
+       * 注册前先记「有没有旧 controller」再判。 */
+      var _hadCtl = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (_toasted || !_hadCtl) return;
+        _toasted = true;
+        /* R2400（R139-P2-4）：新 SW 接管后懒加载 chunk 会新旧混注。
+           页在后台时直接静默刷新到全新版（用户看不见不打断）；
+           前台保留 toast 引导手动刷。 */
+        if (document.hidden) {
+          try { location.reload(); return; } catch (eR) {}
+        }
+        if (window.showToast) {
+          try { window.showToast('小满换好新版本了，刷新生效 ✨', 'info'); }
+          catch (e) {}
+        }
+      });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          try { reg.update(); } catch (e) {}
+        }
+      });
+    }).catch(function () {});
+  });
+}
+
+/* R2349u（R90-P0-3）：日签不再等 594KB 的 app.js eval 完才发请求。
+   head 内联裸 fetch 预取（读 localStorage me 拼同一 URL），loadDaily
+   命中即用、null 回退 api() 走完整错误链。15s race 防悬挂。 */
+try {
+  (function () {
+    var d = new Date();
+    var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+      '-' + String(d.getDate()).padStart(2, '0');
+    var u = '/api/daily?date=' + iso;
+    var me = null;
+    try { me = JSON.parse(localStorage.getItem('me') || 'null'); } catch (eM) {}
+    var _post = null;
+    if (me && me.y && me.m && me.d) {
+      /* R3307（审-中6）：bday=生日坐标属半隐私——有档案时改走
+         POST body，不进 URL/边缘日志。无档案照旧 GET。 */
+      _post = { date: iso,
+        bday: me.y + '-' + String(me.m).padStart(2, '0') +
+              '-' + String(me.d).padStart(2, '0') };
+    }
+    var _to = new Promise(function (_, rej) {
+      setTimeout(function () { rej(new Error('prefetch timeout')); }, 10000);
+    });
+    /* R3303-P2：预取与回退共享一条 20s 总预算——此前预取耗 15s
+       后回退 api() 又从 0 起算，弱网串行死等 ~35s。app.js 侧把
+       ctl.signal 传进 api()（其内部 AbortSignal.any 合并不超 20s）。 */
+    var _ctl = (typeof AbortController !== 'undefined')
+      ? new AbortController() : null;
+    if (_ctl) { setTimeout(function () { _ctl.abort(); }, 20000); }
+    var _fp = _post
+      ? fetch('/api/daily', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(_post),
+          signal: _ctl ? _ctl.signal : undefined })
+      : fetch(u, {credentials: 'same-origin',
+          signal: _ctl ? _ctl.signal : undefined});
+    window.__dailyPref = {
+      url: _post ? ('post:' + JSON.stringify(_post)) : u,
+      ctl: _ctl,
+      p: Promise.race([_fp
+        .then(function (r) { return r.ok ? r.json() : null; }), _to])
+        .catch(function () { return null; })
+    };
+  })();
+} catch (eDP) {}
+/* R2353（R110-P1-3）：字体分片让路，daily JSON 落地后才翻 media='all'。
+   R3338（审-高）：daily 落地即翻仍太早——26 个 woff2 分片（~1.4MB）与
+   app.js（~1MB）争带，弱网实测 DCL 被拖到 32.5s。改为等 window load
+   事件（首屏全部关键资源到位）后再延迟放行；8s 绝对兜底防 load 挂起。
+   font-display:swap 让系统字体兜首屏，LXGW 到齐自然换上。 */
+try {
+  (function () {
+    var _done = false;
+    var _go = function () {
+      if (_done) return; _done = true;
+      var l = document.getElementById('lxgwCss');
+      if (!l) {
+        /* R3371（审-低-4）：link 到点再建——首屏窗口零下载。 */
+        l = document.createElement('link');
+        l.id = 'lxgwCss';
+        l.rel = 'stylesheet';
+        l.href = '/static/fonts/lxgw.css';
+        document.head.appendChild(l);
+        return;
+      }
+      l.media = 'all';
+    };
+    try {
+      if (document.readyState === 'complete') {
+        setTimeout(_go, 800);
+      } else {
+        window.addEventListener('load', function () { setTimeout(_go, 800); });
+      }
+      setTimeout(_go, 8000);
+    } catch (eF) { _go(); }
+  })();
+} catch (eFF) {}
+</script>
+</head>
+<body>
+  <!-- R2348（R67-P1）：新人条静态进 DOM（原 JS DOMContentLoaded 才插，
+       把整页下压成 CLS 0.075）。文案默认版；?from=share 变体由 app.js 改。 -->
+  <!-- R2349h（R69-P2-11）：skip-link 挪到 welcomeBar 前——首 Tab 停
+       应是跳转链接而非 ×（WCAG 2.4.1）。 -->
+<!-- R231f（R38-P2-4）：skip-link——键盘首站直达功能区 -->
+<a class="skip-link" href="#funcGrid">跳到功能区 ↓</a>
+  <!-- R6（周期二·首页 IA）：新人条撤销。NN/g 移动端 onboarding结论——“能通过使用学会的界面不该有教学引导”；场景条+功能卡已自解释，新人条从引导退化为与场景条重复的第三套寻航。论证见 D-906；probe_ui_smoke 同名用例已翻转为反向钉扎。 -->
+  <!-- R3264（R40）：久归深拥——≥3 天没来时的温暖横幅 -->
+  <div id="returnBanner" class="return-banner" role="note" hidden>
+    <span>🌾 你不在的日子小满也在，今天想测什么？</span>
+    <button type="button" class="ghost" id="returnChat">和小满聊聊</button>
+    <button type="button" class="welcome-close" id="returnDismiss" aria-label="知道了">×</button>
+  </div>
+  <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
+  <div class="page-glow" aria-hidden="true"></div>
+<div class="wrap">
+<!-- R233f（R43-P2-7）：<main> 地标——读屏 landmarks 此前无主内容区 -->
+<main id="main">
+  <!-- R228n：全页无 h1/landmark——补语义骨架（视觉零变化） -->
+  <h1 class="visually-hidden">小满的解忧铺，黄历、八字、塔罗、起名</h1>
+  <!-- R233h（R43-#14）：读屏播报专用区——结果落盘时只播一句短提示，
+       不再把整个结果容器标 aria-live（长结果整篇重读是灾难）。 -->
+  <div id="srLive" class="visually-hidden" aria-live="polite" role="status"></div>
+  <!-- R200b（US3）：44px 顶层返回条——功能视图时显示（003 判据：返回条
+       固定高度，引文区高度与书数无关）。首页时 hidden。 -->
+  <button class="view-back" id="viewBack" type="button" aria-label="返回首页" hidden>← 返回</button>
+  <!-- R2350a（R94-P2-11）：主题钮原本住在 homeMain 的 brand 行里——
+       功能页 homeMain 整个 hidden，换肤入口随之消失。挪到顶层做
+       fixed 浮钮，全站可达。 -->
+  <button class="theme-toggle" id="themeToggle" type="button"
+    aria-label="切换深色模式" title="换个眼睛友好的色调">🌙</button>
+  <div class="home-main" id="homeMain">
+
+  <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
+  <!-- S6：外层 wrap 供每日文案层定位——熊居左源图不动，右侧留白
+       从「空奶油底」变成每日一句（矮屏/手机 CSS 自动退场）。 -->
+  <div class="ink-hero-wrap">
+    <div class="ink-hero" aria-hidden="true">
+      <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="low"
+        onerror="this.closest('.ink-hero').classList.add('is-missing')">
+    </div>
+    <div class="hero-line" id="heroLine">
+      <div class="hero-line-date" id="heroLineDate"></div>
+      <div class="hero-line-text" id="heroLineText"></div>
+    </div>
+  </div>
+
+
+  <!-- 品牌 -->
+  <div class="brand">
+    <img class="brand-mark-img" src="/static/cream/cream-icon-tarot.jpg" alt="知命" width="52" height="52" onerror="this.classList.add('is-missing')">
+    <div class="brand-text">
+      <div class="brand-title">小满的解忧铺</div>
+      <div class="brand-tagline">今天也要好好生活呀 ✨</div>
+    </div>
+  </div>
+
+  <!-- 每日运势 -->
+  <div class="daily-card" id="dailyCard">
+    <!-- R230x（V-1）：礼盒收进顶行 flex 流，不再绝对定位压日期 -->
+    <div class="daily-top">
+      <span class="daily-label" id="dailyGreet">🌟 今日玄学搭子</span>
+      <span class="daily-date" id="dailyDate">加载中…</span>
+      <div class="daily-card-gift"><img src="/static/shared/daily-box-gift.png" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></div>
+    </div>
+    <!-- R3368（审-低-11）：7 枚 ghost 钮收进弹性格——窄屏两列
+         不再堆 380px 高按钮墙。 -->
+    <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
+         打卡块移到判词下面。 -->
+    <div class="daily-main">
+      <div class="daily-level" id="dailyLevel">—</div>
+      <div>
+        <!-- R3334（CLS）：能量/咒语/今日牌三个槽位预占位——此前数据
+             到了才插 DOM，整卡拔高顶下方内容（桌面首载 CLS≈0.1）。
+             空壳 CSS :empty 给 min-height 预占位，填充后自然高。 -->
+        <div class="daily-score" id="dailyScore"></div>
+        <div class="daily-dims" id="dailyDims"></div>
+        <div class="daily-mantra" id="dailyMantra" role="button" tabindex="0"
+          title="点一下复制这句咒语"></div><!--
+        R3350：咒语册——咒语行尾 ❤️ 收藏钮（收进 mantraFav 本机册）。
+        独立 sibling 元素而非嵌进咒语行：咒语行自身是 role=button
+        （点按复制），嵌套互动控件会按键冒泡双触发+读屏嵌套混乱。 -->
+        <button class="mantra-fav" id="mantraFav" type="button" hidden
+          title="收下这句咒语" aria-label="收藏今日咒语"
+          aria-pressed="false">🤍</button>
+        <div class="daily-card-line" id="dailyTarot"></div>
+        <!-- R229z续23（R10-#16）：星符本身是图形，语义走 aria-label -->
+        <div class="daily-stars" id="dailyStars" role="img" aria-label="今日运势">—</div>
+        <!-- R3259（UX-STRATEGY-NEXT N1）：判词=「小满今天给你留的话」——
+             同一数据换叙述者，系统播报变成有人惦念（Finch 式在场感）。 -->
+        <div class="xm-say"><img class="xm-say-ava" src="/static/cream/avatar-xiaoman-cream.jpg"
+          alt="" width="30" height="30" loading="lazy" decoding="async" onerror="this.remove()"><div class="xm-say-b"><span class="xm-say-tag">小满留言</span><div class="daily-summary" id="dailySummary">小满正在看今天的盘…</div></div></div>
+      </div>
+    </div>
+    <!-- R214b：今日玄学搭子打卡互动（纯前端） -->
+    <div class="daily-checkin" id="dailyCheckin"></div>
+    <!-- R233f（R43-P3-17）：窄屏横滚区需可键盘聚焦，否则 Tab 进不去 -->
+    <div class="daily-meta" tabindex="0" role="region" aria-label="今日提示">
+      <!-- R216b 续3（U-010）：术语跟一句人话短注，首页自己先说人话。 -->
+      <!-- R2363（R117-P0-3）：贵人+合拍并一粒，高共鸣钩子位置前移。 -->
+      <!-- R2349g（R68-P0-2）：天乙贵人按日干只有 ~5 组值，叠日支六合
+           「合拍生肖」做第二层，日签天天有新鲜组合。 -->
+      <div class="daily-meta-item" title="天乙贵人，传统里最帮你的方位/时段 · 今天最合得来的属相">🍀 今日贵人 <strong id="dailyNoble">—</strong> · 💞 合拍 <strong id="dailyPal">—</strong></div>
+      <!-- R230h（R20-F4）：这两条来自「小满碎碎念」彩蛋文案池，不是
+           老黄历宜忌——标签措辞与黄历卡的「宜/忌」正交，免得两视图同名
+           打架（daily 宜「约个饭」撞上黄历忌出行的名义冲突）。 -->
+      <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">✅ 宜试试 <strong id="dailyDo">—</strong> · 🚫 先缓缓 <strong id="dailyDont">—</strong></div>
+      <button type="button" class="daily-ritual" id="dailyRitual" hidden>✅ 做完了</button>
+    </div>
+    <!-- R229z续23（R11-每日免责缺口）：首页卡面此前无免责 -->
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;">仅供娱乐，新的一天照常过 ✨</div>
+    <!-- 004 M2 T2.4：今日值宫（十二宫日运聚合入口） -->
+    <div class="daily-xingzuo" id="dailyXingzuo" hidden>
+      <span class="dx-label" id="dxLabel">—</span>
+      <span class="dx-note" id="dxNote">—</span>
+    </div>
+    <div class="daily-ghost-grid">
+    <!-- R198b（US5）：今日运势分享图入口 -->
+    <button class="ghost" type="button" id="shareDaily"
+            title="生成分享图" aria-label="把今日运势存成分享图"
+            style="margin:6px 14px 0; flex-shrink:0;">📸 分享图</button>
+    <!-- R3415（用户裁决）：朗读钮拆除——浏览器 TTS 对中文长文
+         只读两三个字就断，体验残废不如没有。 -->
+    <!-- R3264（R24）：日签小红书文案——一键复制晒图文案 -->
+    <button class="ghost" type="button" id="copyXhs"
+            title="复制小红书文案" aria-label="复制今日签晒图文案"
+            style="margin:6px 14px 0; flex-shrink:0;">📕 今日文案</button>
+    <!-- R3264（R29）：今日护身符——晒今日开运色/幸运数/财神方位 -->
+    <button class="ghost" type="button" id="shareLucky"
+            title="生成今日护身符" aria-label="生成今日护身符分享图"
+            style="margin:6px 14px 0; flex-shrink:0;">🧿 护身符</button>
+    <!-- R3317（调研-A）：每日开运壁纸——底图按日轮换+判词/开运色叠字，
+         可直接存成锁屏（小红书 29 元/张的需求面，我们免费每天发）。 -->
+    <!-- R3322-P3：去掉静态 disabled——弱网首帧灰钮看着像坏了；
+         handler 自带「运势还没出来」toast 引导，点了有回应。 -->
+    <button class="ghost" type="button" id="dailyWap"
+            title="生成今日开运壁纸" aria-label="生成今日开运壁纸"
+            style="margin:6px 14px 0; flex-shrink:0;">🖼 开运壁纸</button>
+    <!-- R3325-B：开运头像——同日壁纸的 1:1 中裁版，做社交头像。 -->
+    <button class="ghost" type="button" id="dailyAva"
+            title="生成今日开运头像" aria-label="生成今日开运头像"
+            style="margin:6px 14px 0; flex-shrink:0;">🧸 开运头像</button>
+    <!-- R3325：.ics 日历提醒——下载即入系统日历每天准点喊你，
+         Render 免费档无推送通道的零基建留存替代。 -->
+    <button class="ghost" type="button" id="dailyIcs"
+            title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
+            style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
+    </div>
+    <!-- R228c：aria-expanded 由 loadDailyDetail 随展开/收起同步 -->
+    <button class="daily-more" id="dailyMore" type="button"
+      aria-expanded="false" aria-controls="dailyDetail">🔍 查看完整解读 →</button>
+    <!-- #dailyMore 的落点：原来只有按钮没有处理器也没有容器（R000a-03） -->
+    <!-- R229z续23（R10-#22）：异步装入的解读正文要能被朗读 -->
+    <div class="daily-detail" id="dailyDetail" hidden></div>
+    <!-- R231c（R36-P3-4）：每日卡「拆礼物」仪式——封面只挡视线不改数据，
+         点开即拆；每天一张新封（localStorage 记当日已拆）。 -->
+    <div class="daily-cover" id="dailyCover" role="button" tabindex="0"
+         aria-label="点开查看今日运势">
+      <!-- R2350g（R105-P1-3）：窄屏弱网下这张封套图是真 LCP 元素
+           （实测 4.78s）——提优先级 + 去掉 lazy（视口内本来也立刻拉）。 -->
+      <img src="/static/cream/daily-gift-bear.png" alt=""
+           fetchpriority="high" onerror="this.parentNode.remove()">
+      <p class="daily-cover-txt">🎀 点开看看，今天你的玄学搭子运</p>
+      <p class="daily-cover-sub">每天的礼物都不一样</p>
+    </div>
+  </div>
+
+  <!-- R3243（用户实测·重构）：礼物表单从封套内挪出——封套内一直
+       跟各档视口高度搏斗（按钮沉卡外/排版挤），改为日卡下方独立
+       副卡，任何设备永远完整可见。JS 判档：me 有生日整块隐藏；
+       填一半点封面会被拦下提示补完（手误点开不再直接出通版）。 -->
+  <div class="daily-ask" id="dailyAsk" hidden>
+    <div class="da-title">🎁 填个生日，拆开照着你的盘包的专属礼物</div>
+    <div class="da-row">
+      <input class="da-in" data-k="y" type="number" inputmode="numeric"
+             min="1900" max="2100" placeholder="1995" aria-label="出生年">
+      <input class="da-in" data-k="m" type="number" inputmode="numeric"
+             min="1" max="12" placeholder="3" aria-label="出生月">
+      <input class="da-in" data-k="d" type="number" inputmode="numeric"
+             min="1" max="31" placeholder="8" aria-label="出生日">
+      <input class="da-in" data-k="h" type="number" inputmode="numeric"
+             min="0" max="23" placeholder="晚7点=19；可空" aria-label="出生时辰（可留空）"
+             title="出生时辰，不知道可留空">
+      <!-- R3237：性别随档案落档——感情类解读/合婚回填都用得到，
+           不缺省一次。类名单独立（.da-cal 是历法定位锚）。 -->
+      <select class="da-gender" data-k="g" aria-label="性别">
+        <option value="女">女</option><option value="男">男</option>
+      </select>
+      <select class="da-cal" aria-label="历法">
+        <option value="solar">公历</option><option value="lunar">农历</option>
+      </select>
+      <label class="da-leapw" hidden><input class="da-leap" type="checkbox"> 闰月</label>
+      <button class="da-btn" type="button">包好我的礼物 🎁</button>
+    </div>
+    <div class="da-note">填完年月日（时辰可空），点按钮或点封面——礼物会拆开变成照着你的盘包的专属运势</div>
+  </div>
+
+  <!-- 功能卡片（R206b US2 二剪：首页只留小满刚需五卡——
+       塔罗/排盘/桃花/合婚/黄历；六爻/读书/起名收进「高级入口」抽屉，
+       路由/API/探针契约不变：.func-card[data-view=X] 点击 → #view-X.active。
+       桃花/合婚从 view-bazi 相关功能区提回首页（specs/009 §2 裁决）。 -->
+  <div class="ia-group" data-group="ask">
+    <div class="ia-label">✨ 今天想看点什么</div>
+    <!-- R3249g（UX-AUDIT B4 · 用户实测「功能看不懂是哪个」）：
+         场景快捷条——按「我现在的状态」而不是按术数门类分流。
+         九宫格保留在下（学科分类仍有用），这层是给「带着心事来」
+         的人的一键直达。 -->
+    <div class="scene-bar" role="group" aria-label="按你现在想的直达">
+      <button type="button" class="scene-chip" data-scene="chat">
+        <b>💭 心里有事</b><i>和小满说说</i></button>
+      <button type="button" class="scene-chip" data-scene="money">
+        <b>💰 搞钱顺不顺</b><i>事业财运</i></button>
+      <button type="button" class="scene-chip" data-scene="dream">
+        <b>🌙 昨晚做梦</b><i>帮你翻翻</i></button>
+      <button type="button" class="scene-chip" data-scene="hehun">
+        <b>💞 我俩行不行</b><i>看缘分</i></button>
+      <button type="button" class="scene-chip" data-scene="huangli">
+        <b>📅 挑个日子</b><i>宜忌速查</i></button>
+    </div>
+    <nav class="func-grid" id="funcGrid" tabindex="-1" aria-label="功能入口">
+    <!-- R3249i（UX-AUDIT D·轻测试前门）：五行人格——最低门槛的
+         「点进去就出结果」入口，对标题测测 MBTI/幸运地图那类
+         轻测试获客位。引擎就是命盘内核的人话小卡层。 -->
+    <div class="func-card func-entry" data-view="renge" role="button" tabindex="0" aria-label="五行人格">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="renge" src="/static/cream/icon-renge.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行人格</div><div class="func-desc">填个生日 · 看你是哪一型</div>
+    </div>
+    <div class="func-card func-entry" data-view="tarot" role="button" tabindex="0" aria-label="塔罗占卜">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="tarot" src="/static/cream/cream-icon-tarot.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">塔罗占卜</div><div class="func-desc">抽一张，看看指引</div>
+    </div>
+    <div class="func-card func-entry" data-view="bazi" role="button" tabindex="0" aria-label="今日命盘">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="bazi" src="/static/cream/cream-icon-bazi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今日命盘</div><div class="func-desc">生日一填 · 大白话解读</div>
+    </div>
+    <div class="func-card func-entry func-more" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="taohua" src="/static/cream/cream-icon-taohua.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">桃花运</div><div class="func-desc">最近的桃花信号</div>
+    </div>
+    <div class="func-card func-entry func-more" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="hehun" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">和 TA 配不配 · 看缘分</div>
+    </div>
+    <div class="func-card func-entry" data-view="huangli" role="button" tabindex="0" aria-label="今天适合">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="huangli" src="/static/cream/cream-icon-huangli.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">今天适合</div><div class="func-desc">宜忌一览 · 轻决策</div>
+    </div>
+    <div class="func-card func-entry func-more" data-view="xingzuo" role="button" tabindex="0" aria-label="星座">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="xingzuo" src="/static/cream/cream-icon-xingzuo.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">星座</div><div class="func-desc">十二宫 · 今日运势</div>
+    </div>
+    <div class="func-card func-entry func-more" data-view="dream" role="button" tabindex="0" aria-label="解梦">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="dream" src="/static/shared/icon-set-moon-cat.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">解梦</div><div class="func-desc">说说昨晚的梦 · 帮你翻翻</div>
+    </div>
+    <!-- R3210（用户决策项）：起名上提主格——受众给 CP/游戏角色/圈名
+         起名是高频玩法，抽屉埋太深；六爻留进阶抽屉（术语门槛高、
+         问事低频，与塔罗入口重叠）。 -->
+    <div class="func-card func-entry func-more" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="qiming" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">给 TA/圈名起个好名字</div>
+    </div>
+    <!-- R3255（用户裁决）：六爻从「进阶玩法」抽屉提上主格——
+         进阶栏整体撤除，它和其他功能平级，不该藏深一层。 -->
+    <div class="func-card func-entry func-more" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 传统问法</div>
+    </div>
+    <div class="func-card func-entry func-more" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
+    </div>
+    <!-- R3336（调研定调·决策神谕）：CyberLuck 验证的轻仪式——
+         要不要/去不去的纠结掷筊出圣筊/笑筊/阴筊三态，同事同日同筊。 -->
+    <div class="func-card func-entry func-more" data-view="oracle" role="button" tabindex="0" aria-label="替你决定">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="oracle" src="/static/cream/cream-icon-oracle.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">替你决定</div><div class="func-desc">掷筊问事 · 一念之间</div>
+    </div>
+    <!-- R3381（调研·裂变引擎）：默契挑战——我答 5 题出邀请链，
+         朋友答题对分、可晒可回敬。全程走 URL hash，不上服务器。 -->
+    <div class="func-card func-entry func-more" data-view="mochi" role="button" tabindex="0" aria-label="默契挑战">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="mochi" src="/static/cream/cream-icon-mochi.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">默契挑战</div><div class="func-desc">答 5 题 · 闺蜜/对象/自写三题包</div>
+    </div>
+    <!-- R3388（调研·签小签验证链）：每日一签——观音灵签百签真本，
+         同日同签 + 连下签暖心调节 + 晒签海报 + 近签回顾。 -->
+    <div class="func-card func-entry func-more" data-view="qian" role="button" tabindex="0" aria-label="每日一签">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="qian" src="/static/cream/cream-icon-qian.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">每日一签</div><div class="func-desc">观音灵签 · 今天一支</div>
+    </div>
+    <!-- R3394（调研·答案之书爆款复刻）：答案之书——默念问题翻一页，
+         一句答案+一句提示+一个小动作，轻仪式感裂变件。 -->
+    <div class="func-card func-entry func-more" data-view="ansb" role="button" tabindex="0" aria-label="答案之书">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="ansb" src="/static/cream/cream-icon-ansb.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">答案之书</div><div class="func-desc">默念问题 · 翻一页</div>
+    </div>
+    <!-- R3424：敲敲木鱼——解压敲击件（音画即时反馈+攒心安计数）。 -->
+    <div class="func-card func-entry func-more" data-view="muyu" role="button" tabindex="0" aria-label="敲敲木鱼">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="muyu" src="/static/cream/cream-icon-muyu.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">敲敲木鱼</div><div class="func-desc">敲一下 · 烦心事轻一点</div>
+    </div>
+    <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
+         data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
+         不切视图。 -->
+    <div class="func-card func-entry func-chat" data-view="chat" role="button" tabindex="0" aria-label="和小满聊聊">
+      <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">和小满聊聊</div><div class="func-desc">有心事随时来说</div>
+    </div>
+    <!-- R4939（外部评测+用户拍板）：首屏减负——12 个次级玩法收进
+         「更多玩法」一次点开，主格只留 5 个常用入口。func-card 类
+         不给（避开 initViews 的视图委托），自有 class+id 绑事件。 -->
+    <button type="button" class="func-more-btn" id="funcMoreBtn" aria-expanded="false" aria-controls="funcGrid">
+      <span class="func-name">更多玩法 🎐</span>
+      <span class="func-desc">还有 12 个 · 点开看看</span>
+    </button>
+    </nav>
+  </div>
+
+  <!-- R3255（用户裁决）：「进阶玩法」抽屉整体撤除——六爻上提主格，
+       研究类关键词在首页首屏的暴露规约不变（判据 a 照旧生效）。 -->
+  <!-- R3264（R28）：显式 PWA 安装按钮。R3415（用户裁决）：常驻
+       显示——能弹安装就弹，不能弹（iOS/国产浏览器阉割了 prompt）
+       给手动步骤指引。已装过自动隐藏（standalone 检测在 JS 侧）。 -->
+  <div class="install-pwa-row" id="installPwaWrap">
+    <button type="button" class="ghost" id="installPwa">📲 装到桌面（点开当 app 用）</button>
+  </div>
+  <!-- R3264（R38）→R3420：提醒是纯 in-app toast，未布防时常显 -->
+  <div class="notify-soft-row" id="notifySoftRow" hidden>
+    <button type="button" class="ghost" id="notifySoftAsk">🔔 让小满轻轻叫我</button>
+    <p>每天你打开铺子时喊你领今日签，只本机，可关</p>
+  </div>
+  </div><!-- /home-main -->
+
+  <!-- 最近解读（R205b 用户反馈①：改右侧可收缩侧边栏）+ 收藏（留在文档流） -->
+
+  <!-- R208b：「我的收藏」区块按用户裁决删除（功能多余；后端
+       /api/user/prefs 与收藏 API 零改动——只删 UI 入口，零删除原则）。 -->
+
+  <!-- 视图容器。R200b 方案①：view-divine 不再作为簇页——起名/桃花/合婚
+       三张八字系功能卡收进 view-bazi 底部「相关功能」区（数据同源）。 -->
+  <!-- R233l：view-divine 簇页删除——零 data-view 入口、零 JS 引用，
+     抽屉卡已迁移进 view-bazi 相关功能区（R200b）。 -->
+
+  <div class="view" id="view-bazi">
+    <div class="card">
+      <h2><span aria-hidden="true">🔮</span> 八字排盘 <span class="card-sub">看看你的五行底色</span></h2>
+      <!-- R229c（R5 审计 P2）：novalidate 关掉浏览器原生英文气泡
+           （年=1800 → "Value must be ≥1900"），让站内统一中文校验
+           （后端「年份需在 1900-2100」）接管——两条校验路径口径一致。 -->
+      <form id="form" novalidate>
+        <!-- R206b（specs/009 US3 表单减负）：小满只填生日+性别即可提交。
+             历法默认公历、范围默认单日、时辰默认 12——全部有确定默认值，
+             高级字段（农历/推算范围/问事日期地点）收进「更多设置」折叠。 -->
+        <div class="row">
+          <div class="field" id="f_year"><label for="year">出生年份</label>
+            <input id="year" type="number" inputmode="numeric" min="1900" max="2100" value="1990" required autocomplete="bday-year"></div>
+          <div class="field" id="f_month"><label for="month">月</label>
+            <input id="month" type="number" inputmode="numeric" min="1" max="12" value="5" required autocomplete="bday-month"></div>
+          <div class="field" id="f_day"><label for="day">日</label>
+            <input id="day" type="number" inputmode="numeric" min="1" max="31" value="15" required autocomplete="bday-day"></div>
+          <div class="field"><label for="gender">性别</label>
+            <select id="gender"><option>女</option><option>男</option></select></div>
+        </div>
+        <!-- 时辰可选：不知道就留空（后端 hour 必填 → baziBody 里空则给默认 12，
+             并附 not_hour_known 提示语义；契约零改动）。 -->
+        <div class="row">
+          <div class="field"><label for="hour">出生时辰（可留空）</label>
+            <input id="hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19；子时填23"></div>
+          <!-- R230f（R18-P1-1）：节气当小时内出生会被整点截到节前一侧——
+               可选分钟字段只在需要时填（不填按 :00）。 -->
+          <div class="field"><label for="minute">分钟（可选）</label>
+            <input id="minute" type="number" inputmode="numeric" min="0" max="59" placeholder="如 30"></div>
+          <div class="field"><label for="question">想问什么？（可选）</label>
+            <input id="question" type="text" maxlength="200" placeholder="例如：最近感情怎么样？"></div>
+          <!-- R4939（外部评测）：出生地从「更多设置·问事组」挪进主表单——
+               排盘记录里它就是出生地，藏抽屉里没人填。目前仅随盘记录
+               展示，不参与真太阳时校正（后端没这功能，不装）。 -->
+          <div class="field"><label for="location" title="随盘记录展示，暂不参与真太阳时校正">出生地（可选）</label>
+            <input id="location" type="text" maxlength="100" placeholder="例如：北京"></div>
+        </div>
+        <details class="pro-drawer" id="baziAdvanced">
+          <summary><span aria-hidden="true">⚙️</span> 更多设置（历法 · 看多久 · 问事时间）</summary>
+          <div class="row" style="margin-top:8px;">
+            <div class="field"><label for="calendar_type">历法</label>
+              <select id="calendar_type"><option value="solar">公历（阳历）</option><option value="lunar">农历（阴历）</option></select></div>
+            <div class="field" id="f_scope"><label for="scope">推算范围</label>
+              <select id="scope"><option value="day">单日</option><option value="range">一段日期</option><option value="life">一生</option></select></div>
+            <div class="field" id="f_lunar_leap" hidden><label for="lunar_leap" title="农历有些年份会多一个月，这年出生选它">闰月（那年多了一个月才选）</label>
+              <input id="lunar_leap" type="checkbox"></div>
+          </div>
+          <div class="row" style="margin-top:6px;" id="ask_row">
+            <div class="field"><label for="ask_date">问事日期</label>
+              <input id="ask_date" type="date"></div>
+            <div class="field"><label for="ask_hour">问事时辰（可选）</label>
+              <input id="ask_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="默认不比对"></div>
+          </div>
+          <div class="row" style="margin-top:6px;" id="range_row" hidden>
+            <div class="field"><label for="range_start">起（年-月-日）</label>
+              <input id="range_start" type="date" min="1900-01-01" max="2100-12-31"></div>
+            <div class="field"><label for="range_end">止（年-月-日）</label>
+              <input id="range_end" type="date" min="1900-01-01" max="2100-12-31"></div>
+            <div class="field"><label for="range_hour">统一时辰（可选）</label>
+              <input id="range_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="默认不比对"></div>
+          </div>
+        </details>
+        <!-- R178b：原此处有 use_llm 复选框（"✨ LLM 博主解读（需服务端已配置）"）。
+             LLM 层已整体移除，解读改为无条件的确定性规则输出，开关不再存在。 -->
+        <button id="submit" type="submit">看看我的盘 ✨</button>
+        <!-- R229z续23（R10-#18）：#error/#status 是死 DOM（错误实际走
+             #result + toast）——删掉；字段级错误提示仍走统一 fail 路径。 -->
+      </form>
+
+      <div class="result" id="result"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「看看我的盘」也能看，换成你的更准～</div></div>
+      <!-- R229z续23（R11-#24）：法条式长注 → 人话版 -->
+      <p class="footnote">盘面按命理规则计算、引文标出处、解读是写死的规则转述，不是算命先生在替你拿主意，仅供娱乐。</p>
+
+      <!-- R200b（US3 方案①）：八字系「相关功能」——起名/桃花/合婚与排盘
+           同源四柱，收在排盘视图底部作二级入口；首页不再平铺。 -->
+      <div class="related-funcs">
+        <div class="ia-label">✨ 相关功能（同一张盘）</div>
+        <div class="func-grid">
+          <div class="func-card" data-view="qiming" role="button" tabindex="0" aria-label="五行起名">
+            <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/cream-icon-qiming.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">五行起名</div><div class="func-desc">按五行补缺起名</div>
+          </div>
+          <div class="func-card" data-view="taohua" role="button" tabindex="0" aria-label="桃花运">
+            <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/cream-icon-taohua.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">桃花运</div><div class="func-desc">近期桃花走势</div>
+          </div>
+          <div class="func-card" data-view="hehun" role="button" tabindex="0" aria-label="八字合婚">
+            <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/cream-icon-hehun.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">八字合婚</div><div class="func-desc">两人八字 · 看缘分深浅</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- R208b：「今日关注」外部资讯面板按用户裁决删除（与产品气质割裂；
+           后端 /api/external/news 零改动）。 -->
+    </div>
+
+    <!-- R208b：历史记录迁入左侧统一侧边栏（recent-sidebar）。 -->
+  </div>
+
+  <!-- 古籍读书视图 -->
+  <div class="view" id="view-read">
+    <div class="card">
+      <h2><span aria-hidden="true">📜</span> 古籍读书 <span class="card-sub">知往圣 · 绝学</span></h2>
+      <!-- R2400（R125-P2）：常驻语境说明——这块是给查证用的工具，
+           原文多为繁体，免得误入的朋友一脸懵。 -->
+      <p style="font-size:12px;color:var(--secondary);margin:4px 0 10px;">
+        这里放的是原文查证工具，古籍多为繁体，找句子、对版本、看引用用。</p>
+      <div class="rtabs">
+        <button class="rtab active" data-rsec="rsec-search" type="button" aria-pressed="true">检索</button>
+        <button class="rtab" data-rsec="rsec-research" type="button" aria-pressed="false">深度研究</button>
+        <button class="rtab" data-rsec="rsec-addr" type="button" aria-pressed="false">定位</button>
+        <button class="rtab" data-rsec="rsec-compare" type="button" aria-pressed="false">比对</button>
+        <button class="rtab" data-rsec="rsec-works" type="button" aria-pressed="false">书目</button>
+        <button class="rtab" data-rsec="rsec-threads" type="button" aria-pressed="false">研究线程</button>
+        <button class="rtab" data-rsec="rsec-bookstudy" type="button" aria-pressed="false">读书</button>
+        <button class="rtab" data-rsec="rsec-cw" type="button" aria-pressed="false">两书对照</button>
+        <button class="rtab" data-rsec="rsec-concept" type="button" aria-pressed="false">概念研究</button>
+      </div>
+
+      <!-- 检索 -->
+      <section class="rsec active" id="rsec-search">
+        <h3>全文检索</h3>
+        <div class="row">
+          <div class="field" style="flex:3;"><label for="rq">查询词</label>
+            <input id="rq" type="text" maxlength="200" placeholder="如：君子終日乾乾 / 亢龍有悔"></div>
+          <div class="field"><label for="rlayer">层过滤</label>
+            <!-- R2400（R125-P1-1）：层选项换实测分布——旧表 11 选 9 个
+                 必 400（傳/疏/箋/緒/衍/演/評/纂/misc 库里根本没有），
+                 占 80% 的「正文」反而没得选。 -->
+            <select id="rlayer"><option value="">全部</option><option value="正文">正文</option><option value="注">注</option><option value="經">經</option><option value="林辭">林辭</option><option value="十翼">十翼</option><option value="圖">圖</option><option value="標題">標題</option></select></div>
+          <div class="field"><label for="rwork">限定某本书</label>
+            <input id="rwork" type="text" maxlength="32" placeholder="可不填：书目页点一本自动填"></div>
+        </div>
+        <button id="searchBtn" type="button">搜一下</button>
+        <div id="searchResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个词，比如「无为」，搜全库古籍～</div></div>
+      </section>
+
+      <!-- 深度研究 -->
+      <section class="rsec" id="rsec-research">
+        <h3>深度研究</h3>
+        <div class="row">
+          <div class="field" style="flex:3;"><label for="rq2">查询词</label>
+            <input id="rq2" type="text" maxlength="200" placeholder="如：無為"></div>
+          <div class="field"><label for="rmax">最多深挖几处（1–6）</label>
+            <input id="rmax" type="number" inputmode="numeric" min="1" max="6" value="2"></div>
+        </div>
+        <button id="researchBtn" type="button">帮我研究</button>
+        <div id="researchResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个想研究的问题，让小满翻书找证据～</div></div>
+      </section>
+
+      <!-- 定位 -->
+      <section class="rsec" id="rsec-addr">
+        <h3>地址定位</h3>
+        <div class="row">
+          <div class="field"><label for="ascheme">编址方式</label>
+            <select id="ascheme">
+              <option value="zhouyi">周易（卦·爻）</option>
+              <option value="bcv">圣经章节</option>
+              <option value="yilin">易林（卦序）</option>
+              <option value="booksec">书章节</option>
+              <option value="play">剧本（场·幕）</option>
+              <option value="euclid">欧几里得（书·命题）</option>
+            </select></div>
+          <div class="field"><label for="aguan">第几卦（周易用）</label>
+            <input id="aguan" type="number" inputmode="numeric" min="1" max="64" placeholder="1–64"></div>
+          <div class="field"><label for="ayao">爻位（周易用）</label>
+            <input id="ayao" type="text" maxlength="16" placeholder="如：初九"></div>
+          <div class="field"><label for="aname">卷名（圣经用）</label>
+            <input id="aname" type="text" maxlength="64" placeholder="如：创世记（Genesis）"></div>
+          <div class="field"><label for="aaddr1">第一级编号</label>
+            <input id="aaddr1" type="number" inputmode="numeric" placeholder="如：12"></div>
+          <div class="field"><label for="aaddr2">第二级编号</label>
+            <input id="aaddr2" type="text" maxlength="16" placeholder="如：12"></div>
+        </div>
+        <button id="addrBtn" type="button">找这段</button>
+        <div id="addrResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个卦名或章节号，比如「乾卦」～</div></div>
+      </section>
+
+      <!-- 比对 -->
+      <section class="rsec" id="rsec-compare">
+        <h3>同址比对</h3>
+        <div class="row">
+          <div class="field"><label for="cgua">卦（1–64）</label>
+            <input id="cgua" type="number" inputmode="numeric" min="1" max="64" value="28"></div>
+          <div class="field"><label for="cyao">爻位</label>
+            <input id="cyao" type="text" maxlength="16" value="九二"></div>
+        </div>
+        <button id="compareBtn" type="button">比一比</button>
+        <div id="compareResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个词，看不同书里怎么讲它～</div></div>
+      </section>
+
+      <!-- 书目 -->
+      <section class="rsec" id="rsec-works">
+        <h3>书目</h3>
+        <button id="worksBtn" type="button">列一下</button>
+        <div id="worksResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>点「列一下」，看看库里都有什么书～</div></div>
+      </section>
+
+      <!-- 研究线程 -->
+      <section class="rsec" id="rsec-threads">
+        <h3>研究线程</h3>
+        <div class="row">
+          <div class="field" style="flex:3;"><label for="tq">新建线程主题</label>
+            <input id="tq" type="text" maxlength="64" placeholder="如：无为思想研究"></div>
+        </div>
+        <button id="threadBtn" type="button">开一条</button>
+        <div id="threadResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>还没有研究线程，写个主题开一条～</div></div>
+      </section>
+
+      <!-- 读书 -->
+      <section class="rsec" id="rsec-bookstudy">
+        <h3>读书（结构/章节/摘要）</h3>
+        <div class="row">
+          <div class="field"><label for="bswork">哪本书</label>
+            <input id="bswork" type="text" maxlength="32" placeholder="「书目」页点一本自动填">
+            <div id="bswork_hint" class="hit-cite" hidden style="margin-top:4px;"></div></div>
+          <div class="field"><label for="bsscheme">编址方式</label>
+            <select id="bsscheme">
+              <option value="zhouyi">周易（卦·爻）</option>
+              <option value="bcv">圣经章节</option>
+              <option value="yilin">易林（卦序）</option>
+              <option value="booksec">书章节</option>
+              <option value="play">剧本（场·幕）</option>
+              <option value="euclid">欧几里得</option>
+              <option value="file">按文件（无编址的书）</option>
+            </select></div>
+          <div class="field"><label for="bsaddr1">第一级编号</label>
+            <input id="bsaddr1" type="number" inputmode="numeric" placeholder="如：1"></div>
+          <!-- R3221：bcv 必须配卷名、file 书要文件名——按 scheme 显隐，
+               否则这两类书在这页必然报错（实测死路）。 -->
+          <div class="field" id="f_bsname" hidden><label for="bsname">卷名</label>
+            <input id="bsname" type="text" maxlength="64" placeholder="如：创世记（Genesis）"></div>
+          <div class="field" id="f_bsfile" hidden><label for="bsfile">文件名</label>
+            <input id="bsfile" type="text" maxlength="64" placeholder="结构页点一节自动填"></div>
+        </div>
+        <!-- data-rsec2 的值保持 bs-structure/bs-chapter/bs-summary 不变：
+             审查轨 probes/probe_ui_smoke.py:103 用这三个字符串做选择器
+             （`.rtab[data-rsec2='bs-structure']`）。它是 docs/PHASE.md 闸门 3，
+             改这三个值等于改验收契约（R179b 一度改成驼峰，实测把对方
+             probe 打成 3 个 TimeoutError）。面板 id 与它的映射在 app.js
+             的 BSSEC_PANELS 里。 -->
+        <div class="rtabs" style="margin-top:12px;">
+          <button class="rtab active" data-rsec2="bs-structure" type="button" aria-pressed="true">结构</button>
+          <button class="rtab" data-rsec2="bs-chapter" type="button" aria-pressed="false">章节</button>
+          <button class="rtab" data-rsec2="bs-summary" type="button" aria-pressed="false">摘要</button>
+        </div>
+        <!-- 三个面板加 .bssec 类由 JS 互斥切换（原来三个 div 永远同时显示，
+             且三个子标签完全没有事件绑定 —— R000a-03）。 -->
+        <div class="bssec active" id="bsStructure" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>从「书目」页点一本书，看它的目录～</div></div>
+        <div class="bssec" id="bsChapter" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>在结构页点一节，读它的原文～</div></div>
+        <div class="bssec" id="bsSummary" style="margin-top:12px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>从「书目」页点一本书，听小满讲讲它～</div></div>
+      </section>
+
+      <!-- 两书对照 -->
+      <section class="rsec" id="rsec-cw">
+        <h3>两书对照</h3>
+        <div class="row">
+          <div class="field"><label for="cwa">书 A</label>
+            <input id="cwa" type="text" maxlength="32" placeholder="书目页点一本自动填"></div>
+          <div class="field"><label for="cwb">书 B</label>
+            <input id="cwb" type="text" maxlength="32" placeholder="书目页点一本自动填"></div>
+          <div class="field"><label for="cwq">查询词</label>
+            <input id="cwq" type="text" maxlength="200" value="無爲" placeholder="如：無爲"></div>
+        </div>
+        <button id="cwBtn" type="button">对着看</button>
+        <div id="cwResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑两本书，对照同一处内容～</div></div>
+      </section>
+
+      <!-- 概念研究 -->
+      <section class="rsec" id="rsec-concept">
+        <h3>概念研究</h3>
+        <div class="row">
+          <div class="field" style="flex:3;"><label for="cq">概念</label>
+            <input id="cq" type="text" maxlength="200" placeholder="如：無爲"></div>
+        </div>
+        <button id="conceptBtn" type="button">研究它</button>
+        <div id="conceptResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>写个概念，比如「道」「无为」～</div></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- 六爻 -->
+  <div class="view" id="view-liuyao">
+    <div class="card">
+      <h2><span aria-hidden="true">🪙</span> 六爻占卜 <span class="card-sub">摇卦问事</span></h2>
+      <div class="row">
+        <div class="field"><label for="ly_method">起卦方式</label>
+          <!-- 实测后端只认 coins|time；原 option value="dice" 必得 400 -->
+          <select id="ly_method"><option value="coins">铜钱起卦</option><option value="time">时间起卦</option></select></div>
+        <div class="field"><label for="ly_year">年</label>
+          <!-- R2350b（R98-P0-1）：写死 value="1990/5/15/10" 使
+               syncLiuyaoToday 的「空才填」恒败——时间起卦默起
+               1990-05-15 的卦。改 placeholder：留空=以现在起卦。 -->
+          <input id="ly_year" type="number" inputmode="numeric" min="1900" max="2100" placeholder="留空=今年"></div>
+        <div class="field"><label for="ly_month">月</label>
+          <input id="ly_month" type="number" inputmode="numeric" min="1" max="12" placeholder="留空=本月"></div>
+        <div class="field"><label for="ly_day">日</label>
+          <input id="ly_day" type="number" inputmode="numeric" min="1" max="31" placeholder="留空=今天"></div>
+        <div class="field"><label for="ly_hour">时辰</label>
+          <input id="ly_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="留空=此时"></div>
+      </div>
+      <!-- R216b 续（U-006）：同塔罗——Seed 收进高级折叠。 -->
+      <div class="row" style="margin-top:6px;">
+        <div class="field"><label for="ly_question">所问何事</label>
+          <input id="ly_question" type="text" maxlength="200" placeholder="可选"></div>
+      </div>
+      <details class="pro-drawer" id="lySeedDrawer" style="margin-top:6px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">高级设置（铜钱起卦的固定编号）</summary>
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><label for="ly_seed">固定编号</label>
+            <input id="ly_seed" type="number" inputmode="numeric" placeholder="不知道就留空，自动来"></div>
+        </div>
+      </details>
+      <button id="lySubmit" type="button">摇一卦</button>
+      <div id="lyResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「摇一卦」～</div></div>
+    </div>
+  </div>
+
+  <!-- 黄历 -->
+  <div class="view" id="view-huangli">
+    <div class="card">
+      <!-- R229z续23（R11-#13）：功能名与首页卡「今天适合」对齐 -->
+      <h2><span aria-hidden="true">🌙</span> 黄历 · <span id="hlTitleDay">今天</span>宜忌 <span class="card-sub">好日子，一目了然</span></h2>
+      <!-- v3（P7）：日期快选 chip，原生输入收进折叠（兼容保留） -->
+      <div class="hl-chips" id="hlChips">
+        <button type="button" class="hl-chip active" data-hloffset="0" aria-pressed="true">今天</button>
+        <button type="button" class="hl-chip" data-hloffset="1" aria-pressed="false">明天</button>
+        <button type="button" class="hl-chip" data-hloffset="2" aria-pressed="false">后天</button>
+        <button type="button" class="hl-chip" data-hloffset="-1" aria-pressed="false">昨天</button>
+        <button type="button" class="hl-chip hl-chip-pick" id="hlPickBtn" aria-expanded="false" aria-controls="hlPickDrawer">选日期 ▾</button>
+      </div>
+      <details class="pro-drawer" id="hlPickDrawer" style="margin:8px 0;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">自选日期（年 · 月 · 日）</summary>
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><label for="hl_year">年</label>
+            <input id="hl_year" type="number" inputmode="numeric" min="1900" max="2100"></div>
+          <div class="field"><label for="hl_month">月</label>
+            <input id="hl_month" type="number" inputmode="numeric" min="1" max="12"></div>
+          <div class="field"><label for="hl_day">日</label>
+            <input id="hl_day" type="number" inputmode="numeric" min="1" max="31"></div>
+        </div>
+        <button id="hlSubmit" type="button" style="margin-top:8px;">看这一天</button>
+      </details>
+      <div id="hlResult" style="margin-top:14px;"><div class="ph-empty" data-ph="1"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>选个日子看看宜忌吧</div></div>
+      <!-- R231d：未来 7 天宜忌速览——一周计划型查看路径，点格直接翻日 -->
+      <div class="hl-week" id="hlWeek" hidden></div>
+    </div>
+  </div>
+
+  <!-- 起名 -->
+  <div class="view" id="view-qiming">
+    <div class="card">
+      <h2><span aria-hidden="true">🌸</span> 五行起名 <span class="card-sub">补五行 · 起好名</span></h2>
+      <div class="row">
+        <div class="field"><label for="qm_surname">姓氏</label>
+          <!-- R230t（R33-P3-13）：后端恰好单字，前端 maxlength=8 放行复姓
+             撞 400——对齐到 1。 -->
+          <!-- R2350e（R101-P1-1）：后端已支持 1-2 字复姓，前端 maxlength=1 把欧阳拦死 -->
+          <input id="qm_surname" type="text" maxlength="2" value="李" autocomplete="family-name"></div>
+        <div class="field"><label for="qm_year">年</label>
+          <input id="qm_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
+        <div class="field"><label for="qm_month">月</label>
+          <input id="qm_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
+        <div class="field"><label for="qm_day">日</label>
+          <input id="qm_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
+        <div class="field"><label for="qm_hour">时辰</label>
+          <input id="qm_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
+        <div class="field"><label for="qm_gender">性别</label>
+            <select id="qm_gender"><option>女</option><option>男</option></select></div>
+      </div>
+      <!-- R3232：与桃花/合婚/本命盘同拆——姓氏+生辰本体一行，
+           历法补充一行。 -->
+      <div class="row" style="margin-top:2px;">
+        <!-- R3206：农历生日——只记得农历的人也能起名 -->
+        <div class="field"><label for="qm_cal">历法</label>
+          <select id="qm_cal"><option value="solar">公历</option><option value="lunar">农历</option></select></div>
+        <div class="field" id="f_qm_leap" hidden><label for="qm_leap">闰月</label>
+          <input id="qm_leap" type="checkbox" title="农历那年多了一个月才勾"></div>
+        <!-- R3340（审-P3）：排除字输入——家里钦定不要的字直接不进候选 -->
+        <div class="field"><label for="qm_avoid">不想用的字</label>
+          <input id="qm_avoid" type="text" maxlength="20" placeholder="选填：避开的字，如 春草"></div>
+      </div>
+      <!-- R230z（R36-P2-3）：心水名单——♡ 过的名字固定在这，换一批不丢 -->
+      <div id="qmFavRow" class="fav-row" hidden></div>
+      <button id="qmSubmit" type="button">起一个名</button>
+      <div id="qmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「起一个名」也能看，换成你的更准～</div></div>
+    </div>
+  </div>
+
+  <!-- 桃花 -->
+  <div class="view" id="view-taohua">
+    <div class="card">
+      <h2><span aria-hidden="true">🌺</span> 桃花运 <span class="card-sub">看桃花 · 知缘分</span></h2>
+      <div class="row">
+        <div class="field"><label for="th_year">年</label>
+          <input id="th_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
+        <div class="field"><label for="th_month">月</label>
+          <input id="th_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
+        <div class="field"><label for="th_day">日</label>
+          <input id="th_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
+        <div class="field"><label for="th_hour">时辰</label>
+          <input id="th_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
+      </div>
+      <!-- R3232：与合婚/本命盘同拆——生辰本体一行，补充项一行。 -->
+      <div class="row" style="margin-top:2px;">
+        <div class="field"><label for="th_gender">性别</label>
+            <select id="th_gender"><option>女</option><option>男</option></select></div>
+        <!-- R3206：农历生日 -->
+        <div class="field"><label for="th_cal">历法</label>
+          <select id="th_cal"><option value="solar">公历</option><option value="lunar">农历</option></select></div>
+        <div class="field" id="f_th_leap" hidden><label for="th_leap">闰月</label>
+          <input id="th_leap" type="checkbox" title="农历那年多了一个月才勾"></div>
+      </div>
+      <button id="thSubmit" type="button">测测桃花</button>
+      <div id="thResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「测测桃花」也能看，换成你的更准～</div></div>
+    </div>
+  </div>
+
+  <!-- 解梦（R3178）：写死象征词库——老话/回声/微行动，不判吉凶 -->
+  <div class="view" id="view-dream">
+    <div class="card">
+      <h2><span aria-hidden="true">🌙</span> 解梦 <span class="card-sub">说说昨晚的梦 · 帮你翻翻</span></h2>
+      <!-- R3243（用户实测）：输入区重做「梦境面板」——裸 textarea
+           观感简陋；底图沿用解梦海报水彩云（本地模板资产），
+           月亮猫头像作陪伴角标。 -->
+      <div class="dm-panel">
+        <img class="dm-cat" src="/static/shared/icon-set-moon-cat.jpg" alt=""
+             width="64" height="64" loading="lazy" decoding="async"
+             onerror="this.remove()">
+        <label class="dm-panel-head" for="dm_text">
+          <b>把还记得的画面写给我</b>
+          <small>越细越好翻——梦里的人、地方、感觉都算</small>
+        </label>
+        <textarea id="dm_text" class="dm-text" rows="4" maxlength="400"
+          placeholder="比如：梦见牙齿掉了 / 被人追着跑 / 回到考场卷子不会写…"></textarea>
+        <!-- R3214：字数条——400 上限此前静默截尾；高频梦 chip 点选即填 -->
+        <div class="dm-meta"><span id="dmCount" class="dm-count">0/400</span></div>
+        <div class="dm-chips" role="group" aria-label="常做的梦">
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见被人追着跑，跑不动">被追</button>
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见牙齿掉了">掉牙</button>
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见回到考场，卷子不会写">考试</button>
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见前任来找我复合">前任</button>
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见他出轨了">出轨</button>
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见蛇缠着我">蛇</button>
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见发大水">大水</button>
+          <button type="button" class="chat-chip dm-chip" data-dm="梦见鬼压床，动不了喊不出">鬼压床</button>
+        </div>
+        <button id="dmSubmit" type="button">帮我解一解 🌙</button>
+      </div>
+      <div id="dmResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>梦是情绪的回声，不是预言书：说说看？</div></div>
+    </div>
+  </div>
+
+  <!-- R3336：替你决定——掷筊。两片筊杯出圣筊（一凸一凹）/笑筊（两凸）/
+       阴筊（两凹）三态，种子=问题+当天，同事同日同筊。 -->
+  <div class="view" id="view-oracle">
+    <div class="card">
+      <h2><span aria-hidden="true">✋</span> 替你决定 <span class="card-sub">掷筊 · 一件事一天只问一次</span></h2>
+      <div class="or-panel">
+        <img class="or-icon" src="/static/cream/cream-icon-oracle.jpg" alt=""
+             width="72" height="72" loading="lazy" decoding="async"
+             onerror="this.remove()">
+        <label class="or-panel-head" for="orText">
+          <b>纠结的事一句话说给我</b>
+          <small>要不要、去不去、说不说——问完了心里有数</small>
+        </label>
+        <textarea id="orText" class="or-text" rows="3" maxlength="60"
+          aria-label="写下纠结的事"
+          placeholder="比如：要不要这周提离职 / 要不要主动找他 / 要不要报这个班…"></textarea>
+        <div class="or-chips" role="group" aria-label="常纠结的事">
+          <button type="button" class="chat-chip or-chip" data-or="要不要主动找他">主动找他</button>
+          <button type="button" class="chat-chip or-chip" data-or="要不要提离职">提离职</button>
+          <button type="button" class="chat-chip or-chip" data-or="要不要报这个课">报课</button>
+          <button type="button" class="chat-chip or-chip" data-or="要不要搬家">搬家</button>
+        </div>
+        <button id="orSubmit" type="button">掷筊问一问 ✋</button>
+      </div>
+      <div id="orResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>心里其实有偏向的——筊杯只是帮你承认它。</div></div>
+    </div>
+    <!-- R3492：灵魂原型小测——8 题轻问答出原型，不用生辰，
+         受邀者点开即玩（裂变漏斗顶端的低门槛件）。 -->
+    <div class="card" id="sqCard">
+      <h2><span aria-hidden="true">🧭</span> 灵魂原型小测 <span class="card-sub">8 题 · 不用生辰 · 喊 TA 也能玩</span></h2>
+      <div id="sqPanel"></div>
+      <div id="sqResult" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <!-- 塔罗 -->
+  <div class="view" id="view-tarot">
+    <div class="card">
+      <h2><span aria-hidden="true">✨</span> 塔罗占卜 <span class="card-sub">抽牌 · 看指引</span></h2>
+      <!-- R216b 续（UX 队列 U-006）：Seed 是复验用的技术参数，收进默认
+           折叠的高级设置——普通用户不该第一眼看到调试字段。id 保持不变，
+           不填时前端自动生成。 -->
+      <!-- R3249e（UX-AUDIT C·塔罗）：8 种牌阵+张数+编号对新客是
+           控制台。先给三档零思考入口（各带一句「什么时候用它」），
+           牌阵/张数/编号全部收进「懂牌阵」折叠——老用户路径不变。 -->
+      <!-- R3325：大众占卜——凭直觉选一堆（事业/感情/财运），
+           同日同堆同牌可晒同款。每张牌 seed=日期+主题+堆位，确定性。 -->
+      <details class="pile-block" id="pileBlock">
+        <summary>🔮 大众占卜 · 凭直觉选一堆<span class="pile-sub">事业 · 感情 · 财运</span></summary>
+        <div class="pile-topics" role="group" aria-label="选一个主题">
+          <button type="button" class="pile-topic" data-ptopic="career">💼 事业</button>
+          <button type="button" class="pile-topic" data-ptopic="love">💗 感情</button>
+          <button type="button" class="pile-topic" data-ptopic="money">🧧 财运</button>
+        </div>
+        <div class="pile-row" id="pileRow" hidden>
+          <button type="button" class="pile-card" data-pile="0" aria-label="第一堆">
+            <img src="/static/tarot/card-back.jpg" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='🂠'"><i>A</i></button>
+          <button type="button" class="pile-card" data-pile="1" aria-label="第二堆">
+            <img src="/static/tarot/card-back.jpg" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='🂠'"><i>B</i></button>
+          <button type="button" class="pile-card" data-pile="2" aria-label="第三堆">
+            <img src="/static/tarot/card-back.jpg" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='🂠'"><i>C</i></button>
+        </div>
+        <p class="pile-hint" id="pileHint" hidden>凭直觉点一堆，点完就定——同主题每天只能选一堆</p>
+        <div class="pile-result" id="pileResult" hidden></div>
+      </details>
+
+      <!-- R3866：窗前预告——限定开窗前 1-5 天挂行（JS 填句）。 -->
+      <div class="tr-tease" id="trTease" hidden></div>
+      <div class="tr-quick" role="group" aria-label="快速抽牌">
+        <button type="button" class="tr-quick-btn" id="trQ1">
+          <b>🃏 抽一张</b><i>今日一句指引</i></button>
+        <button type="button" class="tr-quick-btn" id="trQ3">
+          <b>🕰 抽三张</b><i>过去 · 现在 · 未来</i></button>
+        <button type="button" class="tr-quick-btn" id="trQPick">
+          <b>✋ 自己抽</b><i>点牌背，仪式感拉满</i></button>
+        <!-- R3368：万圣夜限定（10.29–11.1 JS 里解藏）——问那件
+             不敢问的事，限定条 + 预填问句。 -->
+        <button type="button" class="tr-quick-btn tr-hfest" id="trQH" hidden>
+          <b>🎃 万圣夜限定</b><i>问那件你一直不敢问的事</i></button>
+        <!-- R3435：圣诞心愿限定（12.20–12.25 JS 里解藏）——默念
+             心愿翻一张，限定条 + 预填问句。 -->
+        <button type="button" class="tr-quick-btn tr-xfest" id="trQX" hidden>
+          <b>🎄 圣诞心愿限定</b><i>默念心愿，翻一张看它会怎么来</i></button>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <div class="field"><label for="tr_question">想问的事（可空）</label>
+          <input id="tr_question" type="text" maxlength="200" placeholder="比如：这段感情怎么走？"></div>
+      </div>
+      <details class="pro-drawer" style="margin-bottom:10px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">懂牌阵？展开自己选（含高级设置）</summary>
+      <div class="row">
+        <div class="field"><label for="tr_seed">固定编号</label>
+          <input id="tr_seed" type="number" inputmode="numeric" placeholder="不知道就留空，自动来"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="tr_spread">牌阵</label>
+          <select id="tr_spread">
+            <option value="">随缘抽（自己定张数）</option>
+            <option value="time">时间流 · 3 张</option>
+            <option value="mind">身心灵 · 3 张</option>
+            <option value="you_ta">你和TA · 3 张</option>
+            <option value="diamond">钻石阵 · 4 张</option>
+            <option value="choose">二选一 · 5 张</option>
+            <option value="week">周运势 · 7 张</option>
+            <option value="star">六芒星 · 7 张</option>
+            <option value="celtic">凯尔特十字 · 10 张</option>
+          </select></div>
+      </div>
+      <div class="row">
+        <div class="field" id="tr_n_field"><label for="tr_n">张数（1–10）</label>
+          <input id="tr_n" type="number" inputmode="numeric" min="1" max="10" value="3"></div>
+      </div>
+      </details>
+      <button id="trSubmit" type="button">抽一张</button>
+      <!-- R2350k：自己抽——背面牌扇点选，点满张数成局，仪式感比
+           「按一下就出结果」强一档。 -->
+      <button id="trPickBtn" type="button" class="ghost" style="margin-top:8px;">🃏 自己抽一把</button>
+      <div id="trPickPanel" style="display:none;margin-top:10px;">
+        <div class="tr-pick-hint" id="trPickHint"></div>
+        <div class="tr-fan" id="trPickFan" role="group" aria-label="牌背，点选出你要的牌"></div>
+        <button id="trPickGo" type="button" disabled>就开这几张</button>
+      </div>
+      <!-- R2349l（R73-P1-12）：我的牌册——抽过的牌进收集图鉴，
+           78 格灰显未收，长线回访钩子。 -->
+      <details class="pro-drawer" id="tarotAlbumDrawer" style="margin-top:12px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">🃏 我的牌册（抽过的牌都收在这里）</summary>
+        <div id="tarotAlbum" style="margin-top:10px;"><div class="ph-empty" style="padding:12px;">展开看看收集进度～</div></div>
+      </details>
+      <div id="trResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>想好要问的事，点「抽一张」～</div></div>
+    </div>
+  </div>
+
+  <!-- R3249i（UX-AUDIT D）：五行人格轻测试——只填年月日出「你是
+       哪一型」人设小卡。走 /api/bazi 同一个引擎，只渲染 warm 层，
+       专业全表留给「看完整命盘」。 -->
+  <div class="view" id="view-renge">
+    <div class="card">
+      <h2><span aria-hidden="true">✨</span> 五行人格 <span class="card-sub">填个生日 · 看你是哪一型</span></h2>
+      <div class="row">
+        <div class="field"><label for="rg_year">出生年</label>
+          <input id="rg_year" type="number" inputmode="numeric" min="1900" max="2100" value="2000" autocomplete="bday-year"></div>
+        <div class="field"><label for="rg_month">月</label>
+          <input id="rg_month" type="number" inputmode="numeric" min="1" max="12" value="6" autocomplete="bday-month"></div>
+        <div class="field"><label for="rg_day">日</label>
+          <input id="rg_day" type="number" inputmode="numeric" min="1" max="31" value="15" autocomplete="bday-day"></div>
+      </div>
+      <button id="rgSubmit" type="button" style="margin-top:10px;">看我是哪型 ✨</button>
+      <div id="rgResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>填完生日点一下——一分钟看清你是哪一型～</div></div>
+    </div>
+  </div>
+
+  <!-- 合婚 -->
+  <div class="view" id="view-hehun">
+    <div class="card">
+      <h2><span aria-hidden="true">💕</span> 八字合婚 <span class="card-sub">两人八字 · 缘分深浅</span></h2>
+      <!-- R3249h（UX-AUDIT C·合婚 · 用户实测「表单像体检表」）：
+           14 字段吓退人——必填只留「我俩的年月日」6 个；时辰/性别/
+           昵称/历法全收「填全更准」折叠，打开一次就懂，不填照测。
+           所有字段 id 不变，提交/回填逻辑零改动。 -->
+      <div class="row">
+        <div class="field"><label for="hh_a_year">我的出生年</label>
+          <input id="hh_a_year" type="number" inputmode="numeric" min="1900" max="2100" value="1990"></div>
+        <div class="field"><label for="hh_a_month">月</label>
+          <input id="hh_a_month" type="number" inputmode="numeric" min="1" max="12" value="5"></div>
+        <div class="field"><label for="hh_a_day">日</label>
+          <input id="hh_a_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="hh_b_year">TA 的出生年</label>
+          <input id="hh_b_year" type="number" inputmode="numeric" min="1900" max="2100" value="1992"></div>
+        <div class="field"><label for="hh_b_month">月</label>
+          <input id="hh_b_month" type="number" inputmode="numeric" min="1" max="12" value="8"></div>
+        <div class="field"><label for="hh_b_day">日</label>
+          <input id="hh_b_day" type="number" inputmode="numeric" min="1" max="31" value="20"></div>
+      </div>
+      <details class="pro-drawer" style="margin-top:8px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--secondary);">填全更准（时辰 · 性别 · 昵称 · 农历，都可空）</summary>
+      <div class="row" style="margin-top:10px;">
+        <div class="field"><label for="hh_a_hour">我的时辰</label>
+          <input id="hh_a_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
+        <div class="field"><label for="hh_a_gender">我的性别</label>
+            <!-- R231d（R37-F12）：甲侧=我，默认女——与主受众一致 -->
+            <select id="hh_a_gender"><option>女</option><option>男</option></select></div>
+        <!-- R230z（R36-P1-2）：昵称可空——填了结果/海报/存档都叫名字 -->
+        <div class="field"><label for="hh_a_name">我的昵称</label>
+          <input id="hh_a_name" type="text" maxlength="16" placeholder="可空，如：小鱼"></div>
+        <!-- R3206：农历生日 -->
+        <div class="field"><label for="hh_a_cal">历法</label>
+          <select id="hh_a_cal"><option value="solar">公历</option><option value="lunar">农历</option></select></div>
+        <div class="field" id="f_hh_a_leap" hidden><label for="hh_a_leap">闰月</label>
+          <input id="hh_a_leap" type="checkbox" title="农历那年多了一个月才勾"></div>
+      </div>
+      <div class="row" style="margin-top:6px;">
+        <div class="field"><label for="hh_b_hour">TA 的时辰</label>
+          <input id="hh_b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19"></div>
+        <div class="field"><label for="hh_b_gender">TA 的性别</label>
+          <!-- R231d（R37-F12）：乙侧=TA，默认男 -->
+          <select id="hh_b_gender"><option>男</option><option>女</option></select></div>
+        <div class="field"><label for="hh_b_name">TA 的昵称</label>
+          <input id="hh_b_name" type="text" maxlength="16" placeholder="可空，如：阿哲"></div>
+        <!-- R3206：农历生日 -->
+        <div class="field"><label for="hh_b_cal">历法</label>
+          <select id="hh_b_cal"><option value="solar">公历</option><option value="lunar">农历</option></select></div>
+        <div class="field" id="f_hh_b_leap" hidden><label for="hh_b_leap">闰月</label>
+          <input id="hh_b_leap" type="checkbox" title="农历那年多了一个月才勾"></div>
+      </div>
+      </details>
+      <!-- R230z（R36-P1-2）：测过的 CP——存过的配对一键回填 -->
+      <div id="hhFavRow" class="fav-row" hidden></div>
+      <!-- R3425：今日合拍指数——已存 CP 的日更留存钩（纯坐标日变分） -->
+      <div id="hhDailyBox" class="hh-daily" hidden></div>
+      <!-- R3152：可空问句——「能结婚吗/为什么老吵架」让判词对着问的说 -->
+      <div class="field" style="margin-top:10px;"><label for="hh_question">最想问的事（可空）</label>
+        <input id="hh_question" type="text" maxlength="200" placeholder="比如：我们能结婚吗 / 为什么老吵架"></div>
+      <button id="hhSubmit" type="button">合一下</button>
+      <!-- R3160：TA 档案免测入口——想聊感情不用先跑合婚，纯本地写
+           me:partner，小满聊天就能对上 TA 的盘。 -->
+      <button id="hhSavePartner" type="button" class="ghost" style="margin-top:8px;"
+        title="只给你一个人看，不提交、不测">先存下 TA 的生日（不测）</button>
+      <!-- R3247：明星合盘——挑个偶像把 TA 侧填成公开生日，走原有「合一下」
+           链路出盘。生日全部来自公开资料（公历），时辰按未知处理。 -->
+      <details class="pro-drawer" id="celebDrawer" style="margin-top:10px;">
+        <summary style="cursor:pointer;font-size:13px;color:var(--primary-ink);">✨ 和明星合盘：挑个偶像，看你们的八字合不合</summary>
+        <div style="margin-top:8px;">
+          <input id="celebSearch" type="search" inputmode="search" autocomplete="off"
+            placeholder="搜名字，比如 杨幂 / 周深" aria-label="搜索明星"
+            style="width:100%;box-sizing:border-box;">
+          <div id="celebGrid" class="celeb-grid" role="listbox" aria-label="明星列表"></div>
+          <p class="celeb-src-note">生日都是公开资料里的公历日期，时辰一律按未知算——图个乐就好～</p>
+        </div>
+      </details>
+      <div id="celebPicked" class="celeb-picked" hidden></div>
+      <div id="hhResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>表单里是示例生日，直接点「合一下」也能看，换成你们俩的更准～</div></div>
+    </div>
+  </div>
+
+  <!-- D-005：星座 -->
+  <div class="view" id="view-xingzuo">
+    <div class="card">
+      <h2><span aria-hidden="true">⭐</span> 星座 <span class="card-sub">十二宫 · 今日运势</span></h2>
+      <!-- R220b（P1-1）：原生 type="date" 在 390px 移动端要唤起系统日历、
+           点选层级深。改成「前一天／后一天 + 年月日三 select」——进页面默认
+           今天，一次点击就能翻天，不必打开任何弹层。 -->
+      <!-- v2 新增：我的本命盘（生日→太阳星座+四柱+五行+日主解读） -->
+      <details class="pro-drawer" id="birthDrawer" style="margin-bottom:12px;">
+        <summary style="cursor:pointer;font-size:14px;color:var(--primary-ink);">💖 查我的本命盘（输入生日，看专属于你的星座×八字解读）</summary>
+        <!-- R3232（用户实测）：8 字段塞一排称呼框被挤烂——拆两行：
+             上行生辰本体，下行性别/称呼/历法补充。 -->
+        <div class="row" style="margin-top:10px;" id="birthForm">
+          <div class="field"><label for="b_year">出生年</label>
+            <input id="b_year" type="number" inputmode="numeric" min="1900" max="2100" value="2000"></div>
+          <div class="field"><label for="b_month">月</label>
+            <input id="b_month" type="number" inputmode="numeric" min="1" max="12" value="6"></div>
+          <div class="field"><label for="b_day">日</label>
+            <input id="b_day" type="number" inputmode="numeric" min="1" max="31" value="15"></div>
+          <div class="field"><label for="b_hour">时辰（可留空）</label>
+            <input id="b_hour" type="number" inputmode="numeric" min="0" max="23" placeholder="填几点，比如晚7点=19；留空按中午算"></div>
+        </div>
+        <div class="row" style="margin-top:2px;">
+          <div class="field"><label for="b_gender">性别</label>
+            <select id="b_gender"><option>女</option><option>男</option></select></div>
+          <div class="field"><label for="b_nick">怎么称呼你（选填）</label>
+            <input id="b_nick" type="text" maxlength="12" placeholder="比如 小鱼" autocomplete="nickname"></div>
+          <!-- R3206：农历生日 -->
+          <div class="field"><label for="b_cal">历法</label>
+            <select id="b_cal"><option value="solar">公历</option><option value="lunar">农历</option></select></div>
+          <div class="field" id="f_b_leap" hidden><label for="b_leap">闰月</label>
+            <input id="b_leap" type="checkbox" title="农历那年多了一个月才勾"></div>
+        </div>
+        <button id="birthSubmit" type="button" style="margin-top:10px;">看我的本命解读 ✨</button>
+        <div id="birthResult" style="margin-top:14px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑完生日，看你的本命小卡～</div></div>
+      </details>
+      <!-- R2349l（R73-P1-7）：星座速配——两个星座 → 四象兼容一句判，
+           比合婚门槛低（不用填生辰时辰），结果页再导流合婚。 -->
+      <details class="pro-drawer" id="xzMatchDrawer" style="margin-bottom:12px;">
+        <summary style="cursor:pointer;font-size:14px;color:var(--primary-ink);">💞 星座速配（挑两个星座，看看合不合）</summary>
+        <div class="row" style="margin-top:10px;">
+          <div class="field"><label for="xzm_a">你</label>
+            <select id="xzm_a"></select></div>
+          <div class="field"><label for="xzm_b">TA</label>
+            <select id="xzm_b"></select></div>
+          <!-- R2349l.8（R73-P2-11）：关系维度——闺蜜/同事语境尾巴 -->
+          <div class="field"><label for="xzm_rel">关系</label>
+            <select id="xzm_rel">
+              <option value="">恋人</option>
+              <option value="闺蜜">闺蜜</option>
+              <option value="同事">同事</option>
+            </select></div>
+        </div>
+        <button id="xzmSubmit" type="button" style="margin-top:10px;">测测合拍度 💗</button>
+        <!-- R2400（R124-P2）：结果区补空态，不再是一片空白 -->
+        <div id="xzmResult" style="margin-top:12px;"><div class="ph-empty" style="padding:12px;">选你们的星座，点「测测合拍度」～</div></div>
+      </details>
+      <div class="xz-datebar">
+        <button id="xzPrev" type="button" class="xz-nav" aria-label="前一天">‹</button>
+        <div class="xz-selects">
+          <select id="xz_year" aria-label="年"></select>
+          <select id="xz_month" aria-label="月"></select>
+          <select id="xz_day" aria-label="日"></select>
+        </div>
+        <button id="xzNext" type="button" class="xz-nav" aria-label="后一天">›</button>
+      </div>
+      <div class="xz-quick">
+        <button id="xzToday" type="button" class="xz-chip">今天</button>
+        <button id="xzTomorrow" type="button" class="xz-chip">明天</button>
+      </div>
+      <button id="xzSubmit" type="button">查一查</button>
+      <div id="xzResult" style="margin-top:16px;"><div class="ph-empty"><img class="ph-empty-img" src="/static/cream/empty-xiaoman.png" alt="" width="96" height="96" loading="lazy" decoding="async" onerror="this.remove()"><br>挑个日子，看今天哪个星座当班～</div></div>
+    </div>
+  </div>
+
+  <!-- 排盘历史视图（2026-08-28 新增，C2） -->
+  <div class="view" id="view-history">
+    <div class="card">
+      <h2><span aria-hidden="true">🕘</span> 排盘历史 <span class="card-sub">本机记录 · 可回查可导出</span></h2>
+      <div class="ph-toolbar">
+        <button id="historyRefresh" type="button" class="ghost">刷新</button>
+        <button id="historyExport" type="button" class="ghost">导出表格</button>
+        <!-- R231a（R36-P3-3）：换设备备份——台账全量+浏览器侧偏好打包下载 -->
+        <button id="historyExportJson" type="button" class="ghost">备份我的数据</button>
+        <button id="historyImportBtn" type="button" class="ghost">导入备份</button>
+        <input id="historyImportFile" type="file" accept=".json,application/json" hidden>
+        <!-- R2345（R63-P1-3）：隐私卫生——生辰/昵称/提问此前只进不出。
+             两段式确认后清本机键+服务端台账。 -->
+        <button id="historyWipe" type="button" class="ghost">忘掉我的数据</button>
+        <!-- R3414：排盘历史小锁——同设备他人借用时防窥。可选功能：
+             不设锁一切照旧；设了锁进历史页要输口令码才看（口令哈希
+             存本机，本标签页解锁一次即可）。跟账号体系无关——不登录
+             也能锁。 -->
+        <button id="historyLockBtn" type="button" class="ghost">🔒 加个锁</button>
+        <!-- R2400（R138-P1-3）：线程/手记已纳入备份+清空——提示更新为
+             全量口径。 -->
+        <div class="ph-hint" style="font-size:12px;color:var(--secondary);margin-top:6px;">
+          备份/清空覆盖排盘台账、研究笔记与本机偏好，本机留档（只存在这台设备上的备份）也会一起清。
+        </div>
+      </div>
+      <!-- R3414：锁态面板——设锁/开锁/撤锁三态共用（JS 切文案）。
+           锁着时整个历史区只露这个面板。 -->
+      <div id="historyLockPanel" class="ph-lock" hidden>
+        <div class="ph-lock-title" id="historyLockTitle">🔒 排盘历史上了锁</div>
+        <input id="historyLockInput" type="password" inputmode="numeric"
+               maxlength="6" autocomplete="off" placeholder="输入 6 位口令码">
+        <button id="historyLockGo" type="button" class="ghost">开锁</button>
+        <div class="ph-lock-tip" id="historyLockTip">口令码只存在这台设备上，忘了可以「忘掉我的数据」重设。</div>
+      </div>
+      <!-- R3358：轻账号（昵称+口令码，不要邮箱/手机）——注册/登录后
+           备份自动同步到云端，换设备/无痕模式登录同名账号即可拉回。
+           口令码没有找回渠道，忘了就是没了（前端明说）。 -->
+      <div class="acct-card" id="accountCard">
+        <div class="acct-head">
+          <span aria-hidden="true">🔐</span> 小满账号
+          <span class="acct-sub" id="acctStatus">查一下云端…</span>
+        </div>
+        <div class="acct-form" id="acctForm">
+          <input id="acctNick" type="text" maxlength="24" autocomplete="off"
+                 placeholder="给自己起个名（昵称）">
+          <input id="acctPass" type="password" maxlength="64" autocomplete="off"
+                 placeholder="口令码（至少 6 位）">
+          <div class="acct-btns">
+            <button id="acctRegister" type="button" class="ghost">注册</button>
+            <button id="acctLogin" type="button" class="ghost">登录</button>
+          </div>
+          <div class="acct-tip">口令码没有找回渠道，忘了就是没了——记个牢的。注册即同步一份备份到云端。</div>
+        </div>
+        <div class="acct-logged" id="acctLogged" hidden>
+          <div class="acct-line">已登 <b id="acctWho"></b> · <span id="acctLastSync">还没同步过</span></div>
+          <div class="acct-btns">
+            <button id="acctSyncNow" type="button" class="ghost">立刻同步</button>
+            <button id="acctPull" type="button" class="ghost">从云端拉回</button>
+            <button id="acctLogout" type="button" class="ghost">退出</button>
+          </div>
+          <div class="acct-tip">备份会在这台设备退出页面时自动同步；换新设备登录同名账号点「从云端拉回」。</div>
+        </div>
+      </div>
+      <!-- R3441「小满记得」：本地数据面可视化——她能想起的东西全
+           摆在这台设备上给你看，每类都能单独让她忘掉。
+           账号/小锁/主题偏好归各自面板管，不走这张卡。 -->
+      <div class="mem-card" id="memoryCard">
+        <div class="acct-head">
+          <span aria-hidden="true">🧠</span> 小满记得的
+          <span class="acct-sub">都存在这台设备上，随时可以让她忘掉</span>
+        </div>
+        <div class="mem-body" id="memBody"></div>
+        <div class="acct-tip">账号口令、历史小锁、主题皮肤归各自的面板管；想一键全清，用上面「忘掉我的数据」。</div>
+      </div>
+      <!-- R3200：类型筛选——记录多了按品类过一眼。只在有条目时出现。 -->
+      <div id="historyFilter" class="ph-filter" hidden
+           role="group" aria-label="按类型筛选记录"></div>
+      <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
+      <!-- R2506（审-U2）：tabindex=-1——「查看」展开详情后程序可把焦点
+           移进来，键盘/读屏用户不用 Tab 爬完剩余列表才到详情。 -->
+      <div id="historyDetail" class="ph-detail" tabindex="-1" hidden></div>
+    </div>
+  </div>
+
+  <!-- 心情周记：近 7 天心情点阵 + 主情绪 + 连记 + 可保存小卡。
+       数据全本机（mood:<date>），无入口卡——打卡区「看看这周的你」
+       小链/深链 ?view=moodweek 进。 -->
+  <div class="view" id="view-moodweek">
+    <div class="card">
+      <h2><span aria-hidden="true">📒</span> 这周的你 <span class="card-sub">心情周记 · 只给你一个人看</span></h2>
+      <div id="moodWeekBody" class="mw-body"></div>
+      <div class="mw-actions">
+        <button id="moodWeekShare" type="button" class="ghost">🖼️ 生成周记卡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- R3350：我的咒语册——今日咒语点 ❤️ 收进来的句子格页。
+       数据全本机（mantraFav），无入口卡——日卡 meta「咒语册」小链
+       /深链 ?view=mantra 进，与 view-moodweek 同模式。 -->
+  <div class="view" id="view-mantra">
+    <div class="card">
+      <h2><span aria-hidden="true">📖</span> 我的咒语册 <span class="card-sub">收来的好句子 · 只给你一个人看</span></h2>
+      <div id="mantraBookBody" class="mb-body"></div>
+    </div>
+  </div>
+
+  <!-- R3381：默契挑战——题面/答题/出链/对分全在 mochiBox 内由
+       _renderMochi 画。答案走 location.hash（不进服务器日志）。 -->
+  <div class="view" id="view-mochi">
+    <div class="card">
+      <h2><span aria-hidden="true">🥤</span> 默契挑战 <span class="card-sub">答 5 题 · 看谁最懂你</span></h2>
+      <div id="mochiBox" class="mc-box"></div>
+    </div>
+  </div>
+
+  <!-- R3388：每日一签——签筒/签面/历史全在 qianBox 内由
+       _renderQian 画；语料懒载 qian_data.js。 -->
+  <div class="view" id="view-qian">
+    <div class="card">
+      <h2><span aria-hidden="true">🎋</span> 每日一签 <span class="card-sub">观音灵签 · 百签真本</span></h2>
+      <div id="qianBox" class="qian-box"></div>
+    </div>
+  </div>
+  <div class="view" id="view-ansb">
+    <div class="card">
+      <h2><span aria-hidden="true">📖</span> 答案之书 <span class="card-sub">把犹豫放进这一页</span></h2>
+      <div id="ansbBox" class="ansb-box"></div>
+    </div>
+  </div>
+
+  <!-- R3424：敲敲木鱼——木鱼/计数/共敲数全在 muyuBox 内由
+       _renderMuyu 画；敲击音效走 WebAudio（无音频资产）。 -->
+  <div class="view" id="view-muyu">
+    <div class="card">
+      <h2><span aria-hidden="true">🪵</span> 敲敲木鱼 <span class="card-sub">敲一下 · 烦心事轻一点</span></h2>
+      <div id="muyuBox" class="muyu-box"></div>
+    </div>
+  </div>
+
+</main>
+</div><!-- /wrap -->
+
+  <!-- R229z续23（R10-#1 P0）：三个覆盖层移出 .wrap——它们在 wrap 内时，
+       chatOpen/_setRecent 给 wrap 打 inert 会沿 DOM 传染到侧栏自身，
+       聊天面板鼠标+键盘全灭、移动端无 Esc 只能刷新。fixed 定位不依赖
+       祖先，移出后 inert 只锁主区。 -->
+  <button class="recent-toggle" id="recentToggle" type="button"
+    aria-expanded="false" aria-controls="recentSidebar" title="和小满聊聊"
+    aria-label="打开小满聊天"><span class="recent-toggle-txt">💬<br>聊</span><span class="recent-toggle-tip" aria-hidden="true">和小满聊聊</span></button>
+  <!-- R218a-01：点侧栏外关闭抽屉的半透遮罩——z-index 在侧栏之下，主区之上 -->
+  <div class="recent-backdrop" id="recentBackdrop" aria-hidden="true"></div>
+  <!-- R209b：左侧统一栏重构——聊天（头像+消息流+输入框常驻）、
+       我的解读（历史记录单一信息源，删重复的 recentList 段）。 -->
+  <!-- R229z续23（R10-#20）：complementary 地标补名，读屏 landmarks 列表不再无名 -->
+  <aside class="recent-sidebar" id="recentSidebar" aria-label="小满聊天">
+    <div class="recent-side-head">
+      <div class="side-brand">
+        <img class="chat-avatar-img" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg"
+          alt="" width="40" height="40">
+        <span>小满的解忧铺</span>
+      </div>
+      <button class="recent-side-close" id="recentClose" type="button"
+        title="收起" aria-label="收起侧栏">✕</button>
+    </div>
+
+    <!-- 聊天段：常驻侧栏，结果卡 💬 按钮打开侧栏即见。
+         R219b（P0-4 用户裁决）：「我的解读」历史记录功能整体删除——
+         不再记录用户解读（省内存，后续改由带用户隔离的数据库承担）。
+         侧栏只剩聊天段；前端 loadHistory/showHistoryDetail/deleteHistory/
+         refreshHistoryCount 及 /api/history* 端点同批删除。 -->
+    <div class="side-chat">
+      <!-- R223b（E-304 P1）：删掉历史记录后侧栏只剩聊天段，chatFlow 为空时
+           整栏 78% 是空白（审查轨实测 flow_h=634 / children=0，vision 打 3/10
+           「像坏了，不像简约」）。补空态：小满打个招呼 + 三个可点话题，
+           让用户知道这里能干什么。有消息进来后由 chatBubble 隐藏它。 -->
+      <div class="chat-empty" id="chatEmpty">
+        <img class="chat-empty-avatar" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg"
+          alt="" width="56" height="56">
+        <p class="chat-empty-hi">我是小满 ✨</p>
+        <p class="chat-empty-sub">想聊什么都可以，或者从下面挑一个开始</p>
+        <p class="chat-empty-shop" id="chatShopLine"></p>
+        <div class="chat-empty-chips">
+          <button type="button" class="chat-chip" data-ask="今天运势怎么样？">今天运势怎么样</button>
+          <button type="button" class="chat-chip" data-ask="我最近工作和财运怎么样？">工作财运怎么样</button>
+          <button type="button" class="chat-chip" data-ask="我最近的感情会有进展吗？">最近感情有进展吗</button>
+          <button type="button" class="chat-chip" data-ask="帮我看看我的八字">帮我看看我的八字</button>
+        </div>
+      </div>
+      <!-- R229z续23（R10-#2）：role=log+polite——小满气泡送达即播报，
+           读屏用户不再「发完消息等不到声音」。 -->
+      <div class="chat-flow side-chat-flow" id="chatFlow" role="log" aria-live="polite" aria-label="与小满的对话"></div>
+      <div class="chat-input-row">
+              <input id="chatInput" type="text" maxlength="500"
+                placeholder="说说你的心情…" aria-label="对小满说点什么">
+              <!-- R229z续23（R11-#31）：单字「发」→「发送」 -->
+              <button id="chatSendBtn" type="button" aria-label="发送">发送</button>
+            </div>
+    </div>
+  </aside>
+
+  <!-- R209b：聊天并入左侧统一栏（chat-panel 抽屉退役）。 -->
+
+<!-- R8 P3：defer 让 269KB 的 app.js 与 HTML 解析并行，不再阻塞
+     DOMContentLoaded（defer 仍在 DOMContentLoaded 前执行，初始化语义不变）。 -->
+<script src="/static/app.js" defer></script>
+</body>
+</html>

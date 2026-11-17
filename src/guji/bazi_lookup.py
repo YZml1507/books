@@ -283,13 +283,59 @@ _sem_cache: tuple | None = None
 _model_cache = None
 
 
+def load_bge():
+    """加载 bge 句向量模型——web 语义检索与 scripts/eval_g1 共用同一道守卫。
+
+    S2 修（studio）：F-01 原守卫只查体积 <1MB，挡得住 133 字节指针文本，
+    挡不住两种更糟的形态——
+      (a) git checkout 触发 lfs smudge 半路下载，文件处在「半截真权重」状态；
+      (b) 下载被超时/断网杀掉，留下 10~90MB 的截断 safetensors。
+    两者都绕过体积守卫，然后在 SentenceTransformer 内部炸出
+    「header too large」这类难懂栈（本轮实测复现两次：16MB、11MB）。
+    改为三道：
+      1. 签名检测：前 32 字节是 LFS 指针文本 → 可读降级；
+      2. HF_HUB_OFFLINE=1：本地目录不该回退 hub 偷偷下载——README 明示
+         「web 主路径不依赖它，没拉也能正常用」，项目意图是优雅降级
+         而非联网补齐（受限网络下 22KB/s 会把请求挂死数分钟）；
+      3. try/except 兜底：截断/损坏权重转译成可读 RuntimeError，
+         不把 safetensors 内部栈泄给调用方（类型仍是 RuntimeError，
+         调用侧降级处理不变）。
+    """
+    _w = os.path.join(MODEL_DIR, "model.safetensors")
+    if os.path.exists(_w):
+        with open(_w, "rb") as _f:
+            _sig = _f.read(32)
+        if _sig.startswith(b"version https://git-lfs"):
+            raise RuntimeError(
+                "bge 模型权重是 Git LFS 指针（未 git lfs pull）："
+                "语义检索不可用，FTS 确定性检索不受影响。")
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+    # S3 修（studio）：可选依赖本身缺失也要降级——uppcoder 部署首跑即
+    # 暴露：import 在 try 外，缺 sentence_transformers 时 ModuleNotFoundError
+    # 直接炸穿 selftest。requirements-runtime.txt 不含它是预期状态。
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as _e:
+        raise RuntimeError(
+            "sentence_transformers 未安装：语义检索不可用（可选依赖，"
+            "FTS 确定性检索不受影响；requirements-runtime.txt 不含它）。"
+        ) from _e
+    try:
+        return SentenceTransformer(MODEL_DIR)
+    except Exception as _e:  # noqa: BLE001 —— 截断/损坏都要转译成可读降级
+        raise RuntimeError(
+            f"bge 权重无法加载（{type(_e).__name__}: {_e}）："
+            "若 model.safetensors 是未下完的 LFS 对象，请 git lfs pull "
+            "后重试；语义检索不可用，FTS 确定性检索不受影响。") from _e
+
+
 def _model():
     """SentenceTransformer 单例——~100MB 权重此前每次检索都重载。
     惰性加载：web 路径不走语义检索时零成本。"""
     global _model_cache
     if _model_cache is None:
-        from sentence_transformers import SentenceTransformer
-        _model_cache = SentenceTransformer(MODEL_DIR)
+        _model_cache = load_bge()
     return _model_cache
 
 
@@ -313,9 +359,17 @@ def _sem_vecs(conn) -> tuple:
         # 结构校验：缓存必须含 id 字段（早期缓存缺它会导致回查 KeyError）
         if (old.get("ids") == ids_now and old_meta
                 and all("id" in m for m in old_meta)):
-            vecs = _np().load(SEM_DOCVECS)
-            _sem_cache = (vecs, old_meta)
-            return _sem_cache
+            try:
+                vecs = _np().load(SEM_DOCVECS)
+            except Exception:
+                # F-01（2026-11-15）：LFS 指针或半截下载会让 np.load 抛
+                # ValueError（"pickled object data"）——os.path.exists()
+                # 分不清指针与实体。视为缓存未命中，走下方重算；模型也
+                # 不可得时由 _model() 给出可读错误而非崩溃。
+                vecs = None
+            if vecs is not None:
+                _sem_cache = (vecs, old_meta)
+                return _sem_cache
     model = _model()
     vecs = _np().asarray(model.encode([r["text"] for r in rows], batch_size=64,
                                       show_progress_bar=False, normalize_embeddings=True),

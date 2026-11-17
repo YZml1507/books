@@ -779,14 +779,14 @@ def main() -> int:
                 "detail": "; ".join(load_errors[:4]) or "首屏加载零 console.error",
             })
 
-            # R231d（R37-F4/F7）：首访应有新人条；关掉后刷新不再出现。
+            # R6（周期二·首页 IA）：新人条撤销（D-906）——用例不删、名字不变，断言翻转为反向钉扎（不得回潯）。
             try:
                 wv = page.evaluate(
                     "() => { const w = document.getElementById('welcomeBar');"
-                    " return !!(w && w.offsetParent !== null); }")
+                    " return !w; }")
                 results.append({
                     "name": "ui:welcome_bar", "ok": bool(wv),
-                    "detail": "首访新人条存在=%s" % wv})
+                    "detail": "新人条已撤销（R6 反向钉扎）=%s" % wv})
             except Exception as exc:
                 results.append({"name": "ui:welcome_bar", "ok": False,
                                 "detail": f"{type(exc).__name__}: {exc}"})

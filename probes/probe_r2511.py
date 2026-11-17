@@ -74,10 +74,11 @@ _check_chat = re.search(r"def chat\(.*?\n(.*?)\n\s*with _chat_lock",
                         LLM, re.S)
 check("llm.queued_truthful",
       "_task_started" in LLM and
-      re.search(r"with _session_lock\(session_id\):\s*\n\s*"
-                r"# [^\n]*\n(?:\s*#[^\n]*\n)*\s*"
-                r"if _task_started is not None:", LLM),
-      "started 在 _session_lock 内打标")
+      re.search(r"with _held_session_lock\(session_id\):[\s\S]{0,800}?"
+                r"if _task_started is not None:\s*\n\s*_task_started\(\)",
+                LLM),
+      "started 在 _held_session_lock 内打标（S2 勘：_session_lock → "
+      "_held_session_lock 上下文管理器，锁内打标不变量不变）")
 check("llm.queued_caller", "_task_started=_mark_started" in LLM,
       "spawn_chat_task 传回调")
 

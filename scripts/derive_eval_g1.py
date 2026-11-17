@@ -52,7 +52,9 @@ CAPS = {"retrieval": 40, "retrieval_cross": 24, "retrieval_hard": 24,
 
 # 55 条概念级（白话转述）题：D-029 沉淀批，不手写新题（GOAL §4 T1 手写错过两次）。
 # 查询是转述，不逐字存在于语料——gold 是地址，witness 是该地址的 經 文本（在 raw 里）。
-sys.path.insert(0, os.path.join(ROOT, "probes"))
+# S2 修（studio）：R4940 把 probe_t7r_concept 归档进 probes/archive/，
+# 裸 import 随之断裂（ModuleNotFoundError）。补 archive 路径，同源单供不变。
+sys.path.insert(0, os.path.join(ROOT, "probes", "archive"))
 from probe_t7r_concept import PARAPHRASES  # noqa: E402
 CAPS["retrieval_concept"] = len(PARAPHRASES)
 

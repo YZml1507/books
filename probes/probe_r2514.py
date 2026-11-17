@@ -68,7 +68,8 @@ check("css.signpeek_tap",
       and "var(--tap)" in _sp.group(0),
       "文字色+触控下限")
 check("css.pill_ji",
-      ".hl-pill-ji{color:var(--rose-deep)" in CSS, "3.2:1→达标")
+      ".hl-pill-ji{color:#8E2F4C" in CSS,
+      "S2 勘：R3324 把 var(--rose-deep) 换成加深字面量 #8E2F4C，对比度不变量不变")
 
 # --- 7-9. 触控下限 --------------------------------------------------------------------
 check("css.trback_width", ".tr-back{width:40px" in CSS, "34→40px")

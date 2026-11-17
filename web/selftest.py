@@ -2633,7 +2633,7 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)  # R3424 敲敲木鱼卡入格（ansb 后 chat 前）——17 卡（R4939 起 12 张收进更多玩法）
+    assert len(_cards) == 18, ("home.ia.count", len(_cards), _cards)  # R24 我的账号卡入格（history 后）——18 卡（R3424 起 17 卡 + 账号独立入口）
     # R208b：read 卡移除（用户裁决不提供读书渠道）
     # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
     assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
@@ -2642,8 +2642,8 @@ def _run_inner() -> list[str]:
     # R2362（用户直报）：「和小满聊聊」伪视图卡钉在 history 后、抽屉前；
     # R3210：起名上提主格（受众高频），抽屉只留六爻（术语门槛的问事向）。
     assert _cards[6:] == ["xingzuo", "dream", "qiming", "liuyao",
-                          "history", "oracle", "mochi", "qian", "ansb",
-                          "muyu", "chat"], \
+                          "history", "account", "oracle", "mochi", "qian",
+                          "ansb", "muyu", "chat"], \
         ("home.ia.drawer", _cards)
     # R4939（外部评测+用户拍板）：首屏减负——5 主入口可见，12 张副卡
     # 带 func-more 收进「更多玩法」开关（一次点开展全，DOM 序不变）。
@@ -2652,7 +2652,8 @@ def _run_inner() -> list[str]:
         _home_seg)
     assert sorted(_more) == sorted(
         ["taohua", "hehun", "xingzuo", "dream", "qiming", "liuyao",
-         "history", "oracle", "mochi", "qian", "ansb", "muyu"]), \
+         "history", "account", "oracle", "mochi", "qian", "ansb", \
+         "muyu"]), \
         ("home.ia.more", _more)
     _prim = [c for c in _cards if c not in _more]
     assert _prim == ["renge", "tarot", "bazi", "huangli", "chat"], \
@@ -2670,6 +2671,12 @@ def _run_inner() -> list[str]:
     assert "dataset.view === 'chat'" in _appsrc_g and \
         "chatOpen(); return" in _appsrc_g, \
         ("home.ia.chat-card-wiring",)
+    # R6（周期二·首页 IA）：新人条撤销反向钉扎防回潯；日卡动作组必须排在判词之后（“先通读，再带走”，D-906）。
+    assert 'id="welcomeBar"' not in home.text, \
+        ("home.ia.no-welcome-bar",)
+    assert _home_seg.index("daily-ghost-grid") > \
+        _home_seg.index("daily-main"), \
+        ("home.ia.ghost-after-content",)
     ok.append("home.ia")
 
     # threads POST：写一条带**真实引文**的 claim → 回读 → 清理
@@ -5474,6 +5481,23 @@ def _run_inner() -> list[str]:
         ("account.push_updated_at", _r.status_code, _r.text[:200])
     ok.append("account.push_updated_at")
 
+    # R30：账号测试块收尾——自测注册的账号历来不删，data/users.db 堆到
+    # 85 个、其中 83 个是测试残留（用户直报「怎么 81 个账号？怎么这么多」）。
+    # 必须放在本块最后：上面 casefold 去重 / push 冲突 / push_updated_at
+    # 都还要用这个账号，中途删会把它们全废掉。
+    check("account.delete", client.post("/api/account/delete",
+          json={"nickname": _an, "passcode": "246810"}),
+          lambda j: j.get("ok") is True)
+    check("account.delete_bad", client.post("/api/account/delete",
+          json={"nickname": _an + "不存在", "passcode": "246810"}),
+          lambda j: j.get("ok") is False)
+    # 删过再登——应拒，证明真删掉了而不是软标记。
+    _r = client.post("/api/account/login",
+                     json={"nickname": _an, "passcode": "246810"})
+    assert _r.status_code == 200 and not _r.json().get("ok"), \
+        ("account.deleted_gone", _r.status_code, _r.text[:200])
+    ok.append("account.deleted_gone")
+
     # R3424 敲敲木鱼共敲计数器：GET 出今日数，POST 攒批只增——
     # n 上限 500（schema 闸）、越界 422、回读同日期口径。
     _r = client.get("/api/muyu")
@@ -5544,7 +5568,7 @@ def main() -> int:
     ok = run()
     print(f"web self-test PASS ({len(ok)} checks): {', '.join(ok)}")
     for _s in _SKIPPED:
-        print(f"SKIP(env) {_s}")
+        print(f"SKIP(env): {_s}")
     return 0
 
 

@@ -1159,7 +1159,7 @@ function buildQimingResult(j) {
 }
 
 /* R4921（用户直报）：壳内门浮层——与 app.py _GATE_PAGE 同款式同
- * 口径（白卡+🌾+口令框+开门钮+错匙/限速提示）。只在 401 时挂：
+ * 口径（白卡+门熊+口令框+开门钮+错匙/限速提示+好奇熊）。只在 401 时挂：
  * 去重、置顶、回车提交、成功后 reload 让干净导航重新走门页/首页。 */
 function _gateOverlay() {
   var ov = document.getElementById('gateOverlay');
@@ -1173,7 +1173,9 @@ function _gateOverlay() {
     '<div style="background:#fff;margin:0 24px;max-width:320px;width:100%;'
     + 'box-sizing:border-box;padding:32px 28px;border-radius:18px;'
     + 'box-shadow:0 8px 30px rgba(120,80,40,.18);text-align:center">'
-    + '<div style="font-size:34px">🌾</div>'
+    + '<img src="/static/cream/gate-bear.jpg" alt="小满" width=120 '
+    + 'height=120 style="display:block;margin:0 auto 6px;border-radius:20px;'
+    + 'box-shadow:0 4px 14px rgba(120,80,40,.14)">'
     + '<p style="color:#7a6650;margin:10px 0 16px">这里是小满的解忧铺，'
     + '带钥匙的朋友请进～</p>'
     + '<input id="gateKey" type="password" placeholder="口令" '
@@ -1185,12 +1187,18 @@ function _gateOverlay() {
     + 'background:linear-gradient(135deg,#B04E40,#A8435F);color:#fff;'
     + 'font-size:15px;cursor:pointer">开门</button>'
     + '<p id="gateHint" style="color:#c0504a;font-size:13px;margin:10px 0 0;'
-    + 'display:none"></p></div>';
+    + 'display:none"></p>'
+    + '<img id="gateCurious" src="/static/cream/gate-curious.jpg" alt="" '
+    + 'width=72 height=72 loading="lazy" decoding="async" '
+    + 'style="display:none;width:72px;height:72px;margin:12px auto 0;'
+    + 'border-radius:16px;box-shadow:0 3px 10px rgba(120,80,40,.12)"></div>';
   document.body.appendChild(ov);
   var _hint = document.getElementById('gateHint');
   function _gateErr(t) {
     _hint.textContent = t;
     _hint.style.display = 'block';
+    var _cu = document.getElementById('gateCurious');   /* R4：错误态亮好奇熊 */
+    if (_cu) _cu.style.display = 'block';
   }
   function _gateTry() {
     var inp = document.getElementById('gateKey');
@@ -1256,8 +1264,21 @@ if (typeof navigator !== 'undefined' && navigator.serviceWorker &&
   });
 }
 
+/* R26：排盘历史按登录账户归属——后端按 X-Books-Owner 过滤台账。
+ * 账号体系无状态（每次请求重新验昵称+口令），没有会话可依托，
+ * 归属只能由前端带上昵称。未登录时不带头，后端按空归属查。 */
+function _ownerHdr(h) {
+  h = h || {};
+  try {
+    var c = JSON.parse(localStorage.getItem('xmaccount') || 'null');
+    if (c && c.n) h['X-Books-Owner'] =
+      encodeURIComponent(String(c.n));
+  } catch (e) {}
+  return h;
+}
 async function api(path, options) {
   options = options || {};
+  options.headers = _ownerHdr(options.headers);
   /* R228k：fetch 无超时——请求挂起时 busy() 占位与 on() 在途锁永不复位，
    * 只能刷新页面。AbortSignal.timeout 存在就用，否则手工 controller。 */
   var _ctl = null, _t = null, _raceT = null;
@@ -1488,8 +1509,8 @@ function postJSON(path, payload, opts) {
  * 会令旧轮询自动作废，防止慢任务回来后污染新一轮结果。 */
 var RESULT_GEN = {};
 var AI_POLL_INTERVAL_MS = 500;
-var AI_POLL_CAP_S = 125;           // 与后端 _POLL_BUDGET_S(110s)+余量对齐（S4：AMD 端 20s 前摇）
-var NR_POLL_CAP_S = 165;           // 点评链 150s 预算+余量（底卡先行可等）
+var AI_POLL_CAP_S = 230;           // AMD 自部署端实测 100s+，轮询窗对齐后端预算（230s）
+var NR_POLL_CAP_S = 215;           // AMD 自部署端实测 100s+，轮询窗对齐后端点评预算（200s）
                                    // R3243：推理模型拥挤期生成 15-30s/次，
                                    // 40s 帽会在兜底即将成功时提前放弃
 
@@ -3019,9 +3040,38 @@ function sbFocusable(sb, enable) {
 }
 /* R228n：侧栏打开时主区 inert——原来遮罩只挡鼠标，Tab 能穿透到
  * 被盖住的控件（in_modal=false 实测落到 .checkin-opt）。 */
+/* R11（用户直报「和小满聊聊有时候点了打不开」）：侧栏开着时主区
+ * 整块 inert，落在聊天入口上的点击先命中遮罩——document 捕获段按
+ * 「点外面收栏」收掉侧栏，还把紧随的 click 吞了（_swallowPt），
+ * 入口监听器永远收不到：侧栏已开时点入口 / 连点两下 = 死键。
+ * R3258 的 [data-chat-entry] 例外只贴在了侧栏内部按钮，首页三个
+ * 聊天入口（功能卡 / 💭chip / 深拥横幅钮）没贴且被整块 inert 挡住。
+ * 修法：入口打标 + 主区逐子 inert、入口整棵豁免（点击走委托链
+ * chatOpen——正是 R3258 注释说的「入口按钮交给委托链处理」）。
+ * 代价：侧栏开着时 Tab 能到这几个入口——可接受，它们就是制裁过
+ * 的再入口（Enter 即 chatOpen）。模态开（except 在）仍整块 inert。 */
+function _inertTree(root, on, skipSel) {
+  if (!root) return;
+  Array.prototype.forEach.call(root.children, function (c) {
+    if (!c || c.nodeType !== 1) return;
+    if (skipSel && c.matches && c.matches(skipSel)) return;  /* 整棵豁免 */
+    c.inert = on;
+    if (_NO_INERT) sbFocusable(c, !on);
+    _inertTree(c, on, skipSel);
+  });
+}
 function _mainInert(on, except) {
   var w = document.querySelector('.wrap');
-  if (w) { w.inert = on; if (_NO_INERT) sbFocusable(w, !on); }
+  if (w) {
+    if (on && !except) {
+      w.inert = false;
+      _inertTree(w, true, '[data-chat-entry]');
+    } else {
+      w.inert = on;
+      if (!on) _inertTree(w, false, null);   /* 收摊：子树 inert 一并解 */
+      if (_NO_INERT) sbFocusable(w, !on);
+    }
+  }
   /* R233f（R43-P2-9）：.wrap 之外的 body 级浮件（skip-link/welcomeBar/
    * install-tip）此前侧栏/模态开着仍可 Tab 到且被遮罩盖住。除侧栏
    * 三件套（自己管理 inert）与当前模态（except）外统一打 inert。 */
@@ -3033,6 +3083,8 @@ function _mainInert(on, except) {
     if (n === w || n === except || n.nodeType !== 1) return;
     if (n.id && _keep[n.id]) return;
     if (n.classList && n.classList.contains('page-glow')) return;
+    /* R11：body 级聊天入口（深拥横幅）同样豁免——同 .wrap 口径 */
+    if (!except && n.matches && n.matches('[data-chat-entry]')) return;
     n.inert = on;
     if (_NO_INERT) sbFocusable(n, !on);
   });
@@ -4050,6 +4102,12 @@ function showView(viewId) {
    * ——结果已不可见还在发请求。切走即 bump 全部世代号，让 in-flight
    * tick 下一次自查自然终止（同容器新结果 bump 同一键，语义一致）。 */
   Object.keys(RESULT_GEN).forEach(function (k) { RESULT_GEN[k]++; });
+  /* R28-d：记忆卡从「排盘历史」挪进了「我的」——它的渲染原先只在
+     历史视图加载时触发（_loadPaipanHistoryInner 里），挪窝后就
+     再也不刷新，卡片永远是空的。切到账号视图时补一次。 */
+  if (viewId === 'account') {
+    try { if (window.__xmMemRender) window.__xmMemRender(); } catch (eMM) {}
+  }
   var _sy = window.scrollY;
   var isHome = (viewId === 'home');
   /* R3303-P3：跨视图收尾——非错误 toast 是上一视图的回声，跟过去
@@ -6197,12 +6255,15 @@ async function loadDaily() {
           '<span class="dc-text">🃏 今日牌 <b>' + esc(_dc.name) +
           '</b> · ' + (_dc.upright ? '正位' : '逆位') +
           ' <i>' + esc(_dc.keywords || '') + '</i></span>' +
+          /* R12：两枚动作钮包 .dc-acts——窄屏整组换行，不再剩
+           * 一枚孤儿钮独占第二行右侧（详见 styles.css 注释）。 */
+          '<span class="dc-acts">' +
           (_dc.meaning
             ? '<button type="button" class="sign-peek" id="tarotPeekBtn"' +
               ' aria-expanded="false" aria-controls="tarotCard">牌意</button>'
             : '') +
           '<button type="button" class="dc-more" id="dailyCardDraw" ' +
-          'title="抽一组今天的三张牌">抽三张</button>';
+          'title="抽一组今天的三张牌">抽三张</button></span>';
         _dcEl.hidden = false;
         /* 牌意展开卡——数据来自同一份 daily_card（meaning 后端下发）。 */
         var _tc = el('tarotCard');
@@ -6397,20 +6458,6 @@ async function loadDaily() {
     setText('dailyPal', j.noble_liuhe ? _zhiToAnimal(j.noble_liuhe) : '—');
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
-    /* R3264（R32）：今日仪式——宜试试变成可点「做完了」微仪式。 */
-    var _dr = el('dailyRitual');
-    if (_dr) {
-      if (j.do) {
-        var _rdone = '';
-        try { _rdone = localStorage.getItem('ritual:' + todayIso()) || ''; } catch (eR) {}
-        _dr.hidden = false;
-        _dr.textContent = _rdone ? '✅ 已做完' : '✅ 做完了';
-        _dr.disabled = !!_rdone;
-        /* R3322-P2：跨日重渲时清 stay 标——新的一天仪式重新可做。 */
-        if (!_rdone) delete _dr.dataset.stayDisabled;
-        else _dr.dataset.stayDisabled = '1';
-      } else { _dr.hidden = true; }
-    }
     /* R233q：签号上卡——「今日第 N 签」的求签感是小红书日签标配 */
     var _sg = el('dailySignNo');
     if (!_sg) {
@@ -6539,8 +6586,14 @@ async function loadDaily() {
        * 依据由下行日主十神/日支对位行承担，不重复解释。 */
       var _en = j.personal.energy;
       if (_en && _en.score) {
+        /* R19（首页日卡审计）：同卡曾并存两个「今日能量」——首屏那个是
+         * 日辰级次哈希（通版档位内按 日期|生日 取数，app.js:6093），
+         * 这个是日主对今日干支的冲合会局（services.py:15595，42–96）。
+         * 同标签不同算法，用户读成 bug。产品既有「通版/对你」口径
+         * （R3245、开运色「今日通版」），这里补「对你·」前缀，
+         * 两数各归其位；算法一律不动。 */
         _pc2.push('<span class="daily-energy">' +
-          '⚡ 今日能量 ' + esc(_en.score) + ' 分</span> ' +
+          '⚡ 对你·今日能量 ' + esc(_en.score) + ' 分</span> ' +
           esc(_en.line || ''));
       }
       /* R3624：晚间预告——20 点后挂「明天 N 分」轻回访钩；
@@ -7253,6 +7306,12 @@ async function loadDaily() {
       _tmsEl.hidden = !_tmOk;
       _tmsEl._tm = _tmOk ? tm : null;
     }
+    /* R20（用户直报）：dailyTomorrow/dailyTomorrowShare 也在
+     * metaRow.nextSibling 落座且晚于收纳钮创建——实测 390 档把
+     * 「+N 条」挤到「明天」块之后，跟它管的那排药丸隔了 112px。
+     * 补一次收口：_dailyMetaCap 的 else 分支会把钮重排回药丸流
+     * 正后方，控制钮与受控粒恒相邻。 */
+    if (typeof _dailyMetaCap === 'function') _dailyMetaCap();
     /* R39-P1-1：昨天问过的事接续条——hlask 足迹出黄历页，上首页。 */
     var _recEl = el('dailyRecall');
     if (!_recEl) {
@@ -14442,18 +14501,50 @@ function _thrMirrorDrop(id) {
     localStorage.setItem(_THR_MIRROR_KEY, JSON.stringify(m));
   } catch (e) {}
 }
-var _PH_MIRROR_KEY = 'paipan_mirror_v1';
+/* R26（用户裁决「登录哪个账户就应该显示哪个账户里面的排盘历史」）：
+ * 镜像此前是全局键 paipan_mirror_v1——同一台浏览器换账户登录，
+ * 排盘历史里躺的还是上一个人排的盘。改成按账户分键。 */
+function _phOwnerTag() {
+  try {
+    var c = JSON.parse(localStorage.getItem('xmaccount') || 'null');
+    return (c && c.n) ? String(c.n).trim().toLowerCase() : '_guest';
+  } catch (e) { return '_guest'; }
+}
+function _phMirrorKey() { return 'paipan_mirror_v1:' + _phOwnerTag(); }
+function _phMirrorDelKey() { return 'paipan_mirror_del_v1:' + _phOwnerTag(); }
+var _PH_MIGRATED = false;
+/* 一次性迁移：老全局键里的留档归到当前登录账户名下，然后撤掉全局键——
+ * 否则下一个账户会继承上一个人留下的记录。未登录不迁（避免把
+ * 别人的留档记到 _guest 头上）。 */
+function _phMirrorMigrate() {
+  if (_PH_MIGRATED || _phOwnerTag() === '_guest') return;
+  _PH_MIGRATED = true;
+  try {
+    var _k = _phMirrorKey(), _kd = _phMirrorDelKey();
+    var _g = 'paipan_mirror_v1', _gd = 'paipan_mirror_del_v1';
+    if (localStorage.getItem(_k) === null &&
+        localStorage.getItem(_g) !== null) {
+      localStorage.setItem(_k, localStorage.getItem(_g));
+      localStorage.removeItem(_g);
+    }
+    if (localStorage.getItem(_kd) === null &&
+        localStorage.getItem(_gd) !== null) {
+      localStorage.setItem(_kd, localStorage.getItem(_gd));
+      localStorage.removeItem(_gd);
+    }
+  } catch (e) {}
+}
 /* R2400（R127-P1-1）：墓碑独立小键——镜像整体写不下/被禁写时
  * 「本机已删」仍记得住，不然清盘后删掉的记录借镜像复活。
  * 值记原记录 ts：清盘后 id 重排，同号新记录 ts 不同不被误压。 */
-var _PH_MIRROR_DEL_KEY = 'paipan_mirror_del_v1';
+/* R26：见 _phMirrorDelKey()——按账户分键。 */
 function _phMirrorDelLoad() {
   /* R2502：补形状闸——全站镜像读端唯一没校验的地方。键被写成合法但
    * 非对象的 JSON（5/"x"/[1]）时 d[id] 静默写不进 → 墓碑丢失 → 清盘后
    * 已删记录借镜像复活（正是本键要防的事故）。对齐 _phMirrorLoad 等
    * 读端形状校验口径。 */
   try {
-    var _d = JSON.parse(localStorage.getItem(_PH_MIRROR_DEL_KEY) || '{}');
+    var _d = JSON.parse(localStorage.getItem(_phMirrorDelKey()) || '{}');
     return (_d && typeof _d === 'object' && !Array.isArray(_d)) ? _d : {};
   } catch (e0) { return {}; }
 }
@@ -14463,7 +14554,7 @@ function _phMirrorDelMark(id, ts) {
     d[String(id)] = String(ts || '');
     var ks = Object.keys(d);
     if (ks.length > 200) ks.slice(0, ks.length - 200).forEach(function (k) { delete d[k]; });
-    localStorage.setItem(_PH_MIRROR_DEL_KEY, JSON.stringify(d));
+    localStorage.setItem(_phMirrorDelKey(), JSON.stringify(d));
   } catch (e1) {}
 }
 var _MIRROR_WARNED = false;
@@ -14474,8 +14565,9 @@ function _mirrorWriteWarn() {
   try { showToast('浏览器不让存本机留档（隐私模式？），关了这页就留不下', 'warn'); } catch (e0) {}
 }
 function _phMirrorLoad() {
+  _phMirrorMigrate();
   try {
-    var _m = JSON.parse(localStorage.getItem(_PH_MIRROR_KEY) || 'null');
+    var _m = JSON.parse(localStorage.getItem(_phMirrorKey()) || 'null');
     /* R3470-2：items/details 只验真不验形——写成 "x"/[1] 这类合法
      * JSON 也放行，随后 Object.keys(字符串) 产出幽灵键、delete 静默
      * 无效，镜像污染整条归档链。补形状闸（对象且非数组）。 */
@@ -14578,8 +14670,8 @@ function _phMirrorSave(m) {
     }
     var _s = JSON.stringify(m);
     /* 同值不写——跨 tab storage 事件会因无变化写入互相唤起打转 */
-    if (localStorage.getItem(_PH_MIRROR_KEY) !== _s) {
-      localStorage.setItem(_PH_MIRROR_KEY, _s);
+    if (localStorage.getItem(_phMirrorKey()) !== _s) {
+      localStorage.setItem(_phMirrorKey(), _s);
     }
   } catch (e1) {
     /* R2400（R138-P2-3）：超限改 LRU 逐条淘汰——此前一刀切删全部
@@ -14590,12 +14682,12 @@ function _phMirrorSave(m) {
       var _oldest = _ord.shift();
       delete m.details[_oldest];
       m.dorder = (m.dorder || []).filter(function (k) { return k !== _oldest; });
-      try { localStorage.setItem(_PH_MIRROR_KEY, JSON.stringify(m)); _ok = true; }
+      try { localStorage.setItem(_phMirrorKey(), JSON.stringify(m)); _ok = true; }
       catch (e2) {}
     }
     if (!_ok) {
       try { m.details = {}; m.dorder = [];
-        localStorage.setItem(_PH_MIRROR_KEY, JSON.stringify(m)); _ok = true;
+        localStorage.setItem(_phMirrorKey(), JSON.stringify(m)); _ok = true;
       } catch (e3) {}
     }
     if (!_ok) _mirrorWriteWarn();
@@ -14611,7 +14703,7 @@ function _phMirrorList(m, items) {
       try {                                        /* 盘上小键同步摘 */
         var _dd = _phMirrorDelLoad();
         delete _dd[String(it.id)];
-        localStorage.setItem(_PH_MIRROR_DEL_KEY, JSON.stringify(_dd));
+        localStorage.setItem(_phMirrorDelKey(), JSON.stringify(_dd));
       } catch (eD) {}
     }
     /* R2400（R138-P1-2）：复合键 id|ts——同 id 不同 ts 并存不互顶。
@@ -14688,8 +14780,8 @@ function _phMirrorDrop(m, id) {
   });
 }
 function _phMirrorClear() {
-  try { localStorage.removeItem(_PH_MIRROR_KEY); } catch (e0) {}
-  try { localStorage.removeItem(_PH_MIRROR_DEL_KEY); } catch (e1) {}
+  try { localStorage.removeItem(_phMirrorKey()); } catch (e0) {}
+  try { localStorage.removeItem(_phMirrorDelKey()); } catch (e1) {}
 }
 /* R2400（R138-P0-1）：从排盘镜像聚合抽过的塔罗牌名——清盘后图鉴
  * 不再谎称 0/78。 */
@@ -17017,30 +17109,6 @@ function initDivination() {
     }
     return null;
   });
-  /* R3264（R32）：今日仪式——点击即本地记录，不打卡不断签。 */
-  on('dailyRitual', function () {
-    try {
-      var _rtK = 'ritual:' + todayIso();
-      if (!localStorage.getItem(_rtK)) {
-        /* R3801：ritual: 同属 150 天 GC 族——年报「完成仪式」
-         * 年级口径封顶 ~150，rtY:YYYY 永久汇总。 */
-        try {
-          var _rtY = 'rtY:' + todayIso().slice(0, 4);
-          localStorage.setItem(_rtY,
-            String((+localStorage.getItem(_rtY) || 0) + 1));
-        } catch (eRT) {}
-      }
-      localStorage.setItem(_rtK, '1');
-    } catch (eR) {}
-    var _dr2 = el('dailyRitual');
-    if (_dr2) {
-      _dr2.textContent = '✅ 已做完'; _dr2.disabled = true;
-      /* R3322-P2：终态禁用——guardedCall 收尾不许复位（重复点重复弹）。 */
-      _dr2.dataset.stayDisabled = '1';
-    }
-    _microCelebrate(_dr2);
-    showToast('小满记下了，今天你做了一件小事～' + '\n' + _identityPhrase(), 'ok');
-  });
 }
 
 /* ── R230z（R36）：favorites 窄面接线 + 历史全品类 + 问一嘴足迹 ─────────
@@ -17532,10 +17600,67 @@ function _phApplyFilter() {
     it.style.display = (!_phTypeFilter ||
       it.getAttribute('data-type') === _phTypeFilter) ? '' : 'none';
   });
+  /* S6：分组标签随筛选显隐——标签后到下一个标签前没有可见行就藏。 */
+  document.querySelectorAll('#historyList .ph-group-label').forEach(function (lb) {
+    if (!_phTypeFilter) { lb.style.display = ''; return; }
+    var _n = lb.nextElementSibling, _vis = false;
+    while (_n && !_n.classList.contains('ph-group-label')) {
+      if (_n.classList.contains('ph-item') && _n.style.display !== 'none') {
+        _vis = true; break;
+      }
+      _n = _n.nextElementSibling;
+    }
+    lb.style.display = _vis ? '' : 'none';
+  });
 }
 
+/* S6：hero 右侧每日一句——按年内第几天确定性选句（同一天恒定，
+ * 跨日自动换；零 API 依赖，不参与任何命理计算，纯氛围层）。 */
+var _HERO_LINES = [
+  '事缓则圆，今晚先好好吃饭',
+  '把烦心事折小，装进今晚的梦里',
+  '运势这东西，信一半，努力一半',
+  '今日宜：把自己放在第一位',
+  '慢慢来，好戏在后头',
+  '心宽一寸，路宽一丈',
+  '今天的运气，从你推门进来开始',
+  '山水总相逢，急什么',
+  '先把茶喝了，再想怎么办',
+  '月亮缺了还会圆，你也可以',
+  '凡事发生，皆有利于你',
+  '该是你的跑不掉，不是你的求不来',
+  '今天也值得被温柔对待',
+  '烦恼不入夜，睡前清零',
+  '好运在路上，堵车了',
+  '花开有期，你也是',
+  '把日子过成自己喜欢的样子',
+  '天塌不下来，先喘口气',
+  '急事慢慢说，大事稳稳做',
+  '所有的相遇，都是久别重逢',
+  '今天的不开心，就到这里吧',
+  '心存善意，途遇天使',
+  '夜再黑，也拦不住天亮',
+  '你尽管善良，福气在路上'
+];
+function fillHeroLine() {
+  var _tx = document.getElementById('heroLineText');
+  if (!_tx) return;
+  var _now = new Date();
+  var _dt = document.getElementById('heroLineDate');
+  if (_dt) {
+    _dt.textContent = (_now.getMonth() + 1) + '月' + _now.getDate() + '日 · 星期'
+      + '日一二三四五六'.charAt(_now.getDay());
+  }
+  var _start = new Date(_now.getFullYear(), 0, 0);
+  var _idx = Math.floor((_now - _start) / 86400000) % _HERO_LINES.length;
+  _tx.textContent = _HERO_LINES[_idx];
+}
 function init() {
   applyTheme(uiTheme());       // 003 判据 12：加载时应用已保存的主题
+  /* R21（用户直报）：全站登录闸放在 init 第一件事——已登录则收起登录墙、
+   * 账号卡归位；未登录则墙一直在（HTML 里默认可见，fail-closed）。
+   * 必须早于任何视图渲染，否则会闪一下裸站。 */
+  if (typeof _authGate === 'function') _authGate();
   /* R198b（US4）：时辰感知背景——按本地小时设五档 daypart。
    * 纯属性设置零动画；不读时钟入任何计算结果（voice 硬纪律不受影响）。 */
   var _applyDaypart = function () {
@@ -17554,6 +17679,7 @@ function init() {
   };
   _applySeason();
   _applyDaypart();
+  fillHeroLine();   // S6：hero 每日一句
   /* R3264（R44）：系统主题变化监听——当前主题为 system 时自动切换。 */
   try {
     var _mql = matchMedia('(prefers-color-scheme: dark)');
@@ -17682,6 +17808,11 @@ function init() {
     var _inertSibs = function () {
       if (!_card0 || _mini) return;   /* mini 缎带不遮内容，无需 inert */
       Array.prototype.forEach.call(_card0.children, function (c) {
+        /* R20（用户直报）：顶行豁免 inert——账号钮必须在封面没拆时就点
+         * 得到，否则最需要注册的新用户反而被挡住（实测 click 直接报
+         * "element is inert"，账号入口形同虚设）。顶行里只有账号钮是
+         * 可交互的（问候/日期/礼盒图都不是控件），整行豁免无副作用；
+         * 封面点击门槛 _tryReveal 一行未动。 */
         if (c !== _cov && !c.hasAttribute('inert')) c.setAttribute('inert', '');
       });
     };
@@ -17772,6 +17903,31 @@ function init() {
     if (!_ask) return;
     var _meA = _meGet('me');
     var _hasMe = !!(_meA && _meA.y && _meA.m && _meA.d);
+    /* R34（用户实测「刷新时功能区出现小空隙、多刷几次又没了」）：
+     * 冷启动时云端拉回尚未落地，_meGet('me') 为空——此前据此判
+     * 「没档案」→ 取消隐藏 195px 的生辰副卡 → 工具区被顶下去约
+     * 210px；等拉回落地再判一次又藏回去，整页回跳。缓存热时 me
+     * 即刻在本机，看不出问题，正是「多刷几次又没了」的由来。
+     * 已登录但档案还没到的窗口里先保持隐藏，等档案落地再判；连等
+     * 四轮（约 6s）仍没有才放行——多半离线或真没档案，此时晚出现
+     * 也远好过先跳一下再收回。 */
+    if (!_hasMe) {
+      if (!_ask.dataset.waitPull) {
+        _ask.dataset.waitPull = '1';
+        _ask.hidden = true;
+        var _n = 0;
+        (function _w() {
+          setTimeout(function () {
+            var _m = _meGet('me');
+            if (_m && _m.y && _m.m && _m.d) { _ask.hidden = true; return; }
+            if (++_n < 4) { _w(); return; }
+            _ask.hidden = false;
+            _bindDailyAsk();
+          }, 1500);
+        })();
+        return;
+      }
+    }
     _ask.hidden = _hasMe;
     if (_hasMe) return;
     if (_ask.dataset.bound) return;         /* 幂等——重复调用只刷显隐 */
@@ -17939,6 +18095,8 @@ function init() {
   })();
   _bindDailyAsk();
   window.__mountDailyCover = _mountDailyCover;
+  /* R34：供云端拉回落地后同步重判生辰副卡显隐用 */
+  window.__syncDailyAsk = _bindDailyAsk;
   loadDaily();
   /* R2349（R65-P1-4）：iOS 不发 beforeinstallprompt——第二次来访
    * 起主动弹手动装桌面引导（首访不打扰）。延迟到 loadDaily 之后
@@ -18220,7 +18378,7 @@ function init() {
       try { _qmFavsRender(); } catch (eF2) {}
       return;
     }
-    if (e.key === _PH_MIRROR_KEY || e.key === _PH_MIRROR_DEL_KEY) {
+    if (e.key === _phMirrorKey() || e.key === _phMirrorDelKey()) {
       /* R2502：跨 tab 被动刷新不清正在读的详情（行没了才收）。 */
       try { if (window.__loadPaipanHistory) window.__loadPaipanHistory(true); }
       catch (eP) {}
@@ -22385,9 +22543,11 @@ function _renderMoodRow(lv) {
       _calHtml += '<span class="mood-journey">🏺 ' +
         esc(_mtxt) + '</span>';
     }
-    /* 心情周记入口——打卡区小链，点进出「这周的你」周记卡视图。
-     * 独占一行右对齐——塞在心情历行尾会被挤成竖条还戳出卡缘。 */
-    _calHtml += '<span class="mood-week-link-wrap">' +
+    /* 心情周记入口——R15-L1（用户实测「这一块很影响用户体验」）：
+     * 两颗链串出心情历，桌面端与问题/表情钮收成一条工具栏（右侧成组，
+     * 不再被两个 auto 边距撑到整行两端）；手机端 order:1 归位，仍排
+     * 心情历之后，阅读顺序不变。首链挂 mood-links-lead 供 CSS 推右。 */
+    var _linkHtml = '<span class="mood-week-link-wrap mood-links-lead">' +
       '<button type="button" class="mood-week-link">' +
       '📒 看看这周的你 →</button></span>';
     /* R3607：补记昨天（Lunary backfill 同构）——昨天没记过
@@ -22400,12 +22560,13 @@ function _renderMoodRow(lv) {
       var _yV = null;
       try { _yV = localStorage.getItem('mood:' + _yIso); } catch (eYV) {}
       if (_yV === null || _yV === '') {
-        _calHtml += '<span class="mood-week-link-wrap">' +
+        _linkHtml += '<span class="mood-week-link-wrap">' +
           '<button type="button" class="mood-backfill" data-d="' +
           _yIso + '">补记昨天 →</button></span>';
       }
     } catch (eBF) {}
     mc.innerHTML = _calHtml;
+    if (_linkHtml) (el('moodAns') || mc).insertAdjacentHTML('beforebegin', _linkHtml);
   }
   if (picked !== '') _moodShowAnswer(+picked, lv);
   if (!row.dataset.bound) {
@@ -22492,13 +22653,25 @@ function _dailyMetaCap() {
   if (!_more) {
     _more = document.createElement('button');
     _more.id = 'dailyMetaMore'; _more.type = 'button';
-    _more.className = 'daily-meta-item daily-meta-more';
-    _metaRow.appendChild(_more);
+    /* R20（用户直报）：移出药丸流——自立安静文本行，不再跟内容粒
+     * 共用 daily-meta-item class（否则长得像「开运色」一样是颗药丸，
+     * 展开态又被 appendChild 埋到参差药丸尽头，位置随 wrap 浮动）。 */
+    _more.className = 'daily-meta-more';
+    _metaRow.parentNode.insertBefore(_more, _metaRow.nextSibling);
     _more.addEventListener('click', function () {
       _metaRow.dataset.expanded =
         _metaRow.dataset.expanded === '1' ? '' : '1';
       _dailyMetaCap();
     });
+  } else {
+    /* R20（用户直报）：旧版钮 appendChild 在 .daily-meta 里、还带
+     * daily-meta-item class——就地迁出自立行并去掉药丸 class，
+     * 老会话不必等节点重建（id 不变，事件监听留着）。 */
+    _more.className = 'daily-meta-more';
+    if (_more.parentNode !== _metaRow.parentNode ||
+        _more.previousElementSibling !== _metaRow) {
+      _metaRow.parentNode.insertBefore(_more, _metaRow.nextSibling);
+    }
   }
   _more.hidden = false;
   /* R3431-P3-6（审）：隐藏数分母应用未 pin 集——6 常驻+1 pinned
@@ -23744,6 +23917,9 @@ function renderCheckin(dateKey) {
     /* R3317-E：信卡收下钮——本周不再弹。 */
     '<div class="checkin-fx" id="checkinFx" aria-live="polite">' +
     (saved ? pickCheckinFeedback(saved, dateKey) : '') + '</div>' +
+    /* R12：打卡小钮 2 列网格容器——inline-block 空白符致逐枚换行，
+     * 右侧拉三条空带（详见 styles.css .ck-share-row 注释）。 */
+    '<div class="ck-share-row">' +
     /* R231d（R37-F15）：连签 ≥3 天给「晒连签」出口——里程碑文案不外溢
      * 就没拉新价值。 */
     /* R233n（R47-Top5-2）：打卡签首日即可晒——原来要等连签 ≥3 天，
@@ -23819,7 +23995,7 @@ function renderCheckin(dateKey) {
         catch (e) { return false; }
       })() ? '每天来都喊你' : '每天开张喊我') + '</button>' +
     '<button type="button" class="checkin-share" id="shopShare" ' +
-      'title="把这铺子发给闺蜜">📮 安利铺子</button>' +
+      'title="把这铺子发给闺蜜">📮 安利铺子</button></div>' +
     /* R233p（R47-P2）：签册——存量 checkin:* 渲成可回看的迷你签墙
      * （details 懒渲染，点开才算 DOM；集齐感是小红书留存钩子）。
      * R2350f（R102-P2-9）：零打卡用户也渲染——集齐线首日就得亮相，
@@ -24971,13 +25147,26 @@ function _renderMeStrip() {
   var partner = _meGet('me:partner');
   /* R233n（R47-Top5-4）：有昵称就喊名字——「小鱼的小档案」比
    * 「你的小档案」更像为她开的铺。 */
-  var txt = '🧸 ' + (me.n ? me.n + ' 的小档案' : '你的小档案') +
+  /* R25（用户直报）：头像才是身份标识，🧸 emoji 是重复装饰——去掉，
+   * 头像同时放大到 40px（原来 26px 在近千像素宽的档案行里等于没有）。 */
+  var txt = (me.n ? me.n + ' 的小档案' : '你的小档案') +
     ' · ' + me.y + '年' + me.m + '月' + me.d + '日' +
     (me.lunar ? '（' + me.lunar + '）' : '') +
     '（测算时自动代入）';
   if (ck) txt += ' · 打过 ' + ck + ' 次卡';
   if (partner && partner.y) txt += ' · 也存了TA的';
-  box.innerHTML = '<span class="daily-me-txt">' + esc(txt) + '</span>' +
+  /* R22d：档案行带头像——me.av 随备份走，日常视图也看得见 */
+  /* R26：兜底走全局唯一一份（window.__avatarOf 定义在 _dailyAcctText
+   * 之前，早于本渲染函数执行，不存在 R25 那个「全局还没挂上」的时序坑）。 */
+  var _av = '';
+  try { _av = __avatarOf(); } catch (eA) {}
+  if (!_av && me.n) {
+    try { _av = __avatarPick(me.n, me.g === 'm' ? 'm' : 'f'); } catch (eP) {}
+  }
+  _av = String(_av).replace(/[^a-z0-9.\-_]/gi, '');
+  box.innerHTML = (_av ? '<img class="daily-me-face" src="/static/avatars/' +
+      _av + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+    '<span class="daily-me-txt">' + esc(txt) + '</span>' +
     '<button type="button" class="daily-me-edit">改</button>';
   var btn = box.querySelector('.daily-me-edit');
   if (btn) btn.addEventListener('click', function () {
@@ -24993,6 +25182,129 @@ function _renderMeStrip() {
   });
   box.hidden = false;
 }
+/* R21（用户直报）：全站登录墙——不登录看不到任何内容。
+ * 做法是把 #accountCard 这个既有节点提到 #authWall 里当全屏登录面板，
+ * 而不是复制一份表单：卡内注册/登录/同步/拉回/退出全部 getElementById
+ * 绑定，复制必撞 ID。登录成功后归位回 #acctSlot（排盘历史视图内）。
+ * 主区 inert 用 body 逐子节点打标，比 inertTree 更硬——连侧栏/模态/
+ * FAB 一起锁，不留 Tab 穿透。 */
+function _authGate() {
+  var wall = el('authWall'), card = el('accountCard'), slot = el('acctSlot');
+  if (!wall || !card) return;
+  /* 不能调 _creds()——它住在账号 IIFE 里，模块作用域看不见，调用会抛
+   * ReferenceError 并被上面的 try/catch 静默吞掉，c 恒为 null，闸永远
+   * 不收（本轮实测：注册成功、凭据已落盘 xmaccount，墙就是不隐藏）。
+   * 这里按同一把键、同一份 {n,p} 格式直读，与 _creds 判据保持一致。 */
+  var c = null;
+  try {
+    var _cj = JSON.parse(localStorage.getItem('xmaccount') || 'null');
+    c = (_cj && _cj.n && _cj.p) ? _cj : null;
+  } catch (eC) {}
+  var on = !!c;
+  var _ae = el('acctEmpty');
+  if (on) {
+    if (slot && card.parentNode !== slot) slot.appendChild(card);
+    wall.hidden = true;
+    document.body.classList.remove('auth-locked');
+    /* R24：账号卡归位到 #view-account 的 #acctSlot，空态提示同步收起来 */
+    if (_ae) _ae.hidden = true;
+  } else {
+    if (card.parentNode !== wall) wall.appendChild(card);
+    if (_ae) _ae.hidden = false;
+    wall.hidden = false;
+    document.body.classList.add('auth-locked');
+  }
+  Array.prototype.forEach.call(document.body.children, function (n) {
+    if (n === wall) return;
+    try { n.inert = !on; } catch (eI) {}
+  });
+  if (typeof _dailyAcctText === 'function') _dailyAcctText();
+}
+
+/* R20（用户直报）：账号钮文案——未登录「🔐 账号」，已登录显昵称。
+ * _acctRender 末尾调一次，登录/退出/换号即时反映。 */
+/* R26（用户直报「右上角用户名旁边加个锁而不是加个头像」）：🔓 那个
+ * 开锁表情就是用户说的「锁」。头像兜底收成**全局唯一一份**——原先
+ * 档案行内联一份、账号 IIFE 里一份，算法漂移就会两张脸。 */
+function __avatarPick(n, g) {
+  var _POOL = {
+    f: ['avatar-f1.jpg', 'avatar-f2.jpg', 'avatar-f3.jpg',
+        'avatar-f4.jpg', 'avatar-f5.jpg', 'avatar-f6.jpg'],
+    m: ['avatar-m1.jpg', 'avatar-m2.jpg', 'avatar-m3.jpg']
+  };
+  var _pl = _POOL[(g === 'm') ? 'm' : 'f'], _h = 0, _s = String(n || '');
+  for (var i = 0; i < _s.length; i++) {
+    _h = (_h * 31 + _s.charCodeAt(i)) & 0x7fffffff;
+  }
+  return _pl[_h % _pl.length];
+}
+window.__avatarPick = __avatarPick;
+function __avatarOf() {
+  var _av = '', _n = '', _g = 'f';
+  try {
+    var _m = JSON.parse(localStorage.getItem('me') || 'null');
+    if (_m) {
+      _av = _m.av ? String(_m.av).replace(/[^a-z0-9.\-_]/gi, '') : '';
+      _n = _m.n ? String(_m.n) : '';
+      if (_m.g === 'm' || _m.g === 'f') _g = _m.g;
+    }
+  } catch (e) {}
+  return _av || __avatarPick(_n, _g);
+}
+window.__avatarOf = __avatarOf;
+function _dailyAcctText() {
+  var b = el('dailyAcct');
+  if (!b) return;
+  /* 同 _authGate：_creds() 在账号 IIFE 里，模块作用域调不到，
+   * try/catch 会把 ReferenceError 静默吞成「永远未登录」。直读同一把键。 */
+  var c = null;
+  try {
+    var _cj = JSON.parse(localStorage.getItem('xmaccount') || 'null');
+    c = (_cj && _cj.n && _cj.p) ? _cj : null;
+  } catch (e) {}
+  var n = (c && c.n) ? String(c.n) : '';
+  /* R26：把开锁表情换成真头像——用户名旁边该是一张脸，不是一把锁 */
+  var _av = '';
+  try { _av = __avatarOf(); } catch (eAv) {}
+  if (!_av && n) _av = __avatarPick(n, 'f');
+  _av = String(_av).replace(/[^a-z0-9.\-_]/gi, '');
+  if (n) {
+    b.innerHTML = '<img class="daily-acct-face" src="/static/avatars/' + _av +
+      '" alt="" onerror="this.style.display=\'none\'">' +
+      '<span class="daily-acct-name">' + esc(n) + '</span>';
+  } else {
+    b.textContent = '🔐 账号';
+  }
+  b.classList.toggle('is-on', !!n);
+  b.title = n ? ('已登 ' + n + ' · 点我管账号/同步') :
+    '登录 / 注册——填好生辰，礼物直接拆';
+}
+(function () {
+    var _da = el('dailyAcct');
+    if (!_da || _da.dataset.bound) return;
+    _da.dataset.bound = '1';
+    _dailyAcctText();
+    _da.addEventListener('click', function () {
+      /* 切视图 → 滚到账号卡 → 一次柔光高亮（不新增第二个账号入口，
+       * 只把既有那一处的可达性修好）。 */
+      /* R26（用户原话「点右上角用户名进的是排盘历史，但不对，
+       * 应该进用户的个人信息」）：目标改到 #view-account。 */
+      if (typeof showView === 'function') showView('account');
+      var _c = el('accountCard');
+      if (!_c) return;
+      try {
+        _c.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } catch (eS) {}
+      _c.classList.remove('acct-flash');
+      /* 强制重排让动画能在连续点击时重放 */
+      try { void _c.offsetWidth; } catch (eR) {}
+      _c.classList.add('acct-flash');
+      setTimeout(function () { _c.classList.remove('acct-flash'); }, 1600);
+      var _n = el('acctNick');
+      if (_n && _n.focus) { try { _n.focus({ preventScroll: true }); } catch (eF) {} }
+    });
+  })();
+
 /* R231g（R39-P2-3）：聊天空态个性化——存过档案的用户，chips 换成
  * 跟自己相关的入口（本命盘/合不合/接着上次问）。 */
 function _chatChipsPersonalize() {
@@ -28259,6 +28571,8 @@ function baziPersonaCard(j) {
 (function () {
   'use strict';
   async function phFetch(url, opts) {
+    opts = opts || {};
+    opts.headers = _ownerHdr(opts.headers);
     /* R228k：与 api() 同款的 20s 超时——raw fetch 也不能让排盘历史
      * 的 busy/在途态永远卡住。
      * R230l（R24-P3-1）：AbortSignal.timeout 需 2022 中后浏览器——
@@ -28322,7 +28636,9 @@ function baziPersonaCard(j) {
           b.push(m.y + ' 年 ' + m.m + ' 月 ' + m.d + ' 日' +
             (m.lunar ? '（农历）' : ''));
         }
-        if (m.g) b.push(m.g);
+        /* R28-e：m.g 是内部码（f/m），直接拼进摘要就是「· f ·」——
+           用户在原话里点过这类裸码难看，转成中文再出。 */
+        if (m.g) b.push(m.g === 'm' ? '男生' : '女生');
         if (m.y && (m.h == null || m.h === '')) b.push('时辰不知道');
         return b.join(' · ');
       } },
@@ -28508,6 +28824,10 @@ function baziPersonaCard(j) {
     } catch (eN) {}
     return '';
   }
+  /* R28-d：记忆卡挪进「我的」视图后，showView 需要从外部触发它——
+     函数在 IIFE 里不全局，先挂一个包装（包装只在被调用时才解引用，
+     函数声明的提升保证那时 _xmMemRender 已存在）。 */
+  window.__xmMemRender = function () { return _xmMemRender(); };
   function _xmMemRender() {
     var _memBx = document.getElementById('memBody');
     if (!_memBx) return;
@@ -28653,6 +28973,111 @@ function baziPersonaCard(j) {
       });
     });
   }
+  /* S6：历史台账分页 + 日期分组。首屏 _PH_PAGE 条按「今天/昨天/
+   * 日期」分组插标签；云端按 offset 续拉（list_records 原生支持），
+   * 本机镜像行每屏合并重排。状态挂在模块级，供「加载更多」续用。 */
+  var _PH_PAGE = 20;
+  var _phPgCloud = [];   /* 已拉到的云端条目 */
+  var _phPgLocal = [];   /* 镜像里云端没有的行 */
+  var _phPgTotal = 0;    /* 云端总条数（API total） */
+  /* S6：ts → 分组标签（今天/昨天/M月D日/YYYY年M月D日） */
+  function _phDateLabel(ts) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ts || ''));
+    if (!m) return '';
+    var now = new Date();
+    var _pad = function (n) { return String(n).padStart(2, '0'); };
+    var _dstr = m[1] + '-' + m[2] + '-' + m[3];
+    var _today = now.getFullYear() + '-' + _pad(now.getMonth() + 1) + '-' + _pad(now.getDate());
+    var _y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    var _ystd = _y.getFullYear() + '-' + _pad(_y.getMonth() + 1) + '-' + _pad(_y.getDate());
+    if (_dstr === _today) return '今天';
+    if (_dstr === _ystd) return '昨天';
+    if (m[1] === String(now.getFullYear())) return parseInt(m[2], 10) + '月' + parseInt(m[3], 10) + '日';
+    return m[1] + '年' + parseInt(m[2], 10) + '月' + parseInt(m[3], 10) + '日';
+  }
+  /* S6：单行模板——从原 _rows.map 里原样搬出，分组/分页复用 */
+  function _phRowHtml(it, localIds) {
+    const ts = _fmtWhen(it.ts);
+    const q = it.question ? '<span class="ph-q">问：' + esc(it.question) + '</span>' : '';
+    /* R230z（R36-P1-1）：品类徽标——历史不再只收命盘
+     * R2349j（R71-P2）：未知 type 不原值上屏（技术字段名出戏）。 */
+    const tLabel = _PH_TYPE_LABEL[it.type] || '记录';
+    const render = (it.result_summary && it.result_summary.paipan_render) || '';
+    var _mir = localIds[String(it.id) + '|' + String(it.ts || '')] ? ' data-mirror="1"' : '';
+    return '<div class="ph-item" data-id="' + esc(String(it.id)) + '"' + _mir +
+      /* R3200：类型筛选——行元素带 type 供 chip 隐藏过滤 */
+      ' data-type="' + esc(it.type || 'bazi') + '">' +
+      '<div class="ph-head"><span class="ph-type ph-t-' + esc(it.type || 'bazi') + '">' +
+      esc(tLabel) + '</span>' +
+      '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
+      '<span class="ph-ts">' + esc(ts) + '</span>' +
+      (localIds[String(it.id) + '|' + String(it.ts || '')]
+        ? '<span class="ph-type" style="opacity:.7;">本机留档</span>' : '') +
+      '</div>' + q +
+      '<div class="ph-render">' + esc(render) + '</div>' +
+      '<div class="ph-actions"><button type="button" class="ghost ph-open">查看</button>' +
+      '<button type="button" class="ghost ph-del">删除</button></div></div>';
+  }
+  /* S6：分组重绘——标签插在行间（不套容器，类型筛选显隐逻辑不变）。
+   * 云端没拉完时尾部挂「加载更多」。 */
+  function _phPaintList(listEl, preserveDetail) {
+    var _localIds = {};
+    _phPgLocal.forEach(function (r) {
+      _localIds[String(r.id) + '|' + String(r.ts || '')] = 1;
+    });
+    var _rows = _phPgCloud.concat(_phPgLocal);
+    if (_rows.length !== _phPgCloud.length) {
+      _rows.sort(function (a, b) {
+        return String(b.ts || '').localeCompare(String(a.ts || ''));
+      });
+    }
+    var _html = '', _last = null;
+    _rows.forEach(function (it) {
+      var _lb = _phDateLabel(it.ts) || '更早';
+      if (_lb !== _last) {
+        _html += '<div class="ph-group-label">' + esc(_lb) + '</div>';
+        _last = _lb;
+      }
+      _html += _phRowHtml(it, _localIds);
+    });
+    if (_phPgCloud.length < _phPgTotal) {
+      var _left = _phPgTotal - _phPgCloud.length;
+      _html += '<div class="ph-more"><button type="button" class="ghost"' +
+        ' id="phMoreBtn">加载更多（还有 ' + _left + ' 条）</button></div>';
+    }
+    listEl.innerHTML = _html;
+    /* R2502：被动刷新保留详情——但若正在读的那条已被别 tab 删掉，
+     * 行没了就收详情（留死详情比清屏更糟）。 */
+    var detailEl = document.getElementById('historyDetail');
+    if (preserveDetail && detailEl && !detailEl.hidden &&
+        detailEl.dataset.rid &&
+        !listEl.querySelector('.ph-item[data-id="' +
+            String(detailEl.dataset.rid).replace(/"/g, '') + '"]')) {
+      detailEl.hidden = true; detailEl.innerHTML = '';
+      delete detailEl.dataset.rid;
+    }
+    _phRenderFilter(_rows);   /* R3200：类型筛选 chip 行 */
+  }
+  /* S6：加载更多——按 offset 续拉一屏云端，合并重排重绘。 */
+  document.addEventListener('click', async function (ev) {
+    var tg = ev.target;
+    if (!tg || tg.id !== 'phMoreBtn') return;
+    if (tg.dataset.busy === '1') return;
+    tg.dataset.busy = '1';
+    var _orig = tg.textContent;
+    tg.textContent = '加载中…';
+    try {
+      var j = await phFetch('/api/paipan/history?limit=' + _PH_PAGE +
+        '&offset=' + _phPgCloud.length);
+      (j.items || []).forEach(function (it) { _phPgCloud.push(it); });
+      if (typeof j.total === 'number') _phPgTotal = j.total;
+      _phPaintList(document.getElementById('historyList'), false);
+    } catch (e) {
+      showToast('下一页没拉到：' + _humanizeErr(e.message), 'warn');
+      tg.textContent = _orig;
+      tg.dataset.busy = '';
+    }
+  });
   /* R2502：在途合并 + 详情保留。被动刷新（跨 tab storage 事件、
    * BroadcastChannel 脏标）此前无条件清掉正在读的详情卡；并发调用
    * 也无去重（后到写覆盖先到写）。preserve=true 的路径不动详情，
@@ -28714,7 +29139,7 @@ function baziPersonaCard(j) {
     }
     listEl.innerHTML = '<div class="ph-empty">加载中…</div>';
     try {
-      const j = await phFetch('/api/paipan/history?limit=50');
+      const j = await phFetch('/api/paipan/history?limit=' + _PH_PAGE + '&offset=0');
       /* R2349t（R87-P2-1）：禁用态此前被读成「还没用过」——
        * 「都会收在这里」与永不写的事实矛盾；台账关闭时说真话。 */
       if (j.disabled) {
@@ -28752,58 +29177,19 @@ function baziPersonaCard(j) {
       j.items.forEach(function (it) {
         _cloudIds[String(it.id) + '|' + String(it.ts || '')] = 1;
       });
-      var _localIds = {};
-      var _rows = j.items.slice();
+      /* S6：分页态入模块级——首屏一页，镜像行每屏合并重排。 */
+      _phPgCloud = j.items.slice();
+      _phPgTotal = (typeof j.total === 'number') ? j.total : _phPgCloud.length;
+      _phPgLocal = [];
       Object.keys(_mm.items || {}).forEach(function (k) {
         if (!_cloudIds[k]) {
           var _o = _mm.items[k];
-          _localIds[String(_o.id) + '|' + String(_o.ts || '')] = 1;
-          _rows.push({ id: _o.id, ts: _o.ts, name: _o.name, type: _o.type,
-                       question: _o.question,
-                       result_summary: _o.result_summary });
+          _phPgLocal.push({ id: _o.id, ts: _o.ts, name: _o.name, type: _o.type,
+                            question: _o.question,
+                            result_summary: _o.result_summary });
         }
       });
-      if (_rows.length !== j.items.length) {
-        _rows.sort(function (a, b) {
-          return String(b.ts || '').localeCompare(String(a.ts || ''));
-        });
-      }
-      listEl.innerHTML = _rows.map(function (it) {
-        const ts = _fmtWhen(it.ts);
-        const q = it.question ? '<span class="ph-q">问：' + esc(it.question) + '</span>' : '';
-        /* R230z（R36-P1-1）：品类徽标——历史不再只收命盘 */
-        /* R2349j（R71-P2）：未知 type 不原值上屏（技术字段名出戏）。 */
-        const tLabel = _PH_TYPE_LABEL[it.type] || '记录';
-        const render = (it.result_summary && it.result_summary.paipan_render) || '';
-        /* R230a-44（R15-P3）：it.id 当前恒为 int，但多行拼接模式逃过单行
-         * innerHTML 闸——将来字符串列入同一模式即成洞，先按 esc 纪律统一。 */
-        var _mir = _localIds[String(it.id) + '|' + String(it.ts || '')]
-          ? ' data-mirror="1"' : '';
-        return '<div class="ph-item" data-id="' + esc(String(it.id)) + '"' +
-          _mir +
-          /* R3200：类型筛选——行元素带 type 供 chip 隐藏过滤 */
-          ' data-type="' + esc(it.type || 'bazi') + '">' +
-          '<div class="ph-head"><span class="ph-type ph-t-' + esc(it.type || 'bazi') + '">' +
-          esc(tLabel) + '</span>' +
-          '<span class="ph-name">' + esc(it.name || ('记录 #' + it.id)) + '</span>' +
-          '<span class="ph-ts">' + esc(ts) + '</span>' +
-          (_localIds[String(it.id) + '|' + String(it.ts || '')]
-            ? '<span class="ph-type" style="opacity:.7;">本机留档</span>' : '') +
-          '</div>' + q +
-          '<div class="ph-render">' + esc(render) + '</div>' +
-          '<div class="ph-actions"><button type="button" class="ghost ph-open">查看</button>' +
-          '<button type="button" class="ghost ph-del">删除</button></div></div>';
-      }).join('');
-      /* R2502：被动刷新保留详情——但若正在读的那条已被别 tab 删掉，
-       * 行没了就收详情（留死详情比清屏更糟）。 */
-      if (preserveDetail && detailEl && !detailEl.hidden &&
-          detailEl.dataset.rid &&
-          !listEl.querySelector('.ph-item[data-id="' +
-              String(detailEl.dataset.rid).replace(/"/g, '') + '"]')) {
-        detailEl.hidden = true; detailEl.innerHTML = '';
-        delete detailEl.dataset.rid;
-      }
-      _phRenderFilter(_rows);   /* R3200：类型筛选 chip 行 */
+      _phPaintList(listEl, preserveDetail);
     } catch (e) {
       /* R2400（R127-P1-3）：镜像只补「够不到」不补「不让看」——
        * 断网/5xx 时回退本机留档（与详情、收藏同口径）；401/403
@@ -29013,6 +29399,11 @@ function baziPersonaCard(j) {
   /* R3414：排盘历史小锁——口令哈希存 localStorage('histLock'，
    * 'v1:'+sha256('books-histlock:'+pin))；解锁态存 sessionStorage
    * 仅限本标签。不设锁一切照旧。 */
+  /* R26（用户裁决撤锁）：锁钮与锁面板已从 DOM 撤掉，但老用户本机
+   * 可能还留着 histLock——不清理的话他们会卡在锁面板且再也找不到入口。
+   * 这里做一次性清理，清完 _phLocked() 恒 false，后面整套锁逻辑自然空转。 */
+  try { localStorage.removeItem('histLock'); } catch (eL) {}
+  try { sessionStorage.removeItem('histUnlocked'); } catch (eU) {}
   function _phLocked() {
     try { return !!localStorage.getItem('histLock'); } catch (e) { return false; }
   }
@@ -29020,13 +29411,75 @@ function baziPersonaCard(j) {
     try { return sessionStorage.getItem('histUnlocked') === '1'; }
     catch (e) { return false; }
   }
+  /* R24（用户实测：「点了加锁→输密码→点锁定，它说要 HTTPS」）：
+   * crypto.subtle 只在安全上下文（https 或 localhost）里存在，纯 http 下
+   * 是 undefined，旧实现一进函数就 throw，锁整个瘫掉。改用同口径纯 JS
+   * SHA-256——输出与 crypto.subtle 逐位一致，设过锁的老用户哈希照样
+   * 对得上，不用「忘掉我的数据」重设。 */
+  function _sha256hex(ascii) {
+    var _K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,
+      0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,
+      0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,
+      0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,
+      0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,
+      0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,
+      0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,
+      0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,
+      0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,
+      0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,
+      0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    var _H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,
+      0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    function _rr(x, n) { return (x >>> n) | (x << (32 - n)); }
+    var _b = [], i, j;
+    for (i = 0; i < ascii.length; i++) _b.push(ascii.charCodeAt(i) & 0xff);
+    var _len = _b.length;
+    _b.push(0x80);
+    while (_b.length % 64 !== 56) _b.push(0);
+    var _bits = _len * 8;
+    for (j = 7; j >= 0; j--) _b.push(Math.floor(_bits / Math.pow(256, j)) % 256);
+    var _w = new Array(64), _a, _bb, _c, _d, _e, _f, _g, _h, _t1, _t2;
+    for (i = 0; i < _b.length; i += 64) {
+      for (j = 0; j < 16; j++) {
+        _w[j] = (_b[i + j * 4] << 24) | (_b[i + j * 4 + 1] << 16) |
+                (_b[i + j * 4 + 2] << 8) | (_b[i + j * 4 + 3]);
+      }
+      for (j = 16; j < 64; j++) {
+        var _s0 = _rr(_w[j - 15], 7) ^ _rr(_w[j - 15], 18) ^ (_w[j - 15] >>> 3);
+        var _s1 = _rr(_w[j - 2], 17) ^ _rr(_w[j - 2], 19) ^ (_w[j - 2] >>> 10);
+        _w[j] = (_w[j - 16] + _s0 + _w[j - 7] + _s1) | 0;
+      }
+      _a = _H[0]; _bb = _H[1]; _c = _H[2]; _d = _H[3];
+      _e = _H[4]; _f = _H[5]; _g = _H[6]; _h = _H[7];
+      for (j = 0; j < 64; j++) {
+        var _S1 = _rr(_e, 6) ^ _rr(_e, 11) ^ _rr(_e, 25);
+        var _ch = (_e & _f) ^ (~_e & _g);
+        _t1 = (_h + _S1 + _ch + _K[j] + _w[j]) | 0;
+        var _S0 = _rr(_a, 2) ^ _rr(_a, 13) ^ _rr(_a, 22);
+        var _mj = (_a & _bb) ^ (_a & _c) ^ (_bb & _c);
+        _t2 = (_S0 + _mj) | 0;
+        _h = _g; _g = _f; _f = _e; _e = (_d + _t1) | 0;
+        _d = _c; _c = _bb; _bb = _a; _a = (_t1 + _t2) | 0;
+      }
+      _H[0] = (_H[0] + _a) | 0; _H[1] = (_H[1] + _bb) | 0;
+      _H[2] = (_H[2] + _c) | 0; _H[3] = (_H[3] + _d) | 0;
+      _H[4] = (_H[4] + _e) | 0; _H[5] = (_H[5] + _f) | 0;
+      _H[6] = (_H[6] + _g) | 0; _H[7] = (_H[7] + _h) | 0;
+    }
+    var _out = '';
+    for (i = 0; i < 8; i++) {
+      var _x = _H[i] >>> 0;
+      for (j = 3; j >= 0; j--) {
+        _out += ('0' + ((_x >>> (j * 8)) & 0xff).toString(16)).slice(-2);
+      }
+    }
+    return _out;
+  }
   function _phPinHash(pin) {
-    return crypto.subtle.digest('SHA-256',
-      new TextEncoder().encode('books-histlock:' + pin))
-      .then(function (buf) {
-        return 'v1:' + Array.prototype.map.call(new Uint8Array(buf),
-          function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
-      });
+    /* 保留 Promise 外形——调用方是 .then() 链，不改调用点 */
+    try {
+      return Promise.resolve('v1:' + _sha256hex('books-histlock:' + pin));
+    } catch (e) { return Promise.reject(e); }
   }
   function _phLockShow(mode) {
     var p = document.getElementById('historyLockPanel');
@@ -29351,7 +29804,7 @@ function baziPersonaCard(j) {
       if (_hw.dataset.armed !== '1') {
         _hw.dataset.armed = '1';
         var _ot = _hw.textContent;
-        _hw.textContent = '再点一次：生辰/昵称/记录全清';
+        _hw.textContent = '再点一次：档案/记录/云端备份和账号全删';
         _hw.setAttribute('aria-label', '再点一次确认清空我的数据');
         _hw.classList.add('ph-del-armed');
         setTimeout(function () {
@@ -29365,6 +29818,19 @@ function baziPersonaCard(j) {
       _hw.dataset.armed = '';
       if (_hw.dataset.inflight === '1') return;
       _hw.dataset.inflight = '1';
+      /* R31-A：抓凭据——下面本地清扫会连 xmaccount 一并删，而云端
+         备份也必须删：不清它，重新登录时 _pull() 会把整份 139KB
+         原样拖回来，档案/心事/打卡全部复活，「忘掉我的数据」成了
+         假承诺（用户实测复现：wipe 后重登，me 键复活）。 */
+      /* R31-A2：不调 _creds()——它在账号 IIFE 里，本处理器在 phBind
+         IIFE，跨 IIFE 调用抛 ReferenceError 被 try 吞掉，_cW 恒为
+         null，云端备份根本没删（实测复活仍在）。直接读 localStorage：
+              凭据结构就是 {n,p}，没有别的封装。 */
+      var _cW = null;
+      try {
+        var _cj = JSON.parse(localStorage.getItem("xmaccount") || "null");
+        if (_cj && _cj.n && _cj.p) _cW = _cj;
+      } catch (eCW) {}
       var _done = function (serverOk) {
         _hw.dataset.inflight = '';
         /* R3421-P1-2（审）：在途 pull 撞上 wipe——拉回包落地会
@@ -29594,7 +30060,12 @@ function baziPersonaCard(j) {
         phFetch('/api/paipan/history', { method: 'DELETE' }),
         phFetch('/api/favorites', { method: 'DELETE' }),
         _threadsDel,
-        _prefsDel
+        _prefsDel,
+        /* R31-A：账号注销（连云端备份）放最后——四表清完再销，
+           中途失败也至少本机和服务端台账已经干净了。 */
+        (_cW ? postJSON('/api/account/delete', {
+          nickname: _cW.n, passcode: _cW.p }, { silent: true })
+         : Promise.resolve(null))
       ]).then(function () { _phMirrorClear(); _favMirrorClear(); _favListInvalidate(); _done(true); })
         /* R2400（R127-P2-1）：云端没连上时本机镜像也一并清（_done
          * 里的键扫描已收镜像键）——不然「本机档案清了」是假的。 */
@@ -29694,13 +30165,29 @@ function baziPersonaCard(j) {
         try {
           localStorage.setItem(_KEY, JSON.stringify({ n: n, p: p }));
         } catch (e) {}
+        /* R21（用户直报）：登录闸挂在唯一的凭据写入口上——注册/登录/退出
+         * 三条路全都经 _saveCreds，在这里过闸不会漏（实测 __acctCredsChanged
+         * 只被跨 tab 的 storage 事件触发，同 tab 注册根本不走它）。 */
+        if (typeof _authGate === 'function') _authGate();
       }
+      /* R29-b：页面加载即恢复登录态——老包云端里可能留着改名前的
+         档案名，进页面就校正，不必等用户再点一次登录。 */
+      try {
+        var _c0 = _creds();
+        if (_c0 && _c0.n) _syncMeName(_c0.n);
+      } catch (eSN0) {}
       function _acctRender() {
+        /* R22c：性别钮无条件绑——此前只挂在「已登录」分支里，注册时
+         * （未登录）点「男生」没有监听器，_acctGender() 恒回 'f'，
+         * 男生也被分到女生头像池。 */
+        _bindGender();
         var c = _creds();
         if (c) {
           _form.hidden = true;
           _logged.hidden = false;
           _who.textContent = c.n;
+          _acctFace();
+          setTimeout(_revealIfReady, 400);
           var _ls = '', _lp = '';
           try { _ls = localStorage.getItem(_SYNC_KEY) || ''; } catch (e) {}
           try { _lp = localStorage.getItem(_PULL_KEY) || ''; } catch (e) {}
@@ -29713,16 +30200,29 @@ function baziPersonaCard(j) {
         }
         /* R3362（R3361 审-P1）：「存本机库」是工程黑话——明说能力
          * 边界：本地后端上注册登录能用，但服务端一清盘什么都没了。 */
+        /* R21（用户直报）：原文案「云端没接通——备份留不住，换设备拉不回」
+         * 对本机库是错的——本机库就在服务器上，实测换一台全新浏览器登录
+         * 能把生辰原样拉回（records 带 me$）。改成说实话，并点明唯一的
+         * 真实风险（服务器清盘），不夸大也不隐瞒。 */
         _status.textContent = _issue ? _issue
           : (_backend === 'libsql'
             ? '云端已接' : (_backend === 'local'
-              ? '云端没接通——备份留不住，换设备拉不回' : '查一下云端…'));
+              ? '账号存在服务器本机库——换设备登录能拉回生辰和数据；只有服务器清盘才会没'
+              : '查一下云端…'));
+        /* R20（用户直报）：日卡顶行账号钮跟着登录态刷——已登录显昵称，
+         * 退出回「🔐 账号」。 */
+        if (typeof _dailyAcctText === 'function') _dailyAcctText();
+        if (typeof _authGate === 'function') _authGate();
       }
       window.__acctRender = _acctRender;
       /* R3363-P1-5：B tab 的 storage 事件报「凭据换了昵称」——
        * 免登出切号也要走登出同款的镜像/戳清除，不然新账号看到
        * 旧账号的视图、还把数据推串号。 */
       window.__acctCredsChanged = function (oldRaw) {
+        /* R21（用户直报）：凭据一有变动就过登录闸——注册成功/登录成功/
+         * 退出登录/跨 tab 换主，四条路全经这里，比在各 handler 里补调用
+         * 更不容易漏（实测注册成功后 _acctRender 不走，闸就不收）。 */
+        if (typeof _authGate === 'function') _authGate();
         try {
           var _oc = JSON.parse(oldRaw || 'null');
           var _nc = _creds();
@@ -29964,6 +30464,12 @@ function baziPersonaCard(j) {
             }
             await _importBackupText(r.payload,
               { changed: _snap });
+            /* R29-a：拉回会把云端那份 me 原样写回本机——云端里的
+               档案名若是改名之前打的包，旧名字就跟着复活（用户直报
+               「没有改那个小霖和小静」的根因：TA 点的是「从云端拉回」，
+               而 _syncMeName 原先只挂在登录/注册上）。账号昵称是登录
+               身份，拉回后以它为准再盖一次。 */
+            try { _syncMeName(c.n); } catch (eSNP) {}
             try {
               localStorage.setItem(_PULL_KEY,
                 new Date().toLocaleString('sv').slice(0, 16));
@@ -29988,6 +30494,89 @@ function baziPersonaCard(j) {
           showToast('拉不回来：' + _humanizeErr(e.message || e), 'error');
         } finally { _pullBusy = false; }
       }
+      /* R20（用户直报）：生辰一并读走——注册要，登录也读（老账号云端
+       * 没档时按填的补）。校验只做「注册必须填全」：年月日为数字且在
+       * 合法区间；时辰选填但填了就得是 0–23。更硬的边界（未来年、农历
+       * 换算失败、时辰归一）全部交给 _meSaveFromBirth/_meSave，不重复造。 */
+      /* R22（用户要「男生头像/女生头像，女生多一点，随机分一张」）：
+       * 注册时按性别从池里随机取一张存进 me.av——me$ 在 _DATA_RE 备份
+       * 白名单里，换设备登录原样带回，不用用户选。 */
+      var _AVATAR_POOL = {
+        f: ['avatar-f1.jpg', 'avatar-f2.jpg', 'avatar-f3.jpg',
+            'avatar-f4.jpg', 'avatar-f5.jpg', 'avatar-f6.jpg'],
+        m: ['avatar-m1.jpg', 'avatar-m2.jpg', 'avatar-m3.jpg']
+      };
+      function _pickAvatar(g) {
+        var _p = _AVATAR_POOL[g] || _AVATAR_POOL.f;
+        return _p[Math.floor(Math.random() * _p.length)];
+      }
+      /* R25（用户直报「首页用户名旁边没有头像」）：me.av 会缺——老账号
+       * 注册时还没有这功能、云端拉回缺字段、或用户手清过。缺了就按
+       * 「昵称+性别」确定性兜底一张：同一个人永远同一张，不会每次刷新
+       * 换脸；也别让头像位空着假装有头像。 */
+      /* R26：兜底收成全局唯一一份（window.__avatarOf），这里只委托，
+       * 不再维护第二套算法——两套漂移就会档案行和账号卡两张脸。 */
+      function _avatarOf() {
+        try { return __avatarOf(); } catch (eD) {}
+        var _p = _AVATAR_POOL.f;
+        return _p[0];
+      }
+      /* 档案行（另一作用域）也要用同一把兜底，挂全局 */
+      try { window.__avatarOf = _avatarOf; } catch (eW) {}
+      function _acctGender() {
+        var _on = document.querySelector('.acct-gender-btn.is-on');
+        return (_on && _on.getAttribute('data-g')) || 'f';
+      }
+      /* R22：性别软分段钮（幂等） */
+      function _bindGender() {
+        var _btns = document.querySelectorAll('.acct-gender-btn');
+        for (var i = 0; i < _btns.length; i++) {
+          if (_btns[i].dataset.gbound) continue;
+          _btns[i].dataset.gbound = '1';
+          _btns[i].addEventListener('click', function () {
+            var _all = document.querySelectorAll('.acct-gender-btn');
+            for (var j = 0; j < _all.length; j++) {
+              _all[j].classList.remove('is-on');
+              _all[j].setAttribute('aria-pressed', 'false');
+            }
+            this.classList.add('is-on');
+            this.setAttribute('aria-pressed', 'true');
+          });
+        }
+      }
+      /* R22：账号头像行——me.av 有就显示，随备份走 */
+      function _acctFace() {
+        var _who = document.getElementById('acctWho');
+        if (!_who) return;
+        var _row = document.getElementById('acctWhoRow');
+        if (!_row) {
+          _row = document.createElement('div');
+          _row.id = 'acctWhoRow'; _row.className = 'acct-who-row';
+          var _im = document.createElement('img');
+          _im.id = 'acctFace'; _im.className = 'acct-face';
+          _im.alt = ''; _im.hidden = true;
+          _row.appendChild(_im);
+          if (!_who.parentNode) return;
+          _who.parentNode.insertBefore(_row, _who);
+          _row.appendChild(_who);
+        }
+        var _im = document.getElementById('acctFace');
+        /* R25：老账号没有 me.av 也要有脸——走 _avatarOf() 确定性兜底 */
+        var _av = _avatarOf();
+        if (!_im) return;
+        if (_av) { _im.src = '/static/avatars/' + _av; _im.hidden = false; }
+        else { _im.hidden = true; }
+      }
+      /* R22b：档案齐了就拆封面——注册/登录/刷新都经 _acctRender，
+       * 但封面 click 由日卡 IIFE 绑，_init 时可能还没绑上，故延迟一拍。 */
+      function _revealIfReady() {
+        try {
+          var _m = _meGet('me');
+          if (!(_m && _m.y && _m.m && _m.d)) return;
+          var _c = document.getElementById('dailyCover');
+          if (_c && !_c.classList.contains('open')) _c.click();
+        } catch (eRr) {}
+      }
       function _readFields() {
         var n = (_nick.value || '').trim();
         var p = (_pass.value || '').trim();
@@ -29996,8 +30585,97 @@ function baziPersonaCard(j) {
           showToast('口令码至少 6 位', 'warn');
           return null;
         }
-        return { n: n, p: p };
+        var _b = {};
+        [['y', 'acctY'], ['m', 'acctM'], ['d', 'acctD'], ['h', 'acctH']]
+          .forEach(function (pair) {
+            var elx = document.getElementById(pair[1]);
+            var v = elx ? String(elx.value || '').trim() : '';
+            _b[pair[0]] = v === '' ? null : v;
+          });
+        return { n: n, p: p, b: _b, g: _acctGender() };
       }
+      /* 返回 null 表示放行（登录态下生辰可空）；否则返回提示语。 */
+      function _birthErr(b) {
+        if (!b) return null;
+        var _y = +b.y, _m = +b.m, _d = +b.d;
+        if (b.y == null || b.m == null || b.d == null) {
+          return '生辰填上年月日——礼物照着这个包，填错也能改';
+        }
+        if (!(+b.y >= 1900 && +b.y <= 2100)) return '年份看着不太对哦';
+        if (!(_m >= 1 && _m <= 12)) return '月份得在 1 到 12 之间';
+        if (!(_d >= 1 && _d <= 31)) return '日子得在 1 到 31 之间';
+        if (b.h != null && !(+b.h >= 0 && +b.h <= 23)) {
+          return '时辰填 0 到 23 之间的数（不知道就留空）';
+        }
+        return null;
+      }
+      /* 落档并刷新日卡——await 后再 _push，首份云备份才带得上生日。 */
+      async function _saveBirthThen(okMsg) {
+        var f = _readFields();
+        if (!f) return false;
+        var _err = _birthErr(f.b);
+        if (_err) { showToast(_err, 'warn'); return false; }
+        if (f.b.y == null) {
+          /* R22：没填生辰也要分头像——头像跟性别走，不跟生辰走 */
+          try { _meSave('me', { av: _pickAvatar(f.g), g: f.g || 'f' }); }
+          catch (eA0) {}
+          showToast(okMsg, 'info'); return true;
+        }
+        try {
+          await _meSaveFromBirth('me', {
+            y: +f.b.y, m: +f.b.m, d: +f.b.d,
+            h: f.b.h == null ? null : +f.b.h, n: f.n,
+            g: f.g || 'f', av: _pickAvatar(f.g) });
+        } catch (eB) {
+          showToast('生辰没存上，礼物先按通版开', 'warn');
+        }
+        showToast(okMsg, 'info');
+        return true;
+      }
+      /* R28-b：登录/注册分模式。_acctMode 'login' | 'reg'。 */
+      var _acctMode = 'login';
+      function _acctSetMode(m) {
+        _acctMode = m;
+        var _L = document.getElementById('acctTabLogin');
+        var _R = document.getElementById('acctTabReg');
+        var _B = document.getElementById('acctBirthBox');
+        var _G = document.getElementById('acctGenderBox');
+        var _GO = document.getElementById('acctGo');
+        var _T = document.getElementById('acctTip');
+        if (_L) { _L.classList.toggle('is-on', m === 'login'); _L.setAttribute('aria-selected', m === 'login' ? 'true' : 'false'); }
+        if (_R) { _R.classList.toggle('is-on', m === 'reg'); _R.setAttribute('aria-selected', m === 'reg' ? 'true' : 'false'); }
+        if (_B) _B.hidden = (m !== 'reg');
+        if (_G) _G.hidden = (m !== 'reg');
+        if (_GO) _GO.textContent = (m === 'reg' ? '注册' : '登录');
+        if (_T) _T.textContent = (m === 'reg'
+          ? '口令码记个牢的就好。注册即同步一份备份到云端——换设备登录同名账号，生辰和数据都给你拉回来。'
+          : '口令码记个牢的就好。同名账号换设备登录，生辰和数据都给你拉回来。');
+        try { localStorage.setItem('xm_acct_mode', m); } catch (eM) {}
+      }
+      try {
+        var _m0 = localStorage.getItem('xm_acct_mode');
+        if (_m0 === 'reg' || _m0 === 'login') _acctSetMode(_m0);
+      } catch (eM0) {}
+      var _tL = document.getElementById('acctTabLogin');
+      var _tR = document.getElementById('acctTabReg');
+      if (_tL) _tL.addEventListener('click', function () { _acctSetMode('login'); });
+      if (_tR) _tR.addEventListener('click', function () { _acctSetMode('reg'); });
+      var _go = document.getElementById('acctGo');
+      if (_go) _go.addEventListener('click', function () {
+        var _b = document.getElementById(_acctMode === 'reg' ? 'acctRegister' : 'acctLogin');
+        if (_b) _b.click();
+      });
+      /* R28-b：账号昵称是登录身份，作为唯一真源；档案名 me.n 跟随它。
+       * 用户直报「排盘历史是小静，个人账号是小霖（我以小静身份注册登录，
+       * 但是我后面又改了名字，可能没有一起同步）」——两个名字各存一份、
+       * 谁也不通知谁，就是这个困惑的根。 */
+      function _syncMeName(nick) {
+        try {
+          var _m = _meGet('me') || {};
+          if (nick && _m.n !== nick) _meSave('me', { n: nick });
+        } catch (eSN) {}
+      }
+      window.__syncMeName = _syncMeName;
       document.getElementById('acctRegister')
         .addEventListener('click', async function () {
           var f = _readFields();
@@ -30026,7 +30704,19 @@ function baziPersonaCard(j) {
                           '——刷新后要重新登录', 'warn');
               }
               _acctRender();
-              showToast('注册好啦，正在给你同步第一份备份', 'info');
+              /* R20（用户直报）：生辰在注册时落档——必须在首推之前，
+               * 云备份才带得上生日（_DATA_RE 含 me$）；换设备登录拉回
+               * 即完整档案，_tryReveal 见 me 有 y/m/d 直接拆礼物，不必
+               * 再回首页填那张年月日表单。生辰填不全只提示，不阻断注册
+               * 与首推（账号已建成，生日随时能从「你的小档案 · 改」补）。 */
+              await _saveBirthThen('注册好啦，正在给你同步第一份备份');
+              /* R22b：头像必须单独合并写补一笔——_meSaveFromBirth 的 rec
+               * 只挑 h/g/lunar/n/y/m/d，av 会被它整丢掉；这里补上，
+               * 首份云备份才带得了头像。 */
+              try {
+                _meSave('me', { av: _pickAvatar(_acctGender()),
+                                g: _acctGender() });
+              } catch (eAvR) {}
               /* R3363-P1-4：注册首推用 keepalive——注册即关页时
                * 普通 fetch 会被掐，首份备份静默丢（此时包小，不
                * 会撞 64KiB 上限）。 */
@@ -30069,17 +30759,43 @@ function baziPersonaCard(j) {
               /* 登录即拉回——这是换设备的主场景；云端没备份时
                * _pull 会明说「先在原设备同步一次」。 */
               await _pull();
+              _syncMeName(f.n);
+              /* R20（用户直报）：老账号（本功能上线前注册）云端备份里
+               * 没有 me 生辰档——登录时按表单填的补一份并推回云端，
+               * 下次换设备登录就是完整档案、礼物直接拆。云端已有档的
+               * 不动（以云端为准，本地表单填什么都不覆盖）。 */
+              var _meL = null;
+              try { _meL = _meGet('me'); } catch (eML) {}
+              if (!(_meL && _meL.y && _meL.m && _meL.d) && f.b && f.b.y) {
+                var _errL = _birthErr(f.b);
+                if (!_errL) {
+                  try {
+                    await _meSaveFromBirth('me', {
+                      y: +f.b.y, m: +f.b.m, d: +f.b.d,
+                      h: f.b.h == null ? null : +f.b.h, n: f.n,
+                      g: f.g || 'f', av: _pickAvatar(f.g) });
+                    _push(false, true);
+                    showToast('生辰补上啦，已同步到云端', 'info');
+                  } catch (eBL) {}
+                }
+              }
             } else {
               showToast((r && r.msg) || '名字或口令码不对', 'warn');
             }
+            /* R22（用户直报「登录进去礼物没有自动打开，还要我点」）：
+             * 生辰拉齐了就把封套拆掉——此前只有点封面才走 _tryReveal，
+             * 登录后档案虽已就位，封面仍盖着。 */
+            _revealIfReady();
           } catch (e) {
             showToast('登不上：' + _humanizeErr(e.message || e), 'error');
           }
         });
-      document.getElementById('acctSyncNow')
-        .addEventListener('click', function () { _push(true); });
-      document.getElementById('acctPull')
-        .addEventListener('click', function () { _pull(); });
+      /* R32：按钮已从 DOM 撤掉，补空值保护——不然这里直接抛错，
+         把后面 acctPull/acctLogout 的绑定一起带走。 */
+      var _sn = document.getElementById('acctSyncNow');
+      if (_sn) _sn.addEventListener('click', function () { _push(true); });
+      var _pl = document.getElementById('acctPull');
+      if (_pl) _pl.addEventListener('click', function () { _pull(); });
       document.getElementById('acctLogout')
         .addEventListener('click', function () {
           try {
@@ -30572,6 +31288,12 @@ function baziPersonaCard(j) {
             }
             try { window.localStorage.setItem(k, local[k]); } catch (e) {}
           });
+          /* R34（用户实测「刷新时功能区出现小空隙、多刷几次又没了」）：
+           * 拉回把 me 写进本机后立刻重判生辰副卡显隐。此前要等日卡
+           * 下一次重渲（实测约 1.5s 后才发生），这期间 195px 的表单
+           * 一直挂着、把功能区顶在错位位置，等它消失时整页回跳。
+           * 数据到了就同步显隐，不等下一帧。 */
+          try { if (typeof window.__syncDailyAsk === 'function') window.__syncDailyAsk(); } catch (eDA) {}
           /* R3372-低-3：白名单过了但形状校验没过的键此前静默丢
            * ——合法数据被误杀用户零感知。回读比对数出真实丢弃数
            * 进完成提示（visits 是并集合并不算丢，_kept 保键不算丢）。 */
@@ -30710,7 +31432,12 @@ function baziPersonaCard(j) {
           }
           /* R3369（审-P1-3）：孤儿手记回灌——逐条 POST orphan:true，
            * 服务端按 claim+method 幂等去重，重灌不翻倍。 */
-          var _nOrph = 0, _orphBad = 0;
+          /* R3369（审-P1-3）：孤儿手记回灌——逐条 POST orphan:true，
+           * 服务端按 claim+method 幂等去重，重灌不翻倍。
+           * R31-B：全部静默 + 撞写入闸即停 + 失败聚合成一句。
+           * 演示站写入关闭时逐条重试，会把同一句「只能看不能改」
+           * 弹成 172 个 toast（用户实测）。 */
+          var _nOrph = 0, _orphBad = 0, _orphGate = false;
           if (Array.isArray(bundle.orphan_claims) &&
               bundle.orphan_claims.length) {
             for (var _oi = 0;
@@ -30726,10 +31453,22 @@ function baziPersonaCard(j) {
                   method: String(_oc.method || 'backup-import')
                     .slice(0, 200),
                   confidence: _oc.confidence || null,
-                  orphan: true });
+                  orphan: true }, { silent: true });
                 _nOrph++;
-              } catch (eOC) { _orphBad++; }
+              } catch (eOC) {
+                _orphBad++;
+                var _em = String((eOC && eOC.message) || eOC || '');
+                if (_em.indexOf('只能看') >= 0 ||
+                    _em.indexOf('演示') >= 0) { _orphGate = true; break; }
+              }
             }
+          }
+          if (_orphGate) {
+            showToast('这是公开演示站，手记回灌被关掉了——' +
+              '换到能写入的环境再拉一次', 'warn');
+          } else if (_orphBad > 0) {
+            showToast('有 ' + _orphBad + ' 条手记没回灌上，' +
+              '联网后再拉一次', 'warn');
           }
           /* R2349y（R95-P2-8/P3-8）：收藏失败条数点名，不再并进
            * 「记录」计数混口径。 */

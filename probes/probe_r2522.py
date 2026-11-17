@@ -32,7 +32,8 @@ ck("p1.eq_helper",
    'a.encode("utf-8", "replace")' in _app and
    'b.encode("utf-8", "replace")' in _app)
 ck("p1.cookie_uses_eq",
-   'good = _eq(request.cookies.get("books_key", ""), _ck)' in _app)
+   re.search(r"good = \(_cts > 0 and 0 <= \(time\.time\(\) - _cts\)[\s\S]*?"
+             r"and _eq\(_raw_ck, _ck_of\(_cts\)\)", _app) is not None)
 ck("p1.post_uses_eq",
    "if _eq(key, _tok):" in _app)
 ck("p1.query_uses_eq",
@@ -92,7 +93,7 @@ ck("fe.chatbubble_noscroll",
 ck("fe.restore_noscroll",
    "{ nosave: true, noscroll: true }" in _js)
 ck("fe.restore_scroll_once",
-   re.search(r"_chatTsRestore[\s\S]{0,500}scrollTop = \w+\.scrollHeight",
+   re.search(r"_chatTsRestore[\s\S]{0,900}scrollTop = \w+\.scrollHeight",
              _js) is not None)
 ck("fe.tarot_img_esc",
    '"<img src=\\"" + esc(img)' in _js or

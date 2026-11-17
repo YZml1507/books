@@ -378,6 +378,23 @@ button, input, select, textarea{ font-family:var(--font-sans); }
   .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{
     width:132px;}
 }
+/* R24（用户实测「封面图没有显示全」）：桌面档封面图是 200px 宽（约 190px 高），
+ * 加 padding-top:min(15vh,130px) + 两行 CTA，在「宽而矮」的桌面窗下会把图和
+ * 文字顶出卡帽（max-height:min(42vh,400px)）。实测 1400×540：图超卡底 5px、
+ * CTA 超 46px；1400×620：CTA 仍超 20px。R3205 只修了 max-width:600px，
+ * 漏了 min-width:601px 且矮的这一档。 */
+@media (min-width:601px) and (max-height:720px){
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover{
+    padding-top:min(8vh, 64px); gap:8px;}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{
+    width:132px;}
+}
+@media (min-width:601px) and (max-height:600px){
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover{
+    padding-top:min(6vh, 48px);}
+  .daily-card:has(> .daily-cover:not(.open):not(.mini)) .daily-cover img{
+    width:112px;}
+}
 .daily-cover-txt{font-size:15px; color:var(--secondary); font-weight:600;
   letter-spacing:.04em; padding:0 24px; text-align:center;}
 .daily-cover-sub{font-size:12px; color:var(--muted); letter-spacing:.06em;
@@ -526,7 +543,11 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 /* R3259（N3）：心情回路——打卡行+小满回一句+心情历色点 */
 .mood-row{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
   margin-top:12px; padding-top:10px; border-top:1px dashed var(--border);}
-.mood-q{font-size:12px; color:var(--secondary); margin-right:2px;}
+/* R12：label+4×44px = 320px > 269px 栏——第 4 枚心情钮掉行
+ * 成孤儿。问句独占一行（与 mood-cal/mood-week 同 flex-basis:100%
+ * 模式），4 钮 194px 稳居一行。 */
+.mood-q{font-size:12px; color:var(--secondary); margin-right:2px;
+  flex-basis:100%;}
 /* R3368（审-P1-3）：34px 宽破 44 触控下限——补足外框 */
 .mood-b{width:44px; height:44px; border-radius:50%; border:1.5px solid var(--border);
   background:var(--card); font-size:17px; line-height:1; cursor:pointer;
@@ -536,8 +557,11 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
   box-shadow:0 0 0 3px rgba(201,145,74,.18);}
 .mood-ans{flex-basis:100%; font-size:13px; color:var(--text);
   line-height:1.7; margin-top:4px;}
-.mood-cal{flex-basis:100%; display:flex; align-items:center; gap:4px;
-  margin-top:6px;}
+/* R12：月点阵 30 枚 446px 在 269px 栏里横溢 46px 出卡
+ * （实测 moodCal 315 > 容器 269，scrollWidth 同步外溢）。
+ * flex-wrap + min-width:0 解 flex 项最小内容宽钳制，点阵换行收栏。 */
+.mood-cal{flex-basis:100%; min-width:0; display:flex; flex-wrap:wrap;
+  align-items:center; gap:4px; margin-top:6px;}
 .mood-cal-tag{font-size:11px; color:var(--muted); margin-right:3px;}
 .mood-dot{width:11px; height:11px; border-radius:50%; display:inline-block;}
 /* R3324：未打卡空心环——实底点当「缺席」两主题都读不出，空环反而语义更准。 */
@@ -670,7 +694,38 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 .dm-mood{display:flex; align-items:center; gap:6px; flex-wrap:wrap;
   margin-top:14px; padding-top:12px;
   border-top:1px dashed var(--border);}
+/* R21（用户直报）：全站登录墙——未登录时 #accountCard 提到这里当全屏
+ * 登录面板，主区被 JS inert + body 锁滚。登录成功即隐藏并归位。 */
+.auth-wall{position:fixed; inset:0; z-index:99999; display:flex;
+  align-items:center; justify-content:center; padding:20px 16px;
+  background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch;}
+.auth-wall[hidden]{display:none;}
+.auth-wall #accountCard{width:100%; max-width:430px; margin:0 auto;
+  box-shadow:0 12px 40px rgba(0,0,0,.10);}
+body.auth-locked{overflow:hidden;}
+/* R20（用户直报）：日卡顶行账号钮——紧凑 ghost 粒，跟礼盒并排。
+ * 未登录「🔐 账号」；已登录改显昵称（_dailyAcctText 维护）。 */
+.daily-acct{flex:0 0 auto; margin-left:auto; font-size:12px; line-height:1;
+  padding:7px 11px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  color:var(--accent-ink); background:var(--card);
+  border:1px solid var(--border); font-family:inherit;
+  transition:background .15s, border-color .15s;}
+.daily-acct:hover{background:var(--accent-soft); border-color:var(--accent-ink);}
+.daily-acct.is-on{color:var(--primary-ink);}
+/* R26（用户原话「右上角用户名旁边为什么加个锁而不是加一个头像」）：
+   头像替代 🔓 开锁表情——用户名旁边该是一张脸。 */
+.daily-acct{display:inline-flex; align-items:center; gap:7px;}
+.daily-acct-face{width:26px; height:26px; border-radius:50%; object-fit:cover;
+  flex:0 0 auto; border:1.5px solid var(--border);
+  box-shadow:0 2px 8px rgba(184,134,11,.18);}
+.daily-acct-name{font-weight:600;}
+@media (max-width:640px){.daily-acct{font-size:11px; padding:6px 9px;}}
 /* R231a（R35-P2-8）：三枚 pill 在 375px 折成 3 行——收成单行横滑带 */
+.acct-flash{animation:acctFlash 1.6s ease-out 1;}
+@keyframes acctFlash{
+  0%,12%{box-shadow:0 0 0 3px var(--accent-soft);}
+  100%{box-shadow:0 0 0 3px transparent;}}
+@media (prefers-reduced-motion:reduce){.acct-flash{animation:none;}}
 .daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:nowrap;
   overflow-x:auto; scrollbar-width:none;
   padding-bottom:2px;
@@ -696,7 +751,16 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
 /* R2363（R117-P0-2）：>5 粒折叠——capped 的收进「+N 条」收纳钮。 */
 .daily-meta-item[data-capped="1"]{display:none;}
 .daily-meta[data-expanded="1"] .daily-meta-item[data-capped="1"]{display:flex;}
-.daily-meta-more{cursor:pointer; font:inherit; color:var(--accent-ink);}   /* R2514：装饰色2.12:1→文字色4.87:1 */
+/* R20（用户直报）：展开/收起钮自立成行——不再塞进 .daily-meta 药丸流，
+ * 也不再用 daily-meta-item 药丸样式（实测旧态 h=58/y=80，与同行 78px
+ * 粒不对齐，且展开后被埋到参差药丸尽头）。安静文本钮，恒定跟在药丸流
+ * 正下方；窄屏横滚态下它在横滚区外面，不用滑到底。 */
+.daily-meta-more{display:block; width:100%; box-sizing:border-box;
+  margin-top:6px; padding:5px 4px; text-align:left;
+  background:none; border:0; border-radius:8px;
+  font:inherit; font-size:12px; color:var(--accent-ink); cursor:pointer;
+  transition:background .15s;}
+.daily-meta-more:hover{background:var(--accent-soft);}
 /* R3314（R3311-低）：月相行许愿瓶小钩——胶囊内轻按钮。 */
 .daily-moon-go{font-size:12px; color:var(--accent-ink); background:none;
   border:1px solid var(--border); border-radius:999px; padding:2px 10px;
@@ -758,11 +822,6 @@ html[data-theme="dark"] .mb-act.mb-del:hover{color:#E8A288;
   font-size:11px;}
 .notify-soft-row .ghost{font-size:12px; padding:6px 14px;}
 .notify-soft-row p{margin:4px 0 0;}
-/* R3264（R32）：今日仪式——宜试试后面的「做完了」按钮 */
-.daily-ritual{display:block; margin:8px auto 0; font-size:12px;
-  padding:5px 14px; border-radius:999px; border:1px solid var(--border);
-  background:var(--card); color:var(--accent-ink); cursor:pointer;}
-.daily-ritual:disabled{color:var(--muted); cursor:default; background:transparent;}
 /* R3264（R36）：微庆祝——飘出的 ✨ 星星 */
 .micro-star{position:fixed; font-size:20px; pointer-events:none;
   z-index:9999; animation:microStar 0.8s ease-out forwards;}
@@ -957,14 +1016,23 @@ html[data-theme="dark"] .daily-mantra b{
   box-shadow:0 1px 3px rgba(90,60,30,.18); display:block;}
 .daily-card-line .dc-thumb.is-reversed{transform:rotate(180deg);}
 /* R3426：缩略图改可点钮——点开牌意卡看大图；脱壳 img 的 button 壳。 */
-.daily-card-line .dc-thumb-btn{/* R3432-P2-8（审）：32×52 触摸目标
-   * 不足 44px——透明 padding+负 margin 扩命中，视觉分毫不动。 */
-  padding:0 12px 0 0; margin:0 -12px 0 0; border:0; background:none;
-  cursor:pointer; flex:none; line-height:0; border-radius:4px;
-  min-width:44px; min-height:52px;}
+/* R12：透明 padding+负 margin 在 Chromium flex+gap 下不抵消——
+ * 实测钮壳 44px vs 图 32px，图右 12px 死区（用户报「有空隙」）。
+ * 改绝对定位 ::after 外扩命中区：布局盒严格等于图，视觉分毫不动，
+ * 触摸目标仍 ≥44px（右 12 + 上下各 6 外扩）。 */
+.daily-card-line .dc-thumb-btn{position:relative; padding:0; margin:0;
+  border:0; background:none; cursor:pointer; flex:none; line-height:0;
+  border-radius:4px;}
+.daily-card-line .dc-thumb-btn::after{content:""; position:absolute;
+  top:-6px; bottom:-6px; left:-6px; right:-12px;}
 .daily-card-line .dc-thumb-btn:active{transform:scale(.95);}
 .daily-card-line .dc-thumb-btn:focus-visible{
   outline:2px solid var(--primary); outline-offset:1px;}
+/* R12：「牌意」「抽三张」包成动作组——窄屏整组换行到第二行
+ * 右侧，不再剩一枚孤儿钮独占一行（strip 135px→约 100px）。 */
+.daily-card-line .dc-acts{margin-left:auto; display:flex;
+  align-items:center; gap:7px; flex:none;}
+.daily-card-line .dc-acts .dc-more{margin-left:0;}
 /* R3426：牌意卡内大图——完整牌面可看清。 */
 .sign-card .tc-img{width:150px; height:auto; border-radius:10px;
   border:1px solid var(--border); display:block; margin:0 auto 10px;
@@ -1559,14 +1627,14 @@ button.ghost{
 button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translateY(-2px);}
 /* R3368（审-低-11）：ghost 钮弹性格——桌面照旧横排，≤640px
  * 收成两列消按钮墙；覆盖按钮内联 margin。 */
-.daily-ghost-grid{display:flex; flex-wrap:wrap; gap:2px 6px; margin-top:2px;}
+.daily-ghost-grid{display:flex; flex-wrap:wrap; gap:2px 6px; margin:14px 0 2px;}
 .daily-ghost-grid > .ghost{margin:4px 0 0 !important; flex:0 0 auto;}
 @media (max-width:640px){
   .daily-ghost-grid > .ghost{flex:1 1 44%; padding-left:6px; padding-right:6px;}
 }
 /* R3368（审-P2-5）：触控小簇——粗指针下补足 44px 下限 */
 @media (pointer:coarse){
-  .sign-peek, .ck-goal-opt, .daily-ritual, .daily-me-edit, .dm-chip,
+  .sign-peek, .ck-goal-opt, .daily-me-edit, .dm-chip,
   .mantra-fav{min-width:44px; min-height:44px;
     display:inline-flex; align-items:center; justify-content:center;}
   .daily-mantra{min-height:44px;}
@@ -2317,10 +2385,51 @@ button:active{transform:scale(.96);}
   font-size:12px; color:var(--muted); margin:6px 0 2px;
   padding:6px 10px; border-radius:10px;
   background:var(--accent-soft); border:1px dashed var(--border);}
+/* R22（用户直报「定一个 → 很突兀」）：与 ck-quest-btn 同族柔化——
+原 2px 实线深色描边在奶油底上太硬，改虚线软框 + 悬停柔光。 */
+.ck-dday .dday-set{font-size:12px; padding:3px 12px; border-radius:999px;
+  border:1px dashed var(--border); background:var(--card);
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);
+  transition:background .16s ease, border-color .16s ease;}
+.ck-dday .dday-set:hover{background:var(--accent-soft);
+  border-color:var(--accent-ink);}
+/* R22：账号头像（注册按性别随机分一张，随备份走） */
+.acct-face{width:72px; height:72px; border-radius:50%; object-fit:cover;
+  vertical-align:middle; margin-right:10px; background:var(--accent-soft);
+  border:2px solid var(--accent-ink); flex:0 0 auto;
+  box-shadow:0 3px 14px rgba(184,134,11,.28);}
+.acct-who-row{display:flex; align-items:center; gap:2px; min-width:0;}
+.acct-who-row .acct-who{overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap;}
+/* R22d：日卡档案行头像 */
+/* R25（用户直报「用户名旁边没有头像」）：26px 在近千像素宽的档案行里
+   等于没有——放大到 40px 才配叫头像；加一圈暖描边让它从底色里浮出来。 */
+/* R33（用户直报「看不到哪个是用户头像」）：40px 在宽屏里被名字和
+   日期文本吃掉——放大到 66px，描边加粗到 2.5px、加一圈外发光，
+   让它从底色里明确浮出来。 */
+.daily-me-face{width:66px; height:66px; border-radius:50%; object-fit:cover;
+  flex:0 0 auto; vertical-align:middle; margin-right:12px;
+  background:var(--accent-soft); border:2.5px solid var(--accent-ink);
+  box-shadow:0 3px 14px rgba(184,134,11,.32);}
+.daily-me{align-items:center;}
+.daily-me .daily-me-face{flex:0 0 auto;}
+/* R22：性别二选一——软分段，不用 radio 的硬点 */
+.acct-gender{margin:2px 0 8px;}
+.acct-gender-row{display:flex; gap:8px; margin-top:5px;}
+.acct-gender-btn{flex:1; font-size:13px; padding:8px 0; border-radius:12px;
+  border:1px dashed var(--border); background:var(--card);
+  color:var(--muted); cursor:pointer; min-height:var(--tap);
+  transition:background .16s ease, border-color .16s ease, color .16s ease;}
+.acct-gender-btn.is-on{border-style:solid; border-color:var(--accent-ink);
+  background:var(--accent-soft); color:var(--accent-ink); font-weight:600;}
+.acct-gender-note{display:block; font-size:11px; color:var(--muted);
+  margin-top:5px; line-height:1.5;}
 .ck-quest-btn{font-size:12px; padding:3px 12px; border-radius:999px;
-  border:1px solid var(--accent-ink); background:transparent;
-  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
-.ck-quest-btn:active{background:var(--accent-ink); color:#fff;}
+  border:1px dashed var(--border); background:var(--card);
+  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);
+  transition:background .16s ease, border-color .16s ease;}
+.ck-quest-btn:hover{background:var(--accent-soft); border-color:var(--accent-ink);}
+.ck-quest-btn:active{background:var(--accent-soft); color:var(--accent-ink);}
 /* R3569：递好运回递钮——与 ck-quest-btn 同族（描边小丸）。 */
 .ck-hug-back{font-size:12px; padding:3px 12px; border-radius:999px;
   border:1px solid var(--accent-ink); background:transparent;
@@ -2703,9 +2812,34 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 /* ── R218a-巡4（V-a）横屏空间利用 + （Nα-a）历史详情骨架 ───────────── */
 /* 横屏/宽屏：竖屏单列直接铺到 844px 宽会右半屏留白、纵向滚动极长。
    ≥700px 且横屏时给首页功能卡与结果卡做两栏，视觉密度对齐平板。 */
-@media (orientation: landscape) and (min-width: 700px){
-  .func-grid{ grid-template-columns:repeat(2,1fr); }
+/* R14-L1（审-布局，D-912）：原 orientation:landscape 查询为横屏手机/平板
+   书写，却命中全部桌面宽度——17 张功能卡恒 2 列排 9 行，1440 宽 docH
+   2058px、1920 宽两侧各空 410px（实测）。改为宽度断点：横屏平板密度不
+   低于原两栏，桌面宽屏按栏数吃掉留白。≤560 两栏由既有规则负责。 */
+@media (min-width: 561px) and (max-width: 899px){
+  .func-grid{ grid-template-columns:repeat(3,1fr); }
   .result .card{ max-width:none; }
+}
+@media (min-width: 900px) and (max-width: 1279px){
+  .func-grid{ grid-template-columns:repeat(4,1fr); }
+  .result .card{ max-width:none; }
+}
+@media (min-width: 1280px){
+  .func-grid{ grid-template-columns:repeat(5,1fr); }
+  .result .card{ max-width:none; }
+}
+/* R15-L1（用户实测「这一块很影响用户体验」）：R14-L2 用两个 auto 边距
+   把两颗链撑到整行两端、中段空一大片——不协调的根因。改为桌面工具栏：
+   问题与表情钮同行（flex-basis:auto），两颗链在右侧成组（首链
+   mood-links-lead 推右、次链紧跟 6px 间距），视线一条线走完。
+   手机端 order:1 归位——仍排心情历之后，原阅读顺序零变化。 */
+@media (min-width: 900px){
+  .mood-q{ flex-basis:auto; }
+  .mood-week-link-wrap{ flex-basis:auto; margin-top:0; }
+  .mood-links-lead{ margin-left:auto; }
+}
+@media (max-width: 899px){
+  .mood-week-link-wrap{ order:1; }
 }
 /* 平板显式限宽（巡4 P2：768x1024 居中限宽可接受但未显式化） */
 @media (min-width: 680px) and (orientation: portrait){
@@ -2726,6 +2860,28 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 /* R129-P2-5 裁决：深底下 .ink-hero 调光 .88 后仍是首页最亮区块——
  * 它是吉祥物主视觉，有意保留亮度（见 R129 报告 P2-5 记录为有意）。 */
 .ink-hero.is-missing{display:none;}
+/* S6：hero 每日文案层——叠在源图右侧留白上（熊居左不动）。
+ * 只在「横幅够高」的地方出场：默认 aspect 1440/384 随宽度比例缩放，
+ ≥768 宽且视口不矮时有 190px+ 空间；手机/矮屏/横屏条纹档不出场。 */
+.ink-hero-wrap{position:relative;margin:0 0 14px;}
+.ink-hero-wrap .ink-hero{margin:0;}
+.hero-line{position:absolute;right:30px;top:50%;transform:translateY(-50%);
+  max-width:52%;text-align:right;pointer-events:none;}
+.hero-line-date{font-size:13px;color:var(--muted);letter-spacing:.1em;
+  margin-bottom:8px;font-weight:600;}
+.hero-line-text{font-family:var(--font-serif);font-size:20px;line-height:1.8;
+  color:var(--text);font-weight:600;}
+@media (max-width:900px){
+  .hero-line{right:20px;max-width:58%;}
+  .hero-line-text{font-size:16px;}
+  .hero-line-date{font-size:12px;margin-bottom:5px;}
+}
+/* 手机竖屏（横幅被压成窄条）与两档矮屏条纹：文案层退场 */
+@media (max-width:767px),
+       (min-width:768px) and (max-height:800px),
+       (max-width:600px) and (max-height:600px){
+  .hero-line{display:none;}
+}
 .brand-mark-img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border);box-shadow:0 2px 10px rgba(74,58,64,.18);flex-shrink:0;}
 .brand-mark-img.is-missing{display:none;}
 .func-icon-img{width:56px;height:56px;border-radius:16px;object-fit:cover;border:1px solid var(--border);box-shadow:0 3px 12px rgba(74,58,64,.12);}
@@ -2762,6 +2918,12 @@ html[data-theme="dark"] .dim-bar .dim-track{background:rgba(255,255,255,.12);}
 /* R230x（P2-6）：空态配小满插画——图缺时 onerror 自移除，纯文字兜底 */
 .ph-empty-img{display:block;margin:0 auto 10px;border-radius:18px;opacity:.95;}
 .ph-detail{margin-top:16px;}
+/* S6：历史日期分组标签 + 加载更多 */
+.ph-group-label{font-size:13px;font-weight:600;color:var(--muted);
+  letter-spacing:.06em;padding:16px 4px 6px;}
+#historyList .ph-group-label:first-child{padding-top:4px;}
+.ph-more{text-align:center;padding:18px 0 6px;}
+.ph-more .ghost{min-width:220px;}
 .ph-detail .card{box-shadow:var(--shadow);}
 /* R228f：两段式删除确认——武装态把按钮翻成红底白字，3 秒后自动复原 */
 .ph-del-armed{background:var(--accent-ink);color:#fff;border-color:var(--accent-ink);}
@@ -3009,6 +3171,13 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
  * 点了静默无反应。降透明度并禁止 hover 态。 */
 .checkin-share:disabled{opacity:.55; cursor:default;}
 .checkin-share:disabled:hover{background:#FFF2EA; transform:none;}
+/* R12：5+ 枚打卡小钮 inline-block + 节点空白符——130+127px 两枚
+ * 在 241px 栏里逐枚换行，右侧拉三条空带（实测 5 钮占 5 行）。
+ * 包 .ck-share-row 改 2 列等宽网格，纹样归整；按钮 id/行为不动。 */
+.ck-share-row{display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  margin-top:8px;}
+.ck-share-row .checkin-share{margin-top:0; width:100%;
+  text-align:center; box-sizing:border-box;}
 
 /* R231d：未来 7 天宜忌速览 */
 .hl-week{margin-top:14px;}
@@ -4228,11 +4397,21 @@ html[data-theme="dark"] .outfit-share{background:#3A3237;color:#E8C6D4;
 /* ── R3325-D：写给未来的信 ───────────────────────────────────── */
 .fl-letter{background:linear-gradient(160deg,#FFF9F0,#FFF3EC);}
 .fl-meta{margin-top:8px; font-size:11px; color:var(--muted);}
-.fl-entry{display:flex; align-items:baseline; gap:10px;
-  margin:4px 0 2px; flex-wrap:wrap;}
+/* R20（用户直报）：「✉️ 写给未来的自己」带下划线、且悬在 82px 空软卡里
+ * （盒内只有一个 44px 按钮，.fl-pend 恒空，上下各空 ~29/9px）——
+ * 用户判「排版有问题」并点名「一就是先去掉」。R12 当轮注释写着
+ * 「下划线/文案不动」，那是当时取舍；本轮按用户裁决改：
+ *   ① 删 text-decoration/underline-offset——可点性交给主色
+ *      --primary-ink + 行 hover 柔光补偿，不再靠下划线；
+ *   ② 虚线软卡底改 quiet 行（与 .checkin-q 同族），高度随内容收缩，
+ *      空盒观感消除；.fl-pend 待送达计数保留，写信链路零改动。 */
+.fl-entry{display:flex; align-items:center; gap:10px;
+  margin:6px 0 2px; padding:5px 6px; flex-wrap:wrap;
+  background:none; border:0; border-radius:8px;
+  transition:background .15s;}
+.fl-entry:hover{background:var(--accent-soft);}
 .fl-write{background:none; border:0; padding:0; font-size:12.5px;
-  color:var(--primary-ink); cursor:pointer; text-decoration:underline;
-  text-underline-offset:3px;}
+  color:var(--primary-ink); cursor:pointer;}
 .fl-pend{font-size:11px; color:var(--muted);}
 .fl-modal textarea{width:100%; border:1px solid var(--line);
   /* R3432-P2-7（审）：textarea 不在全局 16px 名单——13.5px 聚焦
@@ -4335,9 +4514,96 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .acct-sub { font-weight: 400; font-size: 12px; color: var(--secondary); }
 .acct-form { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .acct-form input { font-size: 16px; }
+/* R20（用户直报）：注册即收生辰——四字段一行，时辰选填。
+ * 16px 字号与全局输入口径一致（iOS 聚焦不整页缩放，同 fl-modal textarea）。 */
+.acct-birth { display: flex; flex-direction: column; gap: 4px; }
+.acct-birth-lab { font-size: 12px; color: var(--secondary); }
+.acct-birth-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.acct-birth-row input { flex: 1 1 60px; min-width: 56px; font-size: 16px;
+  min-height: var(--tap); }
+.acct-birth-row input::placeholder { color: var(--muted); }
 .acct-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .acct-btns button { min-height: var(--tap); }
+.acct-empty{ margin:14px 2px 2px; padding:14px 16px; font-size:13px;
+  line-height:1.7; color:var(--secondary); background:var(--card);
+  border:1px dashed var(--border); border-radius:14px; text-align:center; }
 .acct-tip { font-size: 12px; color: var(--secondary); line-height: 1.5; }
+
+/* ---- R28-c：登录/注册表单重做 ----------------------------------------
+   旧版三处硬伤：① 性别组和两颗同款 .ghost 按钮挤在同一行，主次不分；
+   ② 生辰四格 flex-wrap，窄屏折成参差不齐的两行；③ 输入框没有统一的
+   边框/圆角/内距，靠全局 input 样式兜底。 */
+.acct-tabs{
+  display:flex; gap:4px; padding:4px; margin-bottom:4px;
+  background:var(--card, #fdf6ec); border-radius:999px;
+  border:1px solid rgba(180,140,90,.22);
+}
+.acct-tab{
+  flex:1; min-height:38px; padding:0 10px;
+  font-size:14px; font-weight:600; letter-spacing:.02em;
+  color:var(--secondary); background:transparent;
+  border:0; border-radius:999px; cursor:pointer;
+  transition:background .18s ease, color .18s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.acct-tab.is-on{
+  color:#fff;
+  background:linear-gradient(135deg,var(--accent-ink),var(--accent,#e2a76f));
+  box-shadow:0 2px 8px rgba(160,110,60,.28);
+}
+.acct-form input{
+  width:100%; min-height:44px; padding:10px 14px;
+  font-size:16px; color:inherit;
+  background:#fff; border:1px solid rgba(180,140,90,.32);
+  border-radius:14px; outline:none;
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+.acct-form input:focus{
+  border-color:var(--accent-ink);
+  box-shadow:0 0 0 3px rgba(226,167,111,.22);
+}
+.acct-form input::placeholder{ color:var(--muted); }
+/* 生辰四格定宽四栏，不再 wrap——窄屏也是整齐的一行 */
+.acct-birth-row{
+  display:grid; grid-template-columns:repeat(3,1fr) 1.15fr;
+  gap:6px; margin-top:6px;
+}
+.acct-birth-row input{
+  min-width:0; text-align:center; padding:10px 4px; font-size:15px;
+}
+.acct-gender{ margin:10px 0 2px; }
+.acct-gender-row{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
+.acct-gender-btn{
+  min-height:44px; font-size:14px; font-weight:600;
+  border-radius:14px; border:1px dashed rgba(180,140,90,.4);
+  background:#fff; color:var(--secondary);
+}
+.acct-gender-btn.is-on{
+  border-style:solid; border-color:var(--accent-ink);
+  color:var(--accent-ink); background:rgba(226,167,111,.14);
+}
+.acct-gender-note{ display:block; margin-top:6px; font-size:11px; color:var(--muted); }
+/* 主操作：唯一、满宽、有重量——不再和次要按钮并排让人猜 */
+.acct-go{
+  width:100%; min-height:48px; margin-top:6px;
+  font-size:16px; font-weight:700; letter-spacing:.04em; color:#fff;
+  background:linear-gradient(135deg,var(--accent-ink),var(--accent,#e2a76f));
+  border:0; border-radius:16px; cursor:pointer;
+  box-shadow:0 4px 14px rgba(160,110,60,.3);
+  transition:transform .14s ease, box-shadow .18s ease, filter .18s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.acct-go:hover{ filter:brightness(1.05); box-shadow:0 6px 18px rgba(160,110,60,.36); }
+.acct-go:active{ transform:translateY(1px); box-shadow:0 2px 8px rgba(160,110,60,.28); }
+/* 深色模式下输入框别糊成一片 */
+@media (prefers-color-scheme: dark){
+  .acct-form input{ background:rgba(255,255,255,.07); color:inherit; }
+  .acct-gender-btn{ background:rgba(255,255,255,.05); color:inherit; }
+  .acct-gender-btn.is-on{ background:rgba(226,167,111,.2); }
+}
+/* 「我的」里备份工具和记忆卡的呼吸 */
+#myTools{ margin-top:14px; }
+#myTools .ph-hint{ margin-top:8px; }
 .acct-line { font-size: 13px; margin: 8px 0; }
 
 /* R3441「小满记得」本地数据卡——与 acct-card 同肤 */
@@ -4879,3 +5145,28 @@ html[data-theme="dark"] .tr-liao-strip{
 .wl-yl{display:inline-block;margin-top:6px;color:#B98A3E;text-decoration:none;font-size:13px}
 .wl-yl:hover,.wl-yl:focus-visible{text-decoration:underline}
 [data-theme="dark"] .wl-yl{color:#D9B98A}
+
+/* ---- R30-c：按「数据去哪」分组的按钮 ---- */
+.btn-group{ margin:14px 0 0; }
+.btn-group-lab{
+  display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+  font-size:13px; font-weight:700; color:var(--accent-ink);
+  margin-bottom:7px;
+}
+.btn-group-lab span{
+  font-size:11px; font-weight:400; color:var(--muted);
+}
+.btn-group .acct-btns{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.btn-group .acct-btns button{
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  min-height:52px; padding:9px 8px; font-size:14px; font-weight:600;
+  border-radius:14px; line-height:1.25;
+}
+.btn-group .acct-btns button small{
+  font-size:10.5px; font-weight:400; color:var(--muted); letter-spacing:.01em;
+}
+/* 单颗按钮（退出/忘掉）仍占满宽，不空一半 */
+.btn-group .acct-btns:has(button:only-child){ grid-template-columns:1fr; }
+@media (max-width:420px){
+  .btn-group .acct-btns{ grid-template-columns:1fr; }
+}

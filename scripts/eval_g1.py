@@ -269,8 +269,12 @@ def _load_bge():
     cost unless a retrieval_concept question is actually in the bank."""
     global _bge_model
     if _bge_model is None:
-        from sentence_transformers import SentenceTransformer
-        _bge_model = SentenceTransformer(MODEL_DIR)
+        # S2 修（studio）：守卫收口到 guji.bazi_lookup.load_bge——F-01 原先
+        # 两处各写一份体积 <1MB 检查，挡不住半截/截断的 LFS 对象（会在
+        # SentenceTransformer 内部炸「header too large」）。现在签名检测 +
+        # HF_HUB_OFFLINE + 兜底转译都只有一份实现，web 与 eval 同口径。
+        from guji.bazi_lookup import load_bge
+        _bge_model = load_bge()
     return _bge_model
 
 
@@ -292,10 +296,16 @@ def _doc_vecs_and_addr(c: Corpus) -> tuple:
     if os.path.exists(DOCVECS) and os.path.exists(DOCMETA):
         meta = json.load(open(DOCMETA, encoding="utf-8"))
         if meta.get("ids") == ids_now:
-            vecs = np.load(DOCVECS)
-            assert vecs.shape[0] == len(ids_now), "cached vector count != unit count"
-            _doc_cache = (vecs, [tuple(a) for a in meta["addrs"]])
-            return _doc_cache
+            try:
+                vecs = np.load(DOCVECS)
+                assert vecs.shape[0] == len(ids_now), "cached vector count != unit count"
+            except Exception:
+                # F-01（2026-11-15）：LFS 指针/半截下载 → np.load 崩。
+                # exists() 分不清指针与实体；视为缓存未命中走重算。
+                vecs = None
+            if vecs is not None:
+                _doc_cache = (vecs, [tuple(a) for a in meta["addrs"]])
+                return _doc_cache
     model = _load_bge()
     texts = [r["text"] for r in c.db.execute(
         "SELECT unit.text FROM unit JOIN work ON work.id = unit.work_id "

@@ -45,12 +45,13 @@ SW = open(os.path.join(ROOT, "web/static/sw.js"), encoding="utf-8").read()
 SCHEMAS = open(os.path.join(ROOT, "web/schemas.py"), encoding="utf-8").read()
 
 # --- 1. 导航并行化 ---------------------------------------------------------
-_nav = re.search(r"e\.request\.mode === 'navigate'(.{0,2400})",
+_nav = re.search(r"e\.request\.mode === 'navigate'(.{0,3000})",
                  SW, re.S)
 check("sw.navigate.parallel",
       _nav and "_hitP = caches.match('/').catch" in _nav.group(1)
-      and "Promise.race([fetch(e.request), _navTo])" in _nav.group(1),
-      "match 与 fetch 并行（R3405-F2：fetch 现行走 Promise.race，针更新）")
+      and "_navF = fetch(e.request)" in _nav.group(1)
+      and "Promise.race([_navF, _navTo])" in _nav.group(1),
+      "match 与 fetch 并行（R3405-F10 起 fetch 提为 _navF 变量挂补写链）")
 
 # --- 2. ?view= 不回写壳位 ---------------------------------------------------
 check("sw.navigate.query_guard",

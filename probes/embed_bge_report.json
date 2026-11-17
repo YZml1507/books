@@ -4,14 +4,14 @@
   "model_dir": "data/external/bge-small-zh-v1.5",
   "provenance": "data/catalog/model_provenance.json",
   "query_prefix": "为这个句子生成表示以用于检索相关文章：",
-  "n_units": 2489,
+  "n_units": 2319,
   "n_paraphrases": 55,
   "hit_rate_top10": 0.9636363636363636,
   "hit_rate_top10_count": "53/55",
-  "build_time_s": 68.70728898048401,
-  "query_latency_median_ms": 19.99688148498535,
-  "query_latency_max_ms": 26.648759841918945,
-  "doc_vectors_mb": 5.097472,
+  "build_time_s": 45.03895974159241,
+  "query_latency_median_ms": 63.34686279296875,
+  "query_latency_max_ms": 156.44359588623047,
+  "doc_vectors_mb": 4.749312,
   "gate_pass": true,
   "gate_criteria": {
     "hit>=80%": true,
@@ -28,7 +28,7 @@
         "卦28上六",
         "卦44九二"
       ],
-      "top_score": 0.5665936470031738
+      "top_score": 0.5665935277938843
     },
     {
       "query": "以誠信使人喜悅 吉利 悔亡",
@@ -38,7 +38,7 @@
         "卦64九四",
         "卦49九四"
       ],
-      "top_score": 0.638166069984436
+      "top_score": 0.6381661891937256
     }
   ]
 }

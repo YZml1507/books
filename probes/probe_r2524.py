@@ -41,9 +41,11 @@ ck("p1.scan_form_def", "def _scan_form(s: str)" in _lp)
 ck("p1.out_zw_def", "_OUT_ZW = re.compile(" in _lp)
 ck("p1.sanitize_scans_sf",
    "_sf = _scan_form(text)" in _lp and
-   "_BANNED_OUT_PAT.search(_sf)" in _lp and
+   "_sf2 = _scan_flat(text)" in _lp and
+   "_BANNED_OUT_PAT.search(_sf2)" in _lp and
    "_INTERNAL_OUT_PAT.search(_sf)" in _lp and
-   "_PROMPT_LEAK_PAT.search(_sf)" in _lp)
+   "_PROMPT_LEAK_PAT.search(_sf)" in _lp,
+   "S2 勘：R3069 起外发禁词改走 _sf2 平铺扫描（内部/提示泄漏仍走 _sf）")
 ck("p1.zw_stripped_display", "text = _OUT_ZW.sub(\"\", text)" in _lp)
 # 闸在 markdown 还原之后（顺序钉扎：strip 在前，_sf 在后）
 _i_strip = _lp.find('text = re.sub(r"\\*{1,2}([^*\\n]+)\\*{1,2}"')
@@ -73,13 +75,19 @@ ck("p2.quote_guci_ok",
    lp._sanitize("古书说「相克」之理在此", keep_citations=True) is not None)
 
 # ── P1-2：罐头任务行 ─────────────────────────────────────────────
+# S2 勘（studio）：原 config=None 时 spawn 在 cfg 检查处先返 None，
+# 罐头路径根本不执行，flood/canned 两项检查空转。罐头行覆盖的是「LLM
+# 启用但危机免烧」（cfg 就绪、不烧配额不落历史）；禁用态由前端镜像表
+# 接住（R233r）。传显式配置让罐头路径真跑——危机/敏感在触网前就返。
 ck("p1.canned_ids", "_CANNED_TASK_IDS" in _lp and
    "__canned_crisis__" in _lp and "__canned_sensitive__" in _lp)
+_DUMMY_CFG = {"base_url": "http://127.0.0.1:1", "api_key": "x",
+              "model": "m"}
 lp._tasks.clear()
 for _ in range(300):
-    lp.spawn_chat_task("probe-flood", "我想死", config=None)
+    lp.spawn_chat_task("probe-flood", "我想死", config=_DUMMY_CFG)
 for _ in range(300):
-    lp.spawn_chat_task("probe-flood", "得了绝症怎么办", config=None)
+    lp.spawn_chat_task("probe-flood", "得了绝症怎么办", config=_DUMMY_CFG)
 ck("p1.flood_no_growth", len(lp._tasks) <= 2,
    f"rows={len(lp._tasks)}")
 _row = lp._tasks.get("__canned_crisis__")

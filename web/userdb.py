@@ -197,6 +197,22 @@ def register(nickname: str, passcode: str) -> tuple[bool, str]:
     return True, "ok"
 
 
+def delete_account(nickname: str, passcode: str) -> tuple[bool, str]:
+    """R30：注销账号——校验口令后连账号带云端备份一并删除。
+
+    自测（web/selftest.py）与自动化验证历来只注册不清理，data/users.db
+    里堆到 85 个账号、其中 83 个是测试残留（用户直报「怎么 81 个账号？
+    怎么这么多」）。补一个受口令保护的删除口，让自测自己扫尾。
+    """
+    init()
+    if not verify(nickname, passcode):
+        return False, "名字或口令码不对"
+    _bn = _backup_nick(nickname)
+    _exec("DELETE FROM backups WHERE nickname=?", (_bn,))
+    _exec("DELETE FROM accounts WHERE nickname=?", (_canon(nickname),))
+    return True, "ok"
+
+
 def verify(nickname: str, passcode: str) -> bool:
     init()
     rows = _exec(

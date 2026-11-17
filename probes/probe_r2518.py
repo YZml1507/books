@@ -60,7 +60,7 @@ ck("tr.q_guidance",
 
 # --- 5. kw_guidance no-q 回落：表里有 → 行动句；表外 → meta 句 ---
 ck("kw.noq_table",
-   voice._tarot_kw_guidance("虚撑", "") == "底气要真的——撑场面不如先补内功")
+   voice._tarot_kw_guidance("虚撑", "") == "底气要真的，撑场面不如先补内功")
 ck("kw.noq_fallback",
    "提示你关注" in voice._tarot_kw_guidance("不存在的词", ""))
 

@@ -53,8 +53,9 @@ def main() -> int:
     check("wipeAll 白名单含 wishbottle",
           "wishbottle|chatSessionId" in js or "wishbottle$|" in js
           or re.search(r"\^\(.*wishbottle", js) is not None)
-    check("备份 _EXACT 含 wishbottle",
-          re.search(r"_EXACT\s*=\s*\[[^\]]*'wishbottle'", js) is not None)
+    check("备份收口含 wishbottle",
+          re.search(r"_DATA_RE = /\^.*wishbottle\$", js) is not None,
+          "S2 勘：R3421-P3-1 删旧 _EXACT 白名单改共享 _DATA_RE 正则收口")
     check("还原白名单收 wishbottle",
           re.search(r"wishbottle\$\|", js) is not None)
     check("还原形状归一化 {t,c,ts}",
@@ -190,8 +191,15 @@ def main() -> int:
           "max-age" not in (r.headers.get("cache-control") or ""),
           f"cc={r.headers.get('cache-control')}")
     r = c.get("/static/app.js")
+    check("app.js ETag 协商缓存", r.status_code == 200 and
+          "no-cache" in (r.headers.get("cache-control") or "") and
+          bool(r.headers.get("etag")),
+          f"cc={r.headers.get('cache-control')} "
+          "S2 勘：R3341 起 app.js 改 ETag 协商缓存（不再 max-age 盲信）")
+    r = c.get("/static/styles.css")
     check("正常静态件仍缓存", "max-age=3600" in
-          (r.headers.get("cache-control") or ""))
+          (r.headers.get("cache-control") or ""),
+          "css/js 主资源 1h 缓存口径不变（app.js 除外，见上项）")
     r = c.post("/api/bazi", content="x",
                headers={"Content-Length": "600000"})
     check("CL 超限 413 带头", r.status_code == 413 and

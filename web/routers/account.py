@@ -114,6 +114,17 @@ def account_backup_push(req: AccountBackupPushRequest,
             "updated_at": userdb.get_backup(req.nickname)["updated_at"]}
 
 
+@router.post("/api/account/delete")
+def account_delete(req: AccountAuthRequest, request: Request) -> dict:
+    """R30：注销账号——口令在 body 里不进 URL/日志（同 pull 口径）。
+    校验通过后连云端备份一起删，不留孤儿行。"""
+    ip = _client_ip(request)
+    if not _nick_ratelimit(ip, "delete", req.nickname, 10, 5):
+        return {"ok": False, "msg": "试太多次了，歇口气再来"}
+    ok, msg = userdb.delete_account(req.nickname, req.passcode)
+    return {"ok": ok, "msg": msg}
+
+
 @router.post("/api/account/backup/pull")
 def account_backup_pull(req: AccountAuthRequest,
                         request: Request) -> dict:

@@ -22,15 +22,8 @@
 <meta name="theme-color" content="#FFF8E7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#221D20" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
-<!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——bar 在首帧就占位，
-     老用户由 head 内联脚本在首次绘制前打 welcomed 类藏掉，零位移。 -->
-<script>try{var _w=window.localStorage.getItem('welcomed');
-if(!_w){/* R2350c（R97-P1-1）：welcomed 只在点 × 时写，老用户
-（访次>1/有打卡键）补写，避免天天见新人条+ret_tip 永锁 */
-var _v=String(localStorage.getItem('visits')||'').split(',').filter(Boolean).length>1;
-if(!_v){for(var _i=0;_i<localStorage.length;_i++){var _k=localStorage.key(_i);if(_k&&_k.indexOf('checkin:')===0){_v=true;break}}}
-if(_v){localStorage.setItem('welcomed','1');_w='1'}}
-if(_w){document.documentElement.classList.add('welcomed')}}catch(e){}</script>
+<!-- R2348（R67-P1）：welcome-bar 静态渲染消 CLS——已随 R6 撤销，本注释只作史注。 -->
+<!-- R6（周期二·首页 IA）：welcomed 预绘隐藏脚本随新人条一起撤销——它唯一的职责就是给新人条消 CLS。app.js 傅层的老用户补写（访次>1/checkin:键）与存储事件监听原样保留，与本脚本无依赖。 -->
   <!-- R2349m（R76-P0-2 附带）：resizes-content 让 Android Chrome 键盘
      弹起时收缩 layout viewport，fixed 底栏跟随；iOS 忽略无副作用。 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -243,20 +236,97 @@ try {
 </script>
 </head>
 <body>
+<!-- R21（用户直报）：全站登录墙——「必须要登录才可以进入到网站里面，
+     然后才有他的个人信息」。默认可见，只有 JS 确认已登录才隐藏
+     （fail-closed：脚本挂了用户看到的也是登录面板，不是裸站）。
+     登录成功后 #accountCard 归位回排盘历史的 #acctSlot。 -->
+<div class="auth-wall" id="authWall">
+      <div class="acct-card" id="accountCard">
+        <div class="acct-head">
+          <span aria-hidden="true">🔐</span> 小满账号
+          <span class="acct-sub" id="acctStatus">查一下云端…</span>
+        </div>
+        <div class="acct-form" id="acctForm">
+          <!-- R28-b（用户直报「登录和注册应该点击不同的按钮显示要填的东西
+               应该不一样才对呀，你这个怎么一样」）：改成显式分段控件——
+               登录只要昵称+口令码，注册才收生辰和性别。原先两套字段
+               平铺在一张表上，登录的人也被告知要填生辰。 -->
+          <div class="acct-tabs" role="tablist" aria-label="登录或注册">
+            <button type="button" class="acct-tab is-on" id="acctTabLogin"
+                    role="tab" aria-selected="true">登录</button>
+            <button type="button" class="acct-tab" id="acctTabReg"
+                    role="tab" aria-selected="false">注册</button>
+          </div>
+          <input id="acctNick" type="text" maxlength="24" autocomplete="off"
+                 placeholder="你的昵称">
+          <input id="acctPass" type="password" maxlength="64" autocomplete="off"
+                 placeholder="口令码（至少 6 位）">
+          <!-- R20（用户直报）：生辰上移到注册时收——首页那张填年月日的
+               大表单退场，这里成为唯一收生辰的地方。礼物门槛 _tryReveal
+               读的是同一份 me 档案，填完即「照你的盘包好」，登录后直接拆。
+               登录则从云端备份带回（_DATA_RE 含 me$），老账号云端没档时
+               按这里填的补。想改随时能改：日卡「你的小档案 · 改」。 -->
+          <div class="acct-birth" id="acctBirthBox" hidden>
+            <span class="acct-birth-lab">生辰（礼物照这个包，随时能改）</span>
+            <div class="acct-birth-row">
+              <input id="acctY" type="number" inputmode="numeric" min="1900"
+                     max="2100" autocomplete="bday-year" placeholder="年">
+              <input id="acctM" type="number" inputmode="numeric" min="1"
+                     max="12" autocomplete="bday-month" placeholder="月">
+              <input id="acctD" type="number" inputmode="numeric" min="1"
+                     max="31" autocomplete="bday-day" placeholder="日">
+              <input id="acctH" type="number" inputmode="numeric" min="0"
+                     max="23" placeholder="时辰·选填">
+            </div>
+          </div>
+          <div class="acct-gender" id="acctGenderBox" hidden>
+            <span class="acct-birth-lab">你是</span>
+            <div class="acct-gender-row" role="group" aria-label="性别">
+              <button type="button" class="acct-gender-btn is-on" id="acctGF" data-g="f" aria-pressed="true">女生</button>
+              <button type="button" class="acct-gender-btn" id="acctGM" data-g="m" aria-pressed="false">男生</button>
+            </div>
+            <span class="acct-gender-note">小满会按这个给你分一张头像，随机不重样</span>
+          </div>
+          <!-- 主操作唯一化：原先「注册」「登录」两颗并排，用户每次都要先
+               猜哪颗是干什么的。现在一颗，文案跟着模式走。 -->
+          <button id="acctGo" type="button" class="acct-go">登录</button>
+          <div class="acct-tip" id="acctTip">口令码记个牢的就好。同名账号换设备登录，生辰和数据都给你拉回来。</div>
+          <!-- 原两颗按钮保留在 DOM 里（隐藏）——app.js 的既有绑定不动，
+               #acctGo 只负责按当前模式去点对应那颗。 -->
+          <div id="acctLegacyBtns" hidden>
+            <button id="acctRegister" type="button" class="ghost">注册</button>
+            <button id="acctLogin" type="button" class="ghost">登录</button>
+          </div>
+        </div>
+        <!-- R32：登录后只剩两个动作——退出 / 注销。数据通路全自动：
+             登录即 _pull()（R29），离页即 _push()。原先的「立刻同步」
+             「从云端拉回」「导出数据」「导入备份」是自动通路的手动重复面，
+             留着会让人以为数据不会自己回来、得手动搬——已全部撤掉。 -->
+        <div class="acct-logged" id="acctLogged" hidden>
+          <div class="acct-line">已登 <b id="acctWho"></b> · <span id="acctLastSync">还没同步过</span></div>
+          <div class="acct-tip">数据跟着账号走：换设备登录同名账号，档案和记录自己就回来了；离开页面时自动存上云端。不用手动导入导出。</div>
+          <div class="btn-group">
+            <div class="btn-group-lab">⚙️ 账号</div>
+            <div class="acct-btns">
+              <button id="acctLogout" type="button" class="ghost">退出登录<small>只登出，数据不动</small></button>
+              <button id="historyWipe" type="button" class="ghost">注销账户<small>档案/记录/云端一起删，救不回</small></button>
+            </div>
+          </div>
+        </div>
+      </div>
+</div>
+
   <!-- R2348（R67-P1）：新人条静态进 DOM（原 JS DOMContentLoaded 才插，
        把整页下压成 CLS 0.075）。文案默认版；?from=share 变体由 app.js 改。 -->
   <!-- R2349h（R69-P2-11）：skip-link 挪到 welcomeBar 前——首 Tab 停
        应是跳转链接而非 ×（WCAG 2.4.1）。 -->
 <!-- R231f（R38-P2-4）：skip-link——键盘首站直达功能区 -->
 <a class="skip-link" href="#funcGrid">跳到功能区 ↓</a>
-  <div id="welcomeBar" class="welcome-bar" role="note">
-    <span class="welcome-txt">第一次来？点一张卡就能测，塔罗 · 桃花 · 合婚 · 黄历都有 ✨</span>
-    <button type="button" class="welcome-close" aria-label="知道了">×</button>
-  </div>
+  <!-- R6（周期二·首页 IA）：新人条撤销。NN/g 移动端 onboarding结论——“能通过使用学会的界面不该有教学引导”；场景条+功能卡已自解释，新人条从引导退化为与场景条重复的第三套寻航。论证见 D-906；probe_ui_smoke 同名用例已翻转为反向钉扎。 -->
   <!-- R3264（R40）：久归深拥——≥3 天没来时的温暖横幅 -->
   <div id="returnBanner" class="return-banner" role="note" hidden>
     <span>🌾 你不在的日子小满也在，今天想测什么？</span>
-    <button type="button" class="ghost" id="returnChat">和小满聊聊</button>
+    <button type="button" class="ghost" id="returnChat" data-chat-entry>和小满聊聊</button>
     <button type="button" class="welcome-close" id="returnDismiss" aria-label="知道了">×</button>
   </div>
   <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
@@ -280,9 +350,17 @@ try {
   <div class="home-main" id="homeMain">
 
   <!-- 水墨 hero 横幅（改版新增，加载失败整块隐藏） -->
-  <div class="ink-hero" aria-hidden="true">
-    <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="low"
-      onerror="this.closest('.ink-hero').classList.add('is-missing')">
+  <!-- S6：外层 wrap 供每日文案层定位——熊居左源图不动，右侧留白
+       从「空奶油底」变成每日一句（矮屏/手机 CSS 自动退场）。 -->
+  <div class="ink-hero-wrap">
+    <div class="ink-hero" aria-hidden="true">
+      <img src="/static/cream/cream-hero-v2.jpg" alt="" fetchpriority="low"
+        onerror="this.closest('.ink-hero').classList.add('is-missing')">
+    </div>
+    <div class="hero-line" id="heroLine">
+      <div class="hero-line-date" id="heroLineDate"></div>
+      <div class="hero-line-text" id="heroLineText"></div>
+    </div>
   </div>
 
 
@@ -293,6 +371,12 @@ try {
       <div class="brand-title">小满的解忧铺</div>
       <div class="brand-tagline">今天也要好好生活呀 ✨</div>
     </div>
+    <!-- R20（用户直报）：账号入口前置到品牌行——原先只埋在「排盘历史」
+         视图里。放在日卡之外是硬要求：日卡封面没拆时整张卡被 inert +
+         封面层物理遮挡，放里面新用户反而点不到（实测 click 报
+         "element is inert" / "intercepts pointer events"）。 -->
+    <button type="button" class="daily-acct" id="dailyAcct"
+            title="登录 / 注册——填好生辰，礼物直接拆">🔐 账号</button>
   </div>
 
   <!-- 每日运势 -->
@@ -301,42 +385,13 @@ try {
     <div class="daily-top">
       <span class="daily-label" id="dailyGreet">🌟 今日玄学搭子</span>
       <span class="daily-date" id="dailyDate">加载中…</span>
+      <!-- R20（用户直报）：账号入口前置——登录/注册原先只埋在「排盘历史」
+           视图里，用户进店第一眼看不到。这枚钮常驻日卡顶行（首页第一屏、
+           拆礼物之前就够得着），点它切到账号卡并滚到视口中央。 -->
       <div class="daily-card-gift"><img src="/static/shared/daily-box-gift.png" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></div>
     </div>
     <!-- R3368（审-低-11）：7 枚 ghost 钮收进弹性格——窄屏两列
          不再堆 380px 高按钮墙。 -->
-    <div class="daily-ghost-grid">
-    <!-- R198b（US5）：今日运势分享图入口 -->
-    <button class="ghost" type="button" id="shareDaily"
-            title="生成分享图" aria-label="把今日运势存成分享图"
-            style="margin:6px 14px 0; flex-shrink:0;">📸 分享图</button>
-    <!-- R3415（用户裁决）：朗读钮拆除——浏览器 TTS 对中文长文
-         只读两三个字就断，体验残废不如没有。 -->
-    <!-- R3264（R24）：日签小红书文案——一键复制晒图文案 -->
-    <button class="ghost" type="button" id="copyXhs"
-            title="复制小红书文案" aria-label="复制今日签晒图文案"
-            style="margin:6px 14px 0; flex-shrink:0;">📕 今日文案</button>
-    <!-- R3264（R29）：今日护身符——晒今日开运色/幸运数/财神方位 -->
-    <button class="ghost" type="button" id="shareLucky"
-            title="生成今日护身符" aria-label="生成今日护身符分享图"
-            style="margin:6px 14px 0; flex-shrink:0;">🧿 护身符</button>
-    <!-- R3317（调研-A）：每日开运壁纸——底图按日轮换+判词/开运色叠字，
-         可直接存成锁屏（小红书 29 元/张的需求面，我们免费每天发）。 -->
-    <!-- R3322-P3：去掉静态 disabled——弱网首帧灰钮看着像坏了；
-         handler 自带「运势还没出来」toast 引导，点了有回应。 -->
-    <button class="ghost" type="button" id="dailyWap"
-            title="生成今日开运壁纸" aria-label="生成今日开运壁纸"
-            style="margin:6px 14px 0; flex-shrink:0;">🖼 开运壁纸</button>
-    <!-- R3325-B：开运头像——同日壁纸的 1:1 中裁版，做社交头像。 -->
-    <button class="ghost" type="button" id="dailyAva"
-            title="生成今日开运头像" aria-label="生成今日开运头像"
-            style="margin:6px 14px 0; flex-shrink:0;">🧸 开运头像</button>
-    <!-- R3325：.ics 日历提醒——下载即入系统日历每天准点喊你，
-         Render 免费档无推送通道的零基建留存替代。 -->
-    <button class="ghost" type="button" id="dailyIcs"
-            title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
-            style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
-    </div>
     <!-- R2363（R117-P0-1）：判词先行——答案排在互动任务前，
          打卡块移到判词下面。 -->
     <div class="daily-main">
@@ -377,7 +432,6 @@ try {
            老黄历宜忌——标签措辞与黄历卡的「宜/忌」正交，免得两视图同名
            打架（daily 宜「约个饭」撞上黄历忌出行的名义冲突）。 -->
       <div class="daily-meta-item" title="生活彩蛋提示，不是老黄历宜忌">✅ 宜试试 <strong id="dailyDo">—</strong> · 🚫 先缓缓 <strong id="dailyDont">—</strong></div>
-      <button type="button" class="daily-ritual" id="dailyRitual" hidden>✅ 做完了</button>
     </div>
     <!-- R229z续23（R11-每日免责缺口）：首页卡面此前无免责 -->
     <div style="font-size:11px;color:var(--muted);margin-top:6px;">仅供娱乐，新的一天照常过 ✨</div>
@@ -385,6 +439,38 @@ try {
     <div class="daily-xingzuo" id="dailyXingzuo" hidden>
       <span class="dx-label" id="dxLabel">—</span>
       <span class="dx-note" id="dxNote">—</span>
+    </div>
+    <div class="daily-ghost-grid">
+    <!-- R198b（US5）：今日运势分享图入口 -->
+    <button class="ghost" type="button" id="shareDaily"
+            title="生成分享图" aria-label="把今日运势存成分享图"
+            style="margin:6px 14px 0; flex-shrink:0;">📸 分享图</button>
+    <!-- R3415（用户裁决）：朗读钮拆除——浏览器 TTS 对中文长文
+         只读两三个字就断，体验残废不如没有。 -->
+    <!-- R3264（R24）：日签小红书文案——一键复制晒图文案 -->
+    <button class="ghost" type="button" id="copyXhs"
+            title="复制小红书文案" aria-label="复制今日签晒图文案"
+            style="margin:6px 14px 0; flex-shrink:0;">📕 今日文案</button>
+    <!-- R3264（R29）：今日护身符——晒今日开运色/幸运数/财神方位 -->
+    <button class="ghost" type="button" id="shareLucky"
+            title="生成今日护身符" aria-label="生成今日护身符分享图"
+            style="margin:6px 14px 0; flex-shrink:0;">🧿 护身符</button>
+    <!-- R3317（调研-A）：每日开运壁纸——底图按日轮换+判词/开运色叠字，
+         可直接存成锁屏（小红书 29 元/张的需求面，我们免费每天发）。 -->
+    <!-- R3322-P3：去掉静态 disabled——弱网首帧灰钮看着像坏了；
+         handler 自带「运势还没出来」toast 引导，点了有回应。 -->
+    <button class="ghost" type="button" id="dailyWap"
+            title="生成今日开运壁纸" aria-label="生成今日开运壁纸"
+            style="margin:6px 14px 0; flex-shrink:0;">🖼 开运壁纸</button>
+    <!-- R3325-B：开运头像——同日壁纸的 1:1 中裁版，做社交头像。 -->
+    <button class="ghost" type="button" id="dailyAva"
+            title="生成今日开运头像" aria-label="生成今日开运头像"
+            style="margin:6px 14px 0; flex-shrink:0;">🧸 开运头像</button>
+    <!-- R3325：.ics 日历提醒——下载即入系统日历每天准点喊你，
+         Render 免费档无推送通道的零基建留存替代。 -->
+    <button class="ghost" type="button" id="dailyIcs"
+            title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
+            style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
     </div>
     <!-- R228c：aria-expanded 由 loadDailyDetail 随展开/收起同步 -->
     <button class="daily-more" id="dailyMore" type="button"
@@ -446,7 +532,7 @@ try {
          九宫格保留在下（学科分类仍有用），这层是给「带着心事来」
          的人的一键直达。 -->
     <div class="scene-bar" role="group" aria-label="按你现在想的直达">
-      <button type="button" class="scene-chip" data-scene="chat">
+      <button type="button" class="scene-chip" data-scene="chat" data-chat-entry>
         <b>💭 心里有事</b><i>和小满说说</i></button>
       <button type="button" class="scene-chip" data-scene="money">
         <b>💰 搞钱顺不顺</b><i>事业财运</i></button>
@@ -496,8 +582,12 @@ try {
     <div class="func-card func-entry func-more" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 传统问法</div>
     </div>
-    <div class="func-card func-entry func-more" data-view="history" role="button" tabindex="0" aria-label="排盘历史">
-      <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘历史</div><div class="func-desc">翻翻看过的盘 · 可导出</div>
+    <div class="func-card func-entry func-more" data-view="history" role="button" tabindex="0" aria-label="排盘记录">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘记录</div><div class="func-desc">只看记录 · 档案在「我的」</div>
+    </div>
+    <!-- R24（用户要求）：账号/个人信息独立入口——不再埋在排盘历史里 -->
+    <div class="func-card func-entry func-more" data-view="account" role="button" tabindex="0" aria-label="我的">
+      <img class="func-icon-img" loading="lazy" decoding="async" data-view="account" src="/static/avatars/avatar-f3.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">我的</div><div class="func-desc">档案 · 小满记得的 · 备份</div>
     </div>
     <!-- R3336（调研定调·决策神谕）：CyberLuck 验证的轻仪式——
          要不要/去不去的纠结掷筊出圣筊/笑筊/阴筊三态，同事同日同筊。 -->
@@ -526,7 +616,7 @@ try {
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
          不切视图。 -->
-    <div class="func-card func-entry func-chat" data-view="chat" role="button" tabindex="0" aria-label="和小满聊聊">
+    <div class="func-card func-entry func-chat" data-view="chat" data-chat-entry role="button" tabindex="0" aria-label="和小满聊聊">
       <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">和小满聊聊</div><div class="func-desc">有心事随时来说</div>
     </div>
     <!-- R4939（外部评测+用户拍板）：首屏减负——12 个次级玩法收进
@@ -1327,79 +1417,44 @@ try {
   </div>
 
   <!-- 排盘历史视图（2026-08-28 新增，C2） -->
-  <div class="view" id="view-history">
+  <!-- R24（用户要求）：账号/个人信息从排盘历史里独立成视图——
+       历史整块保留（用户明确说不删），只把账号面提出来。 -->
+  <div class="view" id="view-account">
     <div class="card">
-      <h2><span aria-hidden="true">🕘</span> 排盘历史 <span class="card-sub">本机记录 · 可回查可导出</span></h2>
-      <div class="ph-toolbar">
-        <button id="historyRefresh" type="button" class="ghost">刷新</button>
-        <button id="historyExport" type="button" class="ghost">导出表格</button>
-        <!-- R231a（R36-P3-3）：换设备备份——台账全量+浏览器侧偏好打包下载 -->
-        <button id="historyExportJson" type="button" class="ghost">备份我的数据</button>
-        <button id="historyImportBtn" type="button" class="ghost">导入备份</button>
-        <input id="historyImportFile" type="file" accept=".json,application/json" hidden>
-        <!-- R2345（R63-P1-3）：隐私卫生——生辰/昵称/提问此前只进不出。
-             两段式确认后清本机键+服务端台账。 -->
-        <button id="historyWipe" type="button" class="ghost">忘掉我的数据</button>
-        <!-- R3414：排盘历史小锁——同设备他人借用时防窥。可选功能：
-             不设锁一切照旧；设了锁进历史页要输口令码才看（口令哈希
-             存本机，本标签页解锁一次即可）。跟账号体系无关——不登录
-             也能锁。 -->
-        <button id="historyLockBtn" type="button" class="ghost">🔒 加个锁</button>
-        <!-- R2400（R138-P1-3）：线程/手记已纳入备份+清空——提示更新为
-             全量口径。 -->
-        <div class="ph-hint" style="font-size:12px;color:var(--secondary);margin-top:6px;">
-          备份/清空覆盖排盘台账、研究笔记与本机偏好，本机留档（只存在这台设备上的备份）也会一起清。
-        </div>
-      </div>
-      <!-- R3414：锁态面板——设锁/开锁/撤锁三态共用（JS 切文案）。
-           锁着时整个历史区只露这个面板。 -->
-      <div id="historyLockPanel" class="ph-lock" hidden>
-        <div class="ph-lock-title" id="historyLockTitle">🔒 排盘历史上了锁</div>
-        <input id="historyLockInput" type="password" inputmode="numeric"
-               maxlength="6" autocomplete="off" placeholder="输入 6 位口令码">
-        <button id="historyLockGo" type="button" class="ghost">开锁</button>
-        <div class="ph-lock-tip" id="historyLockTip">口令码只存在这台设备上，忘了可以「忘掉我的数据」重设。</div>
-      </div>
-      <!-- R3358：轻账号（昵称+口令码，不要邮箱/手机）——注册/登录后
-           备份自动同步到云端，换设备/无痕模式登录同名账号即可拉回。
-           口令码没有找回渠道，忘了就是没了（前端明说）。 -->
-      <div class="acct-card" id="accountCard">
-        <div class="acct-head">
-          <span aria-hidden="true">🔐</span> 小满账号
-          <span class="acct-sub" id="acctStatus">查一下云端…</span>
-        </div>
-        <div class="acct-form" id="acctForm">
-          <input id="acctNick" type="text" maxlength="24" autocomplete="off"
-                 placeholder="给自己起个名（昵称）">
-          <input id="acctPass" type="password" maxlength="64" autocomplete="off"
-                 placeholder="口令码（至少 6 位）">
-          <div class="acct-btns">
-            <button id="acctRegister" type="button" class="ghost">注册</button>
-            <button id="acctLogin" type="button" class="ghost">登录</button>
-          </div>
-          <div class="acct-tip">口令码没有找回渠道，忘了就是没了——记个牢的。注册即同步一份备份到云端。</div>
-        </div>
-        <div class="acct-logged" id="acctLogged" hidden>
-          <div class="acct-line">已登 <b id="acctWho"></b> · <span id="acctLastSync">还没同步过</span></div>
-          <div class="acct-btns">
-            <button id="acctSyncNow" type="button" class="ghost">立刻同步</button>
-            <button id="acctPull" type="button" class="ghost">从云端拉回</button>
-            <button id="acctLogout" type="button" class="ghost">退出</button>
-          </div>
-          <div class="acct-tip">备份会在这台设备退出页面时自动同步；换新设备登录同名账号点「从云端拉回」。</div>
-        </div>
-      </div>
-      <!-- R3441「小满记得」：本地数据面可视化——她能想起的东西全
-           摆在这台设备上给你看，每类都能单独让她忘掉。
-           账号/小锁/主题偏好归各自面板管，不走这张卡。 -->
+      <h2><span aria-hidden="true">🧸</span> 我的 <span class="card-sub">身份 · 小满记得的 · 备份</span></h2>
+      <div id="acctSlot"></div>
+      <p class="acct-empty" id="acctEmpty">还没登录——回首页登录后，你的档案、头像和云端备份就摆在这儿。</p>
+      <!-- R32：#myTools（备份我的数据/导入备份/忘掉我的数据）整块撤掉——
+           导出导入是账号通路的重复面；「忘掉」已并入账号卡的「注销账户」
+           （连账号带云端备份一起删，见 R31-A）。 -->
       <div class="mem-card" id="memoryCard">
         <div class="acct-head">
           <span aria-hidden="true">🧠</span> 小满记得的
           <span class="acct-sub">都存在这台设备上，随时可以让她忘掉</span>
         </div>
         <div class="mem-body" id="memBody"></div>
-        <div class="acct-tip">账号口令、历史小锁、主题皮肤归各自的面板管；想一键全清，用上面「忘掉我的数据」。</div>
+        <div class="acct-tip">账号口令、历史小锁、主题皮肤归各自的面板管；想连档案记录一起清干净，用上面「注销账户」。</div>
       </div>
+    </div>
+  </div>
+  <div class="view" id="view-history">
+    <div class="card">
+      <h2><span aria-hidden="true">🕘</span> 排盘记录 <span class="card-sub">只放记录本身 · 档案和备份在「我的」</span></h2>
+      <div class="ph-toolbar">
+        <button id="historyRefresh" type="button" class="ghost">刷新</button>
+        <button id="historyExport" type="button" class="ghost">导出表格</button>
+        <!-- R26（用户裁决「排盘历史里面的加个锁其实是不需要的」）：
+             锁钮已撤。历史改按登录账户归属（见 D-931），账号本身就是
+             边界——同一个账户名下只看自己的记录，不需要再加一道本机锁。 -->
+        <!-- R2400（R138-P1-3）：线程/手记已纳入备份+清空——提示更新为
+             全量口径。 -->
+      </div>
+      <!-- R24（用户原话「不把整个历史删除」+ 账号信息要独立）：
+           #acctSlot 已挪去 #view-account——账号/生辰/头像不再寄生在
+           排盘历史里，历史只留历史自己的东西。 -->
+      <!-- R3441「小满记得」：本地数据面可视化——她能想起的东西全
+           摆在这台设备上给你看，每类都能单独让她忘掉。
+           账号/小锁/主题偏好归各自面板管，不走这张卡。 -->
       <!-- R3200：类型筛选——记录多了按品类过一眼。只在有条目时出现。 -->
       <div id="historyFilter" class="ph-filter" hidden
            role="group" aria-label="按类型筛选记录"></div>

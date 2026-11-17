@@ -27,7 +27,7 @@ import html as _html
 import os
 import re
 import time
-from urllib.parse import urlencode
+from urllib.parse import unquote, urlencode
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
@@ -87,6 +87,15 @@ def create_app() -> FastAPI:
     # app.js 269KB→97KB、/api/bazi 46KB 约压 80%，/api/research 349KB
     # 收益更大。1KB 以下的响应不值得压（gzip 有固定头）。
     application.add_middleware(GZipMiddleware, minimum_size=1000)
+    # R26（用户裁决「登录哪个账户就应该显示哪个账户里面的排盘历史」）：
+    # 台账此前无账号维度——所有登录用户看到同一份。账号体系无状态、
+    # 没有会话可依托，归属由前端用 X-Books-Owner 头带上，这里设进
+    # 请求级上下文变量，paipan_history 的读写全按它切。
+    @application.middleware("http")
+    async def _paipan_owner(request, call_next):
+        from guji import paipan_history as _ph
+        _ph.set_owner(unquote(request.headers.get("x-books-owner", "") or ""))
+        return await call_next(request)
 
     # R2357（R113-P2-15/P3-21）：公网部署两个可选闸——
     #  BOOKS_ALLOWED_HOSTS：逗号分隔 Host 白名单（TrustedHost），防伪造
@@ -207,7 +216,9 @@ def create_app() -> FastAPI:
         "style='background:#fff;"
         "padding:32px 28px;border-radius:18px;box-shadow:0 8px 30px "
         "rgba(120,80,40,.12);text-align:center;max-width:320px'>"
-        "<div style='font-size:34px'>🌾</div>"
+        "<img src='/static/cream/gate-bear.jpg' alt='小满' width=150 "
+        "height=150 style='display:block;margin:0 auto 6px;"
+        "border-radius:26px;box-shadow:0 4px 14px rgba(120,80,40,.14)'>"
         "<p style='color:#7a6650;margin:10px 0 16px'>这里是小满的解忧铺，"
         "带钥匙的朋友请进～</p>"
         "<input name=key type=password placeholder='口令' autofocus "
@@ -222,7 +233,13 @@ def create_app() -> FastAPI:
         # 解锁完跳回原址（邀请链生辰参数不再被闸吃掉）。
         "<input type=hidden name=next value='{next}'>"
         "{hint}</form></body>")
-    _GATE_HINT = ("<p style='color:#c0504a;font-size:13px;margin:10px 0 0'>"
+    # R4（StepFun 自主优化）：错匙提示上方挂好奇熊——门页是第一面，
+    # 敲错口令的用户看到一只歪头执钥匙的软熊比一行红字贴「解忧」定位。
+    _GATE_HINT = ("<img src='/static/cream/gate-curious.jpg' alt='' width=72 "
+                  "height=72 style='display:block;margin:12px auto 0;"
+                  "border-radius:16px;box-shadow:0 3px 10px "
+                  "rgba(120,80,40,.12)'>"
+                  "<p style='color:#c0504a;font-size:13px;margin:8px 0 0'>"
                   "钥匙不对——再想想？</p>")
 
     def _gate_hint(next_url: str, wrong: bool) -> str:
@@ -393,7 +410,7 @@ def create_app() -> FastAPI:
         if _key_ok:
             q = dict(request.query_params)
             q.pop("key", None)
-            target = path + ("?" + urlencode(q, doseq=True) if q else "")
+            target = unquote(path) + ("?" + urlencode(q, doseq=True) if q else "")
             # R2400（R130-P2-1）：?key= 跳回同样组 Location——path 里
             # 解码出的 `\`/CRLF 与 next 同洞，同白名单回落 '/'。
             if (target.startswith("//") or

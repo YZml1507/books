@@ -22,6 +22,7 @@ bge 检索惯例（模型卡）：查询侧加指令前缀 "为这个句子生�
 """
 import json
 import sqlite3
+import sys
 import time
 from pathlib import Path
 
@@ -37,6 +38,10 @@ QUERY_PREFIX = "为这个句子生成表示以用于检索相关文章："
 DOCVECS = "data/catalog/bge_docvecs.npy"
 DOCMETA = "data/catalog/bge_docmeta.json"
 
+# S2 修（studio）：R4940 把 probe_t7r_concept 归档进 probes/archive/，
+# 裸 import 随之断裂（ModuleNotFoundError）。按显式路径补 sys.path，
+# 同源单供不变。
+sys.path.insert(0, str(Path(__file__).resolve().parent / "archive"))
 from probe_t7r_concept import PARAPHRASES  # noqa: E402
 
 

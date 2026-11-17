@@ -52,7 +52,7 @@ ck("tarot.n1_ok", TarotDrawRequest(n=1).n == 1)
 
 # --- P2-3: addr 存在性校验 ---
 ck("addr.exist_check",
-   re.search(r"def addr[\s\S]{0,2200}SELECT 1 FROM unit WHERE", _svc_src)
+   re.search(r"def addr[\s\S]{0,2200}c\.has_value\(", _svc_src)
    is not None)
 ck("addr.err_cn", "库里没有" in _svc_src)
 

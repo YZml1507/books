@@ -131,12 +131,19 @@ def main() -> int:
                encoding="utf-8").read()
     check("poster 明细行硬顶按卡片区分档",
           "_linesTop = (s.cards || []).length ? 860 : 1260" in _ps)
+    # S2 修（studio）：R3406-P2 把「行块底缘不越硬顶」重写成 _cardH 分解式
+    # （+_LH_PAD/_MDOT_H/_KL_H/_CAL_H 四段），兜底判断改用 _cardH；钉扎随之
+    # 更新到现行表达式——不变量不变（仍是 cardY-60+行块高 > _linesTop 即上提），
+    # 反而多压了 lh≥52 下限与丢行兜底，比旧 40 口径更稳。
     check("poster 兜底上提防越硬顶",
-          "cardY - 60 + lines.length * lh + 40 > _linesTop" in _ps)
+          "cardY - 60 + _cardH > _linesTop" in _ps)
     check("poster 徽章钉 1080 逻辑系",
           "s.badge, 1080 - 56" in _ps and "s.badge, W - 56" not in _ps)
+    # S2 修（studio）：R3398-P3-17 把 ch 从恒定 400 改成条件档——
+    # 无明细行 400、有明细行 360（卡宽 250 时 9 字 ×30px 会两侧出血）。
+    # 钉「现行档位表达式」而非旧恒定字面量；档位语义（不盖水印行）不变。
     check("poster 卡高 400 不盖水印行",
-          "cw = 250, ch = 400" in _ps)
+          "cw = 250" in _ps and "ch = lines.length ? 360 : 400" in _ps)
 
     # ── 7. app_research.js 源码钉扎 ───────────────────────────
     _rs = open(os.path.join(ROOT, "web", "static", "app_research.js"),

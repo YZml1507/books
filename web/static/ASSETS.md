@@ -58,3 +58,5 @@
 | `assets_src/candidates/` | 出图候选/原稿（不随静态分发） | 同 AI 生图口径 |
 | `assets_src/ink/` | 旧水墨主题资产（退役，存档） | 同 AI 生图口径 |
 | `assets_src/cream-full/` | cream 系列全尺寸原稿 | 同 AI 生图口径 |
+S4.2 批次（StepFun Studio 自主优化·周期一 R3，agnes-image-2.5-flash）：`bear-scene-{good,sml,mid,bad}.jpg` 日签场景主视觉提质——沿 R3257 同 prompt 同裁剪逻辑 drop-in 替换（cozy/lantern 两张无脚本溯源未动），480×360 q84 → **960×720 q85**（3x 视网膜覆盖 ×2 冗余），57–135KB。批次脚本 `scripts/gen_opt_r3_scenes.py`。
+S4.3 批次（StepFun Studio 自主优化·周期一 R4，agnes-image-2.5-flash）：`gate-curious.jpg` 门页错误态好奇熊——与 gate-bear 同角色（头巾/围裙/腮红），歪头+执 brass 钥匙+问号，288×288 12KB。挂两处：服务端门页错匙提示上方（app.py _GATE_HINT）、壳内 401 浮层错误态（app.js #gateCurious）。

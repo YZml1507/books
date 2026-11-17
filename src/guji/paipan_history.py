@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import glob
 import json
 import os
@@ -89,7 +90,12 @@ _DDL = """CREATE TABLE IF NOT EXISTS records(
     question TEXT,
     req_json TEXT NOT NULL,
     result_json TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'bazi')"""
+    type TEXT NOT NULL DEFAULT 'bazi',
+    /* R26（用户裁决「登录哪个账户就应该显示哪个账户里面的排盘历史」）：
+       台账此前无账号维度——所有登录用户看到同一份。加 owner 列，
+       空串=账号体系上线前的存量行，不归属任何账户，按归属过滤后自然
+       不可见（不删数据，只是不再冒名显示给别人）。 */
+    owner TEXT NOT NULL DEFAULT '')"""
 
 
 def _quarantine() -> None:
@@ -115,6 +121,24 @@ def _quarantine() -> None:
             os.remove(f)
     except Exception:
         pass
+
+
+_OWNER = contextvars.ContextVar("books_paipan_owner", default="")
+
+
+def _norm_owner(nick) -> str:
+    "R26：归属标识归一——大小写不敏感、去空白、限长，防注入/脏值。"
+    return re.sub(r"[^0-9A-Za-z\u4e00-\u9fa5_-]", "",
+                  str(nick or ""))[:40].strip().lower()
+
+
+def set_owner(nick) -> None:
+    "R26：请求级归属——由 web/app.py 的中间件在每请求入口设入。"
+    _OWNER.set(_norm_owner(nick))
+
+
+def current_owner() -> str:
+    return _OWNER.get()
 
 
 def _conn() -> sqlite3.Connection:
@@ -186,6 +210,9 @@ _RECORDS_COLS = {
     "question": "TEXT",
     "req_json": "TEXT NOT NULL DEFAULT '{}'",
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
+    # R26：归属列——CREATE TABLE IF NOT EXISTS 不给存量表补列，
+    # 走 _RECORDS_COLS 让 _ensure_columns 下次连接时 ALTER 上。
+    "owner": "TEXT NOT NULL DEFAULT ''",
     # R230z（R36-P1-1）：品类列——历史台账不再只收八字。桃花/合婚/塔罗/
     # 六爻/起名同写一张表，老库经 _ensure_columns 补列（默认 'bazi'，存量
     # 行语义正确，无需回填）。
@@ -233,6 +260,7 @@ def _name_summary(req: dict) -> str:
 
 
 def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
+               owner: str | None = None,
                name: str | None = None) -> None:
     """排盘成功后异步落一条记录。永不抛错、永不阻塞调用方。
 
@@ -258,6 +286,9 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
         _log("save dropped: backlog full")
         return
     # R2349q（ui_smoke history.wipe 实测）：排盘响应已返回、台账写线程
+    # R26：归属在入队时捕获——后台写线程不在请求上下文里，晚取会拿到
+    # 空串把这条记录写成无主行。显式 owner 优先，否则取请求级。
+    _own = _norm_owner(owner) if owner is not None else current_owner()
     # 仍在排队——wipe 的 DELETE 先落地、在途 INSERT 后落地 → 清空后
     # 鬼行复活。代次闸：wipe 抬 _WIPE_GEN，在代次切换前入队的写一律作废。
     _gen = _WIPE_GEN
@@ -344,8 +375,8 @@ def save_async(req_dict: dict, result_dict: dict, rtype: str = "bazi",
                     return   # 入队后发生过 wipe——这条记录不再属于新台账
                 c.execute(
                     "INSERT INTO records(ts,name,question,req_json,result_json,"
-                    "type) VALUES(?,?,?,?,?,?)",
-                    (ts, row_name, question, row_req, row_res, rtype))
+                    "type,owner) VALUES(?,?,?,?,?,?,?)",
+                    (ts, row_name, question, row_req, row_res, rtype, _own))
                 # R228j：滚动裁剪——单行 ~50KB，不裁剪用户每排一次盘就永久
                 # +1 行（实测 31 次→3.7MB），列表/导出全量 fetchall 越滚越慢。
                 c.execute(
@@ -372,7 +403,8 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
     limit = max(1, min(int(limit), 100))
     offset = max(0, int(offset))
     with contextlib.closing(_conn()) as c:
-        total = c.execute("SELECT COUNT(*) FROM records").fetchone()[0]
+        total = c.execute("SELECT COUNT(*) FROM records WHERE owner=?",
+                           (current_owner(),)).fetchone()[0]
         # R229z续10（R8 P2-5）：原实现为渲染摘要把整行 req_json+result_json
         # （~50KB/行）搬进 Python 再 json.loads——改 json_extract 在 SQLite
         # 内直取两个摘要字段；req 全字段前端列表零引用（复看走详情接口），
@@ -389,8 +421,9 @@ def list_records(limit: int = 20, offset: int = 0) -> dict:
             "   json_extract(result_json,'$.calc.five_elements.counts') END,"
             " CASE WHEN json_valid(result_json) THEN"
             "   json_extract(result_json,'$.render') END"
-            " FROM records ORDER BY id DESC LIMIT ? OFFSET ?",
-            (limit, offset)).fetchall()
+            " FROM records WHERE owner=?"
+            " ORDER BY id DESC LIMIT ? OFFSET ?",
+            (current_owner(), limit, offset)).fetchall()
     items = []
     for rid, ts, name, question, rtype, render, counts, flat_render in rows:
         try:
@@ -414,7 +447,8 @@ def get_record(rid: int) -> dict | None:
     with contextlib.closing(_conn()) as c:
         row = c.execute(
             "SELECT id,ts,name,question,req_json,result_json,type"
-            " FROM records WHERE id=?", (int(rid),)).fetchone()
+            " FROM records WHERE id=? AND owner=?",
+            (int(rid), current_owner())).fetchone()
     if row is None:
         return None
     rid, ts, name, question, req_json, res_json, rtype = row
@@ -435,7 +469,8 @@ def delete_record(rid: int) -> bool:
     # R2525（审-DB-P3-7）：补上 _write_lock——此前是全模块唯一绕过
     # 写串行纪律的写者（功能上单语句删除本安全，纪律一致性）。
     with _write_lock, contextlib.closing(_conn()) as c, c:
-        cur = c.execute("DELETE FROM records WHERE id=?", (int(rid),))
+        cur = c.execute("DELETE FROM records WHERE id=? AND owner=?",
+                        (int(rid), current_owner()))
         return cur.rowcount > 0
 
 
@@ -448,7 +483,8 @@ def tarot_collection() -> dict:
         with contextlib.closing(_conn()) as c:
             rows = c.execute(
                 "SELECT result_json FROM records WHERE type='tarot'"
-                " ORDER BY id DESC LIMIT 500").fetchall()
+                " AND owner=? ORDER BY id DESC LIMIT 500",
+                (current_owner(),)).fetchall()
     except Exception:
         return {"collected": []}
     for (res_json,) in rows:
@@ -469,7 +505,8 @@ def clear_all() -> int:
     global _WIPE_GEN
     with _write_lock, contextlib.closing(_conn()) as c, c:
         _WIPE_GEN += 1
-        cur = c.execute("DELETE FROM records")
+        cur = c.execute("DELETE FROM records WHERE owner=?",
+                        (current_owner(),))
         return cur.rowcount
 
 
@@ -478,7 +515,8 @@ def export_rows() -> list[tuple]:
     with contextlib.closing(_conn()) as c:
         rows = c.execute(
             "SELECT id,ts,name,question,type,result_json FROM records"
-            " ORDER BY id DESC").fetchall()
+            " WHERE owner=? ORDER BY id DESC",
+            (current_owner(),)).fetchall()
     out = []
     for rid, ts, name, question, rtype, res_json in rows:
         try:
@@ -508,7 +546,8 @@ def export_all() -> list[dict]:
     with contextlib.closing(_conn()) as c:
         rows = c.execute(
             "SELECT ts,name,question,type,req_json,result_json FROM records"
-            " ORDER BY id").fetchall()
+            " WHERE owner=? ORDER BY id",
+            (current_owner(),)).fetchall()
     out = []
     for ts, name, question, rtype, req_json, res_json in rows:
         try:
@@ -525,7 +564,8 @@ def export_all() -> list[dict]:
     return out
 
 
-def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
+def import_rows(rows: list[dict],
+                owner: str | None = None) -> tuple[int, int, list[dict]]:
     """批量落库（追加式，去重靠 ts+name+type 三元组）。
 
     返回 (written, skipped, new_rows)：new_rows 是每条新写入行的
@@ -534,6 +574,7 @@ def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
 
     防线：条数 ≤ KEEP_MAX、单行序列化 ≤256KB、字段截断到列上限、
     type 白名单——备份文件是用户可控输入，按不可信数据验。"""
+    _own_imp = _norm_owner(owner) if owner is not None else current_owner()
     if not isinstance(rows, list) or not rows:
         return 0, 0, []
     with _write_lock, contextlib.closing(_conn()) as c, c:
@@ -588,15 +629,16 @@ def import_rows(rows: list[dict]) -> tuple[int, int, list[dict]]:
                         [:200].strip() or None)
             # 同 (ts,name,type) 视为同一记录——重复导入不产生重复行
             dup = c.execute(
-                "SELECT 1 FROM records WHERE ts=? AND name=? AND type=?",
-                (ts, name, rtype)).fetchone()
+                "SELECT 1 FROM records WHERE ts=? AND name=? AND type=?"
+                " AND owner=?",
+                (ts, name, rtype, _own_imp)).fetchone()
             if dup:
                 skipped += 1
                 continue
             cur = c.execute(
                 "INSERT INTO records(ts,name,question,req_json,result_json,"
-                "type) VALUES(?,?,?,?,?,?)",
-                (ts, name, question, req_s, res_s, rtype))
+                "type,owner) VALUES(?,?,?,?,?,?,?)",
+                (ts, name, question, req_s, res_s, rtype, _own_imp))
             new_rows.append({"id": cur.lastrowid, "ts": ts,
                              "name": name, "type": rtype})
             written += 1

@@ -1,9 +1,3 @@
-# 任务台账
-
-**更新** 2026-08-13 · 唯一的任务状态来源
-
----
-
 ## 使用约定（重要）
 
 **每完成一个小任务，立刻在此处加一行**，否则下一轮会重做。每行必须有：
@@ -2153,6 +2147,184 @@ fast-forward 完成合并（origin/main 未被优化轨推进，rebase 为 no-op
   eval_g1 17 PASS / G4 PASS / G7 PASS）。
 - research.py 自测 5 例 PASS；TestClient 端点测试含 400/422 边界。
 - 决策记录：DECISIONS.md D-064b。
+
+## DONE · R32（2026-11-17）账号卡六个按钮砍成两个；验证自动通路零手动
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R32-1 | DONE | 删除小静账号（用户指令） | 只剩小霖 |
+| R32-2 | DONE | 账号卡登录态只剩「退出登录」「注销账户」 | 可见按钮恰 2 个 |
+| R32-3 | DONE | 撤掉 #myTools 整块 + 立刻同步/从云端拉回 | 全页搜不到 6 个旧字样 |
+| R32-4 | DONE | 补 acctSyncNow/acctPull 删后空值保护（原先会抛错连带断绑定） | node --check + 门禁 |
+| R32-5 | DONE | 实测自动通路：离页自动上传 + 登录自动拉回，零手动 | 云端包含 me:partner，重登原样回来 |
+| R32-6 | DONE | 门禁 461 项 PASS；测试账号零残留 | 只剩小霖 |
+
+## DONE · R31（2026-11-17）忘掉我的数据不删云端备份=假承诺；回灌刷屏 172 个 toast
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R31-1 | DONE | 定位 wipe 漏删 `backups` 表 → 重登 `_pull()` 整份复活 | 修前 `me/pa: True` |
+| R31-2 | DONE | wipe 追加 `/api/account/delete`（连账号+云端备份） | 修后 `me/pa/ck: False` |
+| R31-3 | DONE | 二次确认文案改「档案/记录/云端备份和账号全删」 | 浏览器实测 |
+| R31-4 | DONE | 回灌循环改 silent + 撞写入闸即停 + 聚合一句 | 177→4 次被拒写 |
+| R31-5 | DONE | 踩坑：跨 IIFE 调 `_creds()` 被 try 吞掉静默失效，改直读 localStorage | 实测复活仍在才发现 |
+| R31-6 | DONE | 门禁 461 项 PASS；测试账号零残留 | 只剩小霖/小静 |
+
+## DONE · R30（2026-11-17）清 83 个测试账号 + 堵根；六个按钮按数据流分组
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R30-1 | DONE | 查清 85 账号构成：2 真人 + 83 测试（40 自测 + 43 我的浏览器验证） | sqlite3 实测 |
+| R30-2 | DONE | 新增 `userdb.delete_account()` + `POST /api/account/delete`（口令保护、连备份一起删） | 端点实测 True |
+| R30-3 | DONE | 自测账号块收尾处删销 + 3 项新检查（delete/delete_bad/deleted_gone） | 门禁 461 项 |
+| R30-4 | DONE | 踩坑：删销插块中间废掉 casefold/push_conflict/push_updated_at，已挪块尾 | 门禁 FAIL→PASS |
+| R30-5 | DONE | 存量 83 个测试账号清空，门禁跑完零残留 | 只剩小霖/小静 |
+| R30-6 | DONE | 六个按钮按数据流分四组（云端/登录/本地文件/清理），每颗带方向副标 | 浏览器实测 |
+
+## DONE · R29（2026-11-17）修「从云端拉回」不同步昵称；如实回答隐私问题
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R29-1 | DONE | 根因：`_syncMeName` 只挂登录/注册，用户点的是「从云端拉回」，`_pull()` 会把云端旧档案名写回 | 代码走读 |
+| R29-2 | DONE | `_pull()` 的 `_importBackupText` 之后补 `_syncMeName(c.n)` | 已上线 |
+| R29-3 | DONE | `_acctRender()` 入口按登录态校正（覆盖老用户不重新登录直接进页面） | 已上线 |
+| R29-4 | DONE | 实测：污染档案名为「小静」→ 刷新 → 自动跟回账号名，零报错 | 浏览器实测 |
+| R29-5 | DONE | 隐私核查：读服务器真实库，确认云端备份明文、内容清单、口令口径、无 HTTPS | sqlite3 实测 |
+
+## DONE · R28（2026-11-17）合并「排盘历史」与「个人账号」；登录注册分模式
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R28-1 | DONE | 记忆卡（6 类个人数据）+ 备份/导入/忘掉工具 从 `#view-history` 挪进账号视图，改名「我的」 | 浏览器实测 |
+| R28-2 | DONE | 原「排盘历史」改名「排盘记录」，只留刷新/导出表格/筛选/列表/详情 | 浏览器实测 |
+| R28-3 | DONE | 功能卡重命名（history→排盘记录、account→我的）并改定性文案 | 浏览器实测 |
+| R28-4 | DONE | `_syncMeName()`：账号昵称定为唯一真源，档案名 me.n 跟随，消掉「小静/小霖」双名字 | 已上线逻辑 |
+| R28-5 | DONE | 登录/注册改显式分段控件：登录只出昵称+口令码，注册才出生辰+性别；单主操作钮 | 两种模式字段实测 |
+| R28-6 | DONE | 修 latent bug：记忆卡渲染触发器挪窝后失效，挂 `window.__xmMemRender` 并在 showView('account') 触发 | 从 0 字 → 1160 字 |
+| R28-7 | DONE | 修 latent bug：记忆卡摘要渲染裸性别码「· f ·」，转中文 | 摘要实测 |
+| R28-8 | DONE | 表单样式重做（分段控件/四栏生辰/满宽主钮/统一输入框/深色适配） | 门禁 css.var_defs |
+
+## DONE · R27（2026-11-17）修复「页面出了点小状况，刷新一下试试」
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R27-1 | DONE | **根因**：`window.__avatarPick = function` 赋值不提升，`_dailyAcctText()` 在更早处被调用；未登录走不到该分支，**带登录态刷新必炸 TypeError** | 污染态实测复现 |
+| R27-2 | DONE | 改函数声明（可提升）+ 内部调用点改裸名，不再依赖 `window` 挂载时机 | 带登录态刷新 0 错 |
+| R27-3 | DONE | 老用户 `histLock` 按 R26 一次性清理逻辑移除 | 实测 `False` |
+| R27-4 | DONE | 全状态复测：冷启/注册/带登录态刷新 全 0 错；头像、点击目标、无锁钮全对 | 见对话实测 |
+
+## DONE · R26（2026-11-17）用户裁决三条：历史归账户 / 锁换头像 / 撤锁
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R26-1 | DONE | **右上角「锁」是真凶**：`#dailyAcct` 渲染 `🔓` 开锁表情 → 换成 26px 真头像 | 实测 `lockEmoji:false`、`nat:384` |
+| R26-2 | DONE | 点右上角用户名：`history` → `account`（用户个人信息） | 实测 `on:True, hist:False` |
+| R26-3 | DONE | 头像兜底收成全局唯一一份，三处共用（原先两套会漂移出两张脸） | DECISIONS D-931 |
+| R26-4 | DONE | **服务端历史加 owner 归属**：DDL+迁移+contextvar+全部读写点 | 甲1/乙1/丙0 |
+| R26-5 | DONE | 前端 `X-Books-Owner` 头（encodeURIComponent）+ 中间件 unquote 设归属 | HTTP 链路实测通过 |
+| R26-6 | DONE | 本机镜像按账户分键 + 一次性迁移（老全局键归当前账户后撤掉） | DECISIONS D-931 |
+| R26-7 | DONE | 撤排盘历史锁：钮+面板删 DOM，遗留 `histLock` 一次性清理 | `grep -c` = 0 |
+| R26-8 | DONE | 全站扫：18 主视图零横向溢出、零 pageerror | 见对话实测 |
+| R26-9 | 未决 | **要不要重新打开 `BOOKS_PAIPAN_HISTORY_DISABLE` / `BOOKS_WRITE_DISABLE`**——归属已修好，但打开属部署姿态，待用户拍板 | DECISIONS D-931 §4 |
+
+## DONE · R25（2026-11-17）头像在用户名旁不可见：26px + 无兜底
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R25-1 | DONE | **头像放大**：`.daily-me-face` 26→40px（暖描边+投影），`.acct-face` 44→52px | DECISIONS D-930 |
+| R25-2 | DONE | **兜底**：新增 `_avatarOf()`（性别池+昵称哈希确定性），老账号/缺 `me.av` 也有脸 | 实测删 `me.av` 后仍 40px |
+| R25-3 | DONE | 档案行去掉多余 🧸 emoji（头像才是身份标识） | 实测 `bear:false` |
+| R25-4 | DONE | 修兜底失效坑：档案行渲染早于账号 IIFE，`window.__avatarOf` 未挂上 → 内联同算法兜底 | DECISIONS D-930 |
+| R25-5 | DONE | 全站扫：18 个主视图零横向溢出、零 pageerror | 见对话实测 |
+
+## DONE · R24（2026-11-17）用户点名三条一次清完
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R24-1 | DONE | **封面裁切**：补 `min-width:601px and max-height:720/600` 两档，收 padding-top 与图宽 | DECISIONS D-929①；1400×540 图 +5→-57、CTA +46→-23 |
+| R24-2 | DONE | **账号信息独立视图**：搬 `#acctSlot` 进新建 `#view-account`，历史整块保留；抽屉加「我的账号」入口 | DECISIONS D-929②；账号卡在 slot 内、历史不再含卡 |
+| R24-3 | DONE | **加锁 HTTPS**：`crypto.subtle` 换纯 JS SHA-256（逐位等价，老哈希不失效） | DECISIONS D-929③；http 下设锁/开锁全通 |
+| R24-4 | DONE | 门禁：selftest 四处卡片清单同步（17→18 卡，主入口仍 5） | `web self-test PASS (458 checks)` |
+
+## DONE · R23（2026-11-17）头像重画为品牌风小动物 + cookie 定性
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R23-1 | DONE | **头像重画**：对品牌原图 `daily-gift-bear.png` 提炼风格锚，重生成 9 张小动物（女池6 蝴蝶结/花·男池3 帽子/围巾），性别改靠配件编码不靠长相 | DECISIONS D-927；9 张 122KB |
+| R23-2 | DONE | 实测：注册→仓鼠头像、日卡档案行显示、换设备拉回、overflowX 0、无 pageerror | 见对话实测 |
+| R23-3 | DONE | **cookie 定性**：`books_key` 属旧令牌闸，D-923 置空 `BOOKS_ACCESS_TOKEN` 后中间件 `if not _tok: return` 整体短路；响应 Set-Cookie 计数 0，`document.cookie.length` 0 | DECISIONS D-928 |
+| R23-4 | DONE | 线上复核：`✅ 宜试试 · 打卡`、按钮虚线柔化、性别字段均在线 | grep 计数 1/3/5 |
+
+**门禁**：头像 9 张均 200；`node --check` PASS；`web self-test PASS (458 checks)`。
+
+## DONE · R22（2026-11-17）性别/头像 + 礼物自动拆 + 按钮与文案收敛
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R22-1 | DONE | **头像体系**：agnes-image-2.5-flash 生成 女6 男3 共 9 张，统一奶油扁平风，384px q88 合计 138KB；注册按性别随机分一张存 `me.av`，随 `_DATA_RE` 的 `me$` 进备份 | DECISIONS D-925 |
+| R22-2 | DONE | **性别字段**：`#acctForm` 加「你是 女生/男生」软分段钮；`_readFields` 带 `g` | DECISIONS D-925 |
+| R22-3 | DONE | 头像显示两处：账号面板 `#acctFace`(44px) + 日卡档案行 `.daily-me-face`(26px) | 实测 26px / overflowX 0 |
+| R22-4 | DONE | **礼物自动拆**：新增 `_revealIfReady()`，挂登录成功尾 + `_acctRender` 延迟一拍；此前登录后封面仍盖着要手点 | 注册/登录后 `#dailyCover` 均 GONE |
+| R22-5 | DONE | 「✅ 做完了 / 已做完」→「✅ 宜试试 · 打卡 / 已打卡」——用户原话「我都不知道要做什么」 | DECISIONS D-925③ |
+| R22-6 | DONE | 「做到了」「定一个 →」柔化：深色实线描边 → 虚线软框 + hover 柔光；`.dday-set` 补同族规则 | DECISIONS D-925④ |
+| R22-7 | DONE | 登录页「忘了就是没了」→ 友好口径，信息量不减 | index.html:276 |
+| R22-附 | DONE | 踩坑记录：`_meSaveFromBirth` 吞 `av`（须补合并写）；`_bindGender` 只挂已登录分支致性别恒 f | DECISIONS D-925 附一/附二 |
+
+**门禁**：`node --check` PASS；`web self-test PASS (458 checks)`；SW `books-shell-dce7e3b41ce2`。
+
+## DONE · R21b（2026-11-17）拆令牌闸 + 生日免重填实测
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R21b-1 | DONE | **拆掉进不去的根因**：systemd 单元 `BOOKS_ACCESS_TOKEN` 置空（drop-in，代码不删）——此前整站被 `/_gate` 口令页挡死，前端登录墙在后面根本走不到 | 无 cookie `http://` → 200，首屏即 auth-wall；DECISIONS D-923 |
+| R21b-2 | DONE | 调研确认用户库链路：`data/users.db`（accounts+backups）、`_DATA_RE` 含 `me$`、注册在首推前落生日；早前 `records:[]` 是生辰字段上线前的旧账号，非缺陷 | DECISIONS D-924 |
+| R21b-3 | DONE | **生日免重填实测通过**：A 浏览器注册 1988/3/9 → B 全新 context 空 localStorage 登录 → `me` 原样拉回 | DECISIONS D-924 |
+| R21b-4 | DONE | 修骗人文案：`backend==='local'` 原显示「备份留不住，换设备拉不回」→ 改实话并点明唯一真实风险（服务器清盘） | DECISIONS D-924 |
+
+**门禁**：`web self-test PASS (458 checks)`；`node --check` PASS；SW `books-shell-61a6a3eb96f4`。
+
+## DONE · R21（2026-11-17）全站登录闸 + HTTPS 不通根因
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R21-1 | DONE | **全站登录闸**：`#accountCard` 提到 body 级 `#authWall` 当全屏登录面板，未登录主区逐子 inert + body 锁滚；登录成功归位回 `#view-history` 的 `#acctSlot`。HTML 默认可见=fail-closed | 未登录：墙可见+dailyCard inert；注册后：墙隐藏/归位/可用/生日落 `1990/6/15`；DECISIONS D-921 |
+| R21-2 | DONE | 登录闸三处钩子踩坑后定稿：挂唯一凭据写入口 `_saveCreds`（注册/登录/退出全覆盖）；`_acctRender` 与 `__acctCredsChanged` 实测都不走同 tab 注册 | DECISIONS D-921 附一 |
+| R21-3 | DONE | 修作用域静默失败：`_authGate`/`_dailyAcctText` 改直读 `xmaccount`（原来调 IIFE 内的 `_creds()` 被 try/catch 吞成 ReferenceError，恒判未登录） | 钮现显「🔓 老账号甲乙」；DECISIONS D-921 附一 |
+| R21-4 | DONE | HTML 提取越界修复：逐行配平+剥注释+块内 id 白名单（17 个）断言；错版曾把账号卡撑到 2692px 致按钮出视口 | DECISIONS D-921 附一 |
+| R21-5 | DONE | **HTTPS 不通根因**：云安全组没放 443（nginx 本机 200、公网自连超时、80 通、ufw 已放）→ 需去阿里云控制台加入方向 443；临时用 `http://`；证书自签故浏览器仍会警告 | DECISIONS D-922 |
+
+**门禁**：`web self-test PASS (458 checks)`；`node --check` PASS；SW 缓存
+`books-shell-16d4d85b1a19`。备份 `/tmp/index.bak-r21`、`/tmp/styles.bak-r21`、`/tmp/app.bak-r21`。
+
+## DONE · R20（2026-11-17）三项用户直报：未来信入口 / meta 药丸流 / 账号前置
+
+| ID | 状态 | 内容 | 证据 |
+|---|---|---|---|
+| R20-1 | DONE | 「✉️ 写给未来的自己」去下划线 + 空盒排版归队（`.fl-write` 删 text-decoration；`.fl-entry` 虚线软卡底→quiet 行） | 五档 `textDecorationLine:'none'`、entry h 82→74、bg 透明、border 0；DECISIONS D-918 |
+| R20-2 | DONE | daily-meta「收起/+N 条」移出药丸流、自立安静文本行 | `inRow=False`、前一个兄弟即 `.daily-meta`、h=44；DECISIONS D-919 |
+| R20-3 | DONE | 补刀：dailyTomorrow 系列抢占 nextSibling 把钮挤走 112px → 收尾补 `_dailyMetaCap()` 重排 | 实测钮恒定紧贴药丸流；DECISIONS D-919 |
+| R20-4 | DONE | 注册表单收生辰（年/月/日必填+时辰选填），`_readFields`/`_birthErr`/`_saveBirthThen` | 四字段 4/4 在 DOM；DECISIONS D-920 |
+| R20-5 | DONE | 生辰落档接进注册链（`_push` 前 await）与登录链（老账号云端无档则补档推回） | `await _saveBirthThen(`×1；DECISIONS D-920 |
+| R20-6 | DONE | 账号入口前置：日卡顶行常驻账号钮（未登录「🔐 账号」/已登录显昵称），一键切到账号卡+柔光高亮 | 五档可见 69×44（390:62×44）；DECISIONS D-920 |
+| R20-7 | DONE | 账号钮从 `.daily-top` 移到品牌行 `.brand`——日卡封面未拆时整卡 inert + `#dailyCover` 全卡覆盖层，放里面新用户点不到（实测报 `element is inert` / `intercepts pointer events`）；几何绿 ≠ 可交互，点击实测救回 | DECISIONS D-920 附二 |
+| R20-附 | DONE | **app.js 语法事故修复 + 门禁缺口记录**：R20-6b 锚点是注释首行致注释吞代码，`node --check` 报错而 selftest 仍 458 全绿 → 已修复并复跑；**下轮必须把 JS 语法门并入 selftest** | `node --check` 现 PASS；DECISIONS D-920 附 |
+
+**门禁**：`web self-test PASS (458 checks)`；SW 缓存 `books-shell-52774708de3f`；
+app.js 现役 md5 见服务器；SW 缓存 `books-shell-ead63ee18fe8`；备份 /tmp/app.js.bak-r20a/b/c/d；备份
+`/tmp/app.js.bak-r20broken`（破版，勿回滚）、`/tmp/app.js.bak-r20a/b/c`、`/tmp/styles.css.bak-r20`。
+
+**未收尾（下轮）**：① JS 语法门并入 selftest；② `#accountCard` 搬独立 `#view-account`
++ IA 加卡（本轮评估回归面大于收益而暂缓，方案已写进 CYCLE5_PLAN §1.2-B）；
+③ 首页 `#dailyAsk` 那张年月日大表单的退场（本轮已让注册成为收生辰主入口，
+大表单仍在原位，需评估匿名用户路径后连同 ② 一起做）。
+
+---
+
+# 任务台账
+
+**更新** 2026-08-13 · 唯一的任务状态来源
+
+---
 
 ## 45. [审查轨] R19a 档案筛盘 + 交叉复审空转记录（2026-08-16）
 - **probes/archive/ 筛盘（残留风险#4 关闭）**：实际 57 文件（子 agent 初报 60，
@@ -22534,3 +22706,47 @@ R3326（移动 375×812 + 桌面、浅/深色 Playwright 实测五功能）9 项
 - 「来过 1 次·无上次来」核实清：rlast:<view> 只在出过结果时写，纯首访没结果可记就只显示「来过 1 次」——刻意空态不是误删。
 - app.js 拆包判定：889KB/31K 行单文件跨视图全局耦合（SW 预缓存契约+selftest 壳完整性闸钉着），真拆包是独立工程轮不是打磨活——记档待排专项。
 - 闸：ruff E9,F 0；selftest 458 全绿（本轮改走后端文件无需 bump_sw）。
+
+---
+
+## 周期一（StepFun Studio 自主优化循环，2026-11-16）
+
+- `DONE` R1 门页主视觉：生图模型接入（agnes-image-2.5-flash，key 走 `secrets/agnes_image.key`，chmod 600）+ 门页 🌾 emoji 换 `cream/gate-bear.jpg`（360×360/17KB，风格沿用 cream 系列 prompt 约定）。复验：`curl -s http://116.205.229.222/ | grep gate-bear` + `curl -s -o /dev/null -w "%{http_code}" http://116.205.229.222/static/cream/gate-bear.jpg`（200/17191B）+ 服务器 `web.selftest` PASS(458)。
+- `DONE` R2 传输层 gzip：nginx 开 gzip（仅文本类，woff2/jpg 不压——已压缩再压纯耗 CPU）。实测壳资源 893KB+277KB+109KB+20KB → 309KB+83KB+32KB+8KB，**首屏壳 -66.7%**。复验：`curl -s -H "Accept-Encoding: gzip" -D - -o /dev/null http://116.205.229.222/static/app.js | grep -i content-encoding`（gzip）+ `nginx -t` PASS + 门页 403/health ok 无回归。详见 D-901。
+- `DONE` R3 日签场景主视觉提质：4 张 bear-scene 用 2.5-flash 沿 R3257 同 prompt 同裁剪重绘，480×360 q84 → 960×720 q85（3x 视网膜 ×2），部署后线上 200。逐张过检（构图/prompt 命中/无文字）。复验：`for f in good sml mid bad; do curl -s -o /dev/null -w "%{http_code} %{size_download}B\n" http://116.205.229.222/static/cream/bear-scene-$f.jpg; done`。详见 D-902。
+- `DONE` R3 收尾修正：换 4 张 bear-scene 后 selftest `sw.shell_hash` 闸红（bear-scene-*.jpg 在 bump_sw/selftest 同表哈希输入内）——按闸门提示跑 `scripts/bump_sw.py`，CACHE → books-shell-3104979f2d82。教训：换 runtime 缓存资产必须 bump，否则老装机用户粘旧图（R2345/R3341 防的病）。误诊记录：曾疑两表漂移，实为 head -40 截断阅读造成的误读，两表始终一致（grep 实证）。
+- `DONE` R4 门页错误态好奇熊：新增 gate-curious.jpg（288×288 12KB），服务端门页错匙提示与壳内 401 浮层错误态各挂一份；顺手把壳内浮层 🌾 换成 R1 的 gate-bear.jpg 恢复 R4921「同款式同口径」（R1 只换了服务端门页，两边曾不同款）。app.js 壳哈希已 bump（7d401ff55d69），服务已重启。复验：POST 错钥 → 403 含好奇熊+原红字；`curl -s http://116.205.229.222/static/app.js | grep -c gateCurious` = 3。自检闸门见 R4 行。详见 D-903。
+
+- `DONE` R5 HTTPS/PWA 解锁：自签证书（ECDSA P-256，10 年，SAN=IP+nip.io）上线 443，与 80 并存不强制跳转。nginx 80+443 均留 ACME 通道（`/.well-known/acme-challenge/` 在 nginx 层直出，不经过应用——续签不依赖应用活着）。LE HTTP-01 实测不通（境外验证器被跨境拦截，境内直抓 200/境外 403·reset·522），fail2ban/ufw 已排除；沙箱出口对 TLS 客户端指纹区别对待（openssl 过、curl/python EOF），服务器侧 TLS 全绿。复验：`ss -tlnp | grep 443` 双栈监听、本机 `curl -k https://127.0.0.1/` → 403 门页、`openssl s_client` verify ok 证书 CN=116.205.229.222、http:// 门页 403 无回归。外部浏览器可达性待用户侧确认。详见 D-905。**周期一 R1–R5 闭环。**
+
+---
+
+## 周期二（StepFun Studio 自主优化循环，2026-11-16，计划见 docs/CYCLE2_PLAN.md）
+
+- `DONE` R6 首页 IA 重构：撤销新人条（元素+head 预绘脚本，probe_ui_smoke 同名用例翻转为反向钉扎）+ 日卡 6 钮动作组从 daily-top 平移到「通读之后」（daily-meta 后、完整解读前）——灰度重心还给今日运势本身。功能零删除；selftest home.ia 增补两针（新人条不得回潮/动作组须在判词后）；bump_sw → books-shell-13617c03ee4b。复验：线上 welcome-bar 元素与类清零、ghost 组位于 daily-main/dailyMore 之间、home 段 17 卡不变、div 397/397 平衡、`web self-test PASS (458 checks，含 R6 新增两针)`、门页 403 与 health 无回归。详见 D-906。
+- `DONE` R7 首屏垂直预算实测（静态分析法，服务器无浏览器不为测量装浏览器）：R6 前后同口径对比——入口区 1044→1000px（1.29→1.23 屏），日卡判词前可交互 6→0。结论：用户感知的「乱」是优先级倒挂不是纵向长度；「日卡超 2 屏则收宜忌/打卡」触发器不点火，不动。脚本 `scripts/measure_home_budget.py`（口径可复查）。详见 D-907。
+- `REJECTED` R8 app.js 拆包 spike：壳件已懒载拆分（app_poster/app_research/app_wallpaper/qian_data 均 stub+动态注入，warmPoster 已空闲窗+省流放弃）；顶层数据块仅占 app.js 10%（最大块 HL_SCENE_ALIAS 是运行时热路径不能懒）；ESM 重构是周级专项。收益天花板 ~60KB gzip 首访 vs 手术风险+闸门连带——记 REJECTED 留档，拆包入下周期候选。同轮否决备选「场景条↔主格消歧」（双层入口有 R3249 审计+NN/g 双重支持，是可达性不是缺陷）。详见 D-908。
+- `DONE` R9 固化轮：R6 平移对 JS 零暗坑实证（app.js 无一处引用 daily-ghost-grid 容器类；6 钮全走 on() id 委托，位置无关；dailyWap 直查 id 不受影响）；R7/R8 决策落档；周期二计划按证据改写（R9 原定消歧被证据否决后转为固化+记录）。
+- `DONE` R10 周期二收尾：全量闸门复跑 `web self-test PASS (458 checks)`（零失败；唯一 grep 命中是 PASS 行自身检查名）；线上结构复验（welcome-bar 元素不存在、ghost 组位于判词与完整解读之间、home 段 17 卡、div 397/397）；门页 403 / health 200 / 443 双栈监听无回归。周期二 R6–R10 闭环，下一周期候选清单见 docs/CYCLE2_PLAN.md §五。
+
+## 周期三（StepFun Studio 自主优化循环，2026-11-17，计划见 docs/CYCLE3_PLAN.md）
+
+- `DONE` R11 浏览器验证环境 + 首访真值：沙箱装 playwright + Chrome Headless Shell 159。slow4g  throttling 下首访整页 **1,827.6KB**：app.js 302.0KB / styles.css 82.2KB / zcool 95.6KB / bear-scene-sml 75.6KB / **~21 个 LXGW 分片 ≈ 710KB–1.1MB（最大单一类别）**；FCP 5384ms、DCL 13715ms、load 39750ms、CLS 0.0340。首页几何实测（hero 90px/品牌 55px/日卡 438px/日问 257px/入口区 1000px=1.23 屏）与 R7 静态估计吻合。字体浪费量化：21 分片各 55–61KB 只为 1–92 个渲染字符服务（subset-100 61.5KB→1 字）。字符宇宙：全仓 11,954 / 渲染宇宙 11,929（59% 只现一次）；全量子集化仅 −24%（woff2 每字形附加成本）。字体溯源：分片与 npm lxgw-wenkai-webfont@1.7.0 逐字节一致（subset-100 md5 1747e0fa…），上游 LXGW WenKai v1.250。脚本：browser_measure/browser_bytes/font_subset_map/char_universe_full/render_universe。
+- `DONE` R12 首页字体 curated 化：合并 50 分片为完整字体（7,873 字形，与切片并集零丢失核对）→ 按实测字符集（首页全状态扫描含表单值 + 366 天每日 sweep + 客户端池 = 1,696 字形）子集化为 `lxgwwenkai-home.woff2`（367.5KB）→ @font-face 追加于 lxgw.css 全部 50 个分片声明之后（回退语义实验室实证：同族内最后覆盖且含字形者胜；不声明 unicode-range 使内容字全部由本文件提供）。渲染一致性：单字并排对齐后 0 像素差异、轮廓/前进量逐一相等；整页截图差低于环境噪声底（两次基线互 diff 6,095px）。线上实测：字体 23/1,123.5KB → 7/552.5KB（−45.2%），整页 1,827.6KB → 1,209.8KB（−33.8%），首页内容分片 21→0。剩 4 切片仅由 LXGW 没有的字符（emoji/符号/VS16）触发，基线上同样加载、同样系统回退——行为零变化。复验：字体 md5 一致、lxgw.css 纯追加（cmp 逐字节）、`web self-test PASS (458 checks)`、SW bump → books-shell-1896b490a362、备份 lxgw.css.bak-r12-orig。详见 D-909。
+
+- `DONE` R13 CSS 关键路径（分析 + 验证，部署待办）：死代码实测——1,092 个类选择器中 56 个零静态引用，经构造点严格验证 43 个有拼接证据（如 `'><b class="rg-fe-f f-' + …`、`'<div class="ph-head"><span class="ph-type ph-t-' +`、`chipsArr.push('<span class="bp-rel bp-rel-' + k + '">'`、`class="wx-chip wx-${…}"`）→ 真死码仅 13 类 / 2,093B ≈ gzip 0.7%，低于噪声底，**拒绝删除**（与 R7/R8 同口径，记录即闭环）。瀑布实测（slow4g）：FCP 5,476ms 被 styles.css gate（4,828ms 到达），其下载被 zcool preload 拖慢 ~2.5s。关键 CSS 提取 338 条 / 39.7KB，**像素验证通过**：关键-only vs 完整渲染 1.80% < 两次完整渲染互 diff 3.03%（噪声底）；抓到并修复内联样式相对 URL 按文档基址解析致字体 404 的坑（51% 像素不符 → 1.80%）。慢网 FCP 模拟 5,028→4,544ms。详见 D-910。
+- `DONE` R14-L0 布局缺陷定位（用户质询触发）：`styles.css:2706` landscape 查询误伤全部桌面宽度 → 功能网格恒 2 列 → 17 卡 9 行 / docH 2058px / 1920 两侧各空 410px；hero 与心情行中段空心。登录系统调研：已存在（userdb.py + account.py，昵称+口令码+散列+无状态+限速+乐观并发+Turso/本地双后端），生产跑本地 sqlite，12 账号全为 selftest 造、真实用户 0。全仓零埋点。详见 D-911/D-912，周期四计划见 docs/CYCLE4_PLAN.md。
+- `DONE` R14-L1/L2 部署：landscape 查询改宽度断点（3/4/5 列）+ 心情行按钮桌面合并同行。线上实测 1440 docH 2058→1839、1920 2092→1873、800→3 列/1566、390 零回归；心情行两颗按钮 1400 宽合并一行右置。门禁 458 全绿，bump_sw → books-shell-8e51c2436ee3，备份 /tmp/styles.css.bak-r14。详见 D-913。hero 与日卡封套经查为有意设计（S6/R3248/R3243）不动，留档。
+- `PENDING` R13 关键 CSS 部署：已验证等效（1.80% < 噪声底 3.03%）+ FCP −484ms 模拟值，补丁方案就绪未上线（需改 index.html：内联 critical + styles.css 异步化），下轮执行。
+- `NEXT` R15 匿名埋点（全仓零埋点，功能增删无数据）→ R16 账号入口/持久化 → R17 功能增删。L3 hero / L4 日卡双栏经评估为有意设计，移出本轮。
+
+---
+
+## 周期四续（2026-11-17，用户两条实测触发：心情行截图 + 「这一栏」站点面板）
+
+- `DONE` R14-L3 心情行工具栏化（用户截图实锤「这一块很影响用户体验」）：R14-L2 用两个 `margin-left:auto` 把两颗链撑到整行两端、中段空一大片（线上实测两链相距 477px）——是 L2 自己造的回归。改为桌面工具栏：app.js 把两颗链串出心情历、插到回执 span 之前（`_linkHtml` 首链挂 `mood-links-lead`），styles.css 换掉 L2 双 auto 方案（`.mood-q{flex-basis:auto}` 问题与表情钮同行 + 首链推右、次链紧跟；≤899px `order:1` 保持链接排心情历之后，移动端阅读顺序零变化）。线上五档实测：d1000/d1400/d1920 问题与表情同行、两链同线右置成组、**间距 477px → 5px**、行高 281→156px；t800/m390 链接仍全宽右置排在心情历之后。门禁 `web self-test PASS (458 checks)`，bump_sw → books-shell-153db8d6fcf3，备份 /tmp/app.js.bak-r15、/tmp/styles.css.bak-r15b。深色下两链暖色光晕经实测为既有按钮光效（`box-shadow:rgba(194,90,78,.25)`，表情钮同款）非回归。详见 D-914。
+- `DONE` R15 展示站品牌层（用户指「这一栏根本就不协调」）：本地起服务实拍勘察——整站 3878px 一溜白卡奶油底、**零图像**，与产品里遍地奶油熊完全两个气质；统计带下 `margin:84px` + section `56px` = 140px 空坑，节奏断裂。处方（增/改，零删除）：① 英雄位复刻产品构图——从产品 `cream-hero-v2.jpg` 裁出奶油熊并按行背景中位数抠透明底成 `assets/xiaoman-wave.png`（151KB，奶油底上零接缝），桌面熊居左、文案右置两栏，≤899px 收居中单栏改挂咖啡熊贴纸 `assets/xiaoman-avatar.jpg`；② 章节底色交替——「八类日常」铺极淡香芋带破平板节奏；③ 填 140px 空坑（84→20px）；④ 演示区月亮emoji 换品牌贴纸。四档实测无横向溢出、熊图与文案零重叠（d1440 熊 204–624 / 文案 668 起）、图全部加载。塔罗演示页经实拍勘察本身协调（3 牌 + 解读区 + manifest/牌图全 200）不动。zip 87 文件（index.html 在根、css/js/assets/manifest 全含）发布至 site_id 310953908818608128（version 311420611914584064），线上预览 index/css/熊图/贴纸/manifest 全 200。详见 D-915。
+- `DONE` R14-L3 行为侧验收（D-916）：`#moodRow` inert 之谜结案——产品既有 R231f/R232c 封面机制「封面只挡鼠标不挡键盘，给卡内封面以外的直接子元素 setAttribute('inert')，开封统一摘除」，日卡未拆封时心情行作为直接子节点被 inert，**与本次补丁无关**（我的插入在行内部孙节点，observer 只盯直接子节点；开封 `_cleanup` 照常摘除）。按真实用户流复测：开封 → 补记小选盘落档 `mood:2026-11-16='0'` → 周记链点开 `moodweek` 视图（active/1 卡/返回条）→ 今天表情写档 + 出答案（h=22）+ 心情历刷新，**全链路通过**；重渲后两链仍同行右置间隔 5px、答案落链接下一行。详见 D-916。
+- `DONE` R19 首页日卡一致性（五档实测 + 卡内逐段勘察）：开封后日卡 2,700px 占整页 69%、入口卡组被推到 y=3150；卡内逐段读数结案一个真缺陷——同卡两个「今日能量」（首屏 75 = 日辰级次哈希 app.js:6093；卡尾 67 = 日主对今日干支冲合会局 services.py:15595），同标签不同算法，用户读成 bug。处方：卡尾补 `对你·` 前缀，对齐产品既有「通版/对你」口径（R3245、开运色「今日通版」），算法零改动、零功能删除。`patch_r19_energy.py` → bump_sw → `web self-test PASS (458 checks)`；线上 pill 159×26 单行无裁切、1440/390 零溢出、暗色生效。同轮排除两处疑点（`.daily-meta`「做完了/+5 条」是 flex-wrap 换行末位胶囊 + R2363 折叠钮；心情历熊纹条是 `.checkin-opt.ck-back`「牌背」抽卡机制）——查 CSS/DOM 后均非缺陷。详见 D-917。
+- `DONE` R19 附·静态文件字节数台账纠错：摘要记的「app.js 1,260,038B / styles.css 242,344B」两个数均错——R15 补丁前备份实为 1,649,660B / 279,575B，文件从未变小或变大过。工作区与 HEAD 一致（`7e14bef` 首次入库两文件），git blob 与工作区 4,613B 差额 = 4,881 行×1B 即 CRLF→LF 规整。app.js 零重复函数定义、零重复 100 行窗口，无拼接事故。后续以 ~1.65MB / ~280KB 为基准，不再复测这笔悬账。详见 D-917 附。
+- `NEXT` R16 匿名埋点（原 R15，全仓零埋点，功能增删无数据）→ R17 账号入口/持久化 → R18 功能增删；R13 关键 CSS 部署仍 PENDING（方案就绪：内联 critical + styles.css 异步化，已验证像素等效 1.80% < 噪声底 3.03%、慢网 FCP −484ms）。站点侧下一轮候选：首页 3898px/移动 6046px 的信息架构（台账 6 行可否折叠）、塔罗页与首页品牌一致性再打磨。

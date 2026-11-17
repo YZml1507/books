@@ -17,11 +17,15 @@
   内存峰值      ≤ 4 GB     TF-IDF 矩阵 + SVD 临时
   13 道闸门     全过
 
-零新依赖：numpy（已在 venv）。无 scipy/sklearn——SVD 用 numpy.linalg.svd。
+零新依赖：numpy（已在 venv）。无 scipy/sklearn。
+S2 修（studio）：SVD 原用 numpy.linalg.svd(full_matrices=False)，Vt 是
+(N, V) float64——N=2319/V=44930 时 833MB，叠加 M 的 417MB 超出低内存
+部署限额被 OOM kill。改走 doc-doc Gram 特征分解取 top-k（见下），零新依赖。
 """
 
 import json
 import sqlite3
+import sys
 import time
 from pathlib import Path
 
@@ -33,6 +37,10 @@ REPORT = "probes/embed_c_report.json"
 
 # 55 条手写转述（D-029 沉淀批），与 probe_t7r_concept.py 同源
 # 不手写新题（GOAL §4 T1 手写错过两次）
+# S2 修（studio）：R4940 把 probe_t7r_concept 归档进 probes/archive/，
+# 裸 import 随之断裂（ModuleNotFoundError）。按显式路径补 sys.path，
+# 同源单供不变。
+sys.path.insert(0, str(Path(__file__).resolve().parent / "archive"))
 from probe_t7r_concept import PARAPHRASES  # noqa: E402
 
 
@@ -99,23 +107,29 @@ def main():
     print(f"TF-IDF matrix built: {M.shape} dtype={M.dtype} "
           f"nbytes={M.nbytes / 1e6:.1f}MB in {time.time() - t_tfidf:.1f}s")
 
-    # ---- SVD (single call) ----
+    # ---- Top-k SVD via doc-doc Gram（S2 修（studio）） ------------------
+    # 恒等式：M = U S Vt ⇒ M Mᵀ = U S² Uᵀ。对 (N, N) Gram 做 eigh 得全谱
+    # 特征值 w = S² 与 U；只需 top-k 时 Vt_k = diag(1/S_k) U_kᵀ M（k×V）。
+    # 原全量 svd 的 Vt (N, V) float64 在此语料 833MB → OOM；本路径峰值
+    # ~460MB（M 417MB + Gram 22MB + Vt_k 18MB）。特征值精确，
+    # var_explained 口径不变：sum(top-k w)/sum(w) = ‖M‖²_F 分解。
     n_components = 100
     t_svd = time.time()
-    # full_matrices=False gives U: (N, K), S: (K,), Vt: (K, V) where K=min(N,V)
-    U, S, Vt = np.linalg.svd(M, full_matrices=False)
+    C = M @ M.T                       # (N, N)
+    w, U = np.linalg.eigh(C)          # 升序特征值 = S²
+    del C
+    k = min(n_components, len(w))
+    S_k = np.sqrt(np.maximum(w[-k:][::-1], 0.0))          # (k,) 降序
+    U_k = np.asarray(U[:, -k:][:, ::-1])                  # (N, k)
+    del U
+    Vt_k = (U_k / S_k).T @ M          # (k, V)
     svd_time = time.time() - t_svd
-    print(f"SVD done in {svd_time:.1f}s — "
-          f"U={U.shape} S={S.shape} Vt={Vt.shape}")
+    print(f"SVD(top-{k} via Gram) done in {svd_time:.1f}s — "
+          f"U={U_k.shape} S={S_k.shape} Vt={Vt_k.shape}")
 
-    # Truncate to n_components
-    k = min(n_components, len(S))
-    Vt_k = Vt[:k, :]            # (k, V)
-    S_k = S[:k]                 # (k,)
-
-    # Variance explained: sum(S_k^2) / sum(S_all^2) — single SVD call reused
-    var_all = float((S ** 2).sum())
-    var_k = float((S_k ** 2).sum())
+    # Variance explained: sum(S_k^2) / sum(S_all^2) — 精确（全谱特征值和）
+    var_all = float(w.sum())
+    var_k = float(w[-k:].sum())
     var_explained = var_k / var_all if var_all > 0 else 0.0
     print(f"variance explained by top-{k}: {var_explained:.3f}")
 

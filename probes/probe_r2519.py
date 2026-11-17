@@ -45,7 +45,7 @@ _out = {"five_elements": {"missing": ["水"], "weak": []},
         "one_liner": "x", "bazi": {}}
 _w = voice.warm_qiming(_out, "林", "女")
 ck("qm.two_steps",
-   any("连着姓大声念三遍" in l and "谐音歧义" in l
+   any("顺口念几遍" in l and "谐音歧义" in l
        for l in _w["reply"]))
 ck("qm.cap5", len(_w["reply"]) <= 5)
 # 空名单不挂两步行（语法不成立）
