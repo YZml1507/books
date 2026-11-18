@@ -4874,9 +4874,25 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
   background: none; border: 1px dashed var(--line, #e8dccf);
   border-radius: 999px; cursor: pointer; }
 .card-dismiss:active { transform: scale(.96); }
-.sm-art { width: 100%; max-height: 300px; overflow: hidden; }
+/* R77（用户实测截图 4「图片显示不全」：人只剩左缘一条、上面一大
+ * 片空白）：根因不在 object-fit 而在容器——.sm-art 只有 max-height
+ * 没有 height/ aspect-ratio，img 的 height:100% 解析成 auto，图片
+ * 按原始宽高比铺满宽度，于是容器从顶部切掉 max-height 以下的部分。
+ * 源图是 720×1280 竖图，卡面只显示最上面约 43%（天空 + 头顶），
+ * 人物基本被切没。
+ * 修法按调研口径（cover + 确定的 aspect-ratio 容器 + object-position
+ * 按实测主体位置定，不靠猜）：实测 6 张源图的主体带都在纵向
+ * 30%–95%（上方近一半是 gen_soulmate.py 特意留的「叠字净空」），
+ * 所以容器取 4/5、object-position 落到底边——窗口覆盖源图
+ * 30%–100%，主体完整、空白带被切掉（那片本来就是留给海报叠字的）。
+ * 4/5 是能完整装下主体的最小常用比例：再矮（16/10、1/1）主体
+ * 仍会被切，只有更高才不切，但那就不是卡面而是整屏海报了。
+ * max-width 460 让宽屏下比例仍然精确（若改用 max-height 截断，
+ * 宽容器会把窗口推到源图 46% 以下，主体上半又被切掉）。 */
+.sm-art { width: 100%; max-width: 460px; margin: 0 auto;
+  aspect-ratio: 4 / 5; overflow: hidden; }
 .sm-art img { display: block; width: 100%; height: 100%;
-  object-fit: cover; object-position: center 30%; }
+  object-fit: cover; object-position: center 100%; }
 .sm-name { font-size: 17px; font-weight: 600; margin: 10px 8px 0;
   color: var(--c-taohua, #c25a7a); }
 .sm-traits { display: flex; justify-content: center; gap: 6px;

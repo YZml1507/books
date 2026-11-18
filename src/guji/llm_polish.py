@@ -2363,7 +2363,12 @@ def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
             rec = _tasks.get(tid)
             if rec is not None:
                 rec["status"] = status
-                rec["text"] = text
+                # R77（用户实测「AI 故事版卡在半句话上」）：三节点全败时
+                # 原来把 text 置 None，已经流式显给用户看的半篇稿子当场
+                # 蒸发——前端只能换一张空白重试卡，前面写的故事版等于
+                # 没发生。改成：失败也保留已发布的分片，前端据此留稿 +
+                # 重试钮（见 app.js _nrStallNote），不再「写了也白写」。
+                rec["text"] = text if text else (rec.get("text") or None)
 
     threading.Thread(target=_run, name="ai-name-" + tid[:8],
                      daemon=True).start()

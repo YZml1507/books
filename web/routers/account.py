@@ -125,6 +125,28 @@ def account_delete(req: AccountAuthRequest, request: Request) -> dict:
     return {"ok": ok, "msg": msg}
 
 
+@router.post("/api/account/backup/meta")
+def account_backup_meta(req: AccountAuthRequest,
+                        request: Request) -> dict:
+    """R77（用户实测：Chrome 改了生日，DuckDuckGo 那头刷新多少
+    次都不更新）——轻量版本探测：只回云端 updated_at 与字节数，
+    不搬 payload。前端开页/回前台先问它，发现云端比本机已知的
+    新才拉整包：既修「已登录设备从不问云端」的根因，又不必每次
+    开页都传一大包。联网调研口径（MongoDB Device Sync / 坚果云 /
+    鸿蒙 DDM）：多设备同步的行业做法是「前台即同步」+ LWW +
+    冲突不静默——这里只负责把「云端有没有更新」这一问变便宜。"""
+    ip = _client_ip(request)
+    if not _nick_ratelimit(ip, "meta", req.nickname, 120, 60):
+        return {"ok": False, "msg": "查得太频了，歇口气再来"}
+    if not userdb.verify(req.nickname, req.passcode):
+        return {"ok": False, "msg": "名字或口令码不对"}
+    row = userdb.get_backup(req.nickname)
+    if row is None:
+        return {"ok": True, "msg": "none", "updated_at": "", "bytes": 0}
+    return {"ok": True, "msg": "ok", "updated_at": row["updated_at"],
+            "bytes": len(row["payload"] or "")}
+
+
 @router.post("/api/account/backup/pull")
 def account_backup_pull(req: AccountAuthRequest,
                         request: Request) -> dict:

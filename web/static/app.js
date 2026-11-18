@@ -1527,6 +1527,12 @@ var AI_POLL_CAP_S = 230;           // AMD 自部署端实测 100s+，轮询窗�
 var NR_POLL_CAP_S = 215;           // AMD 自部署端实测 100s+，轮询窗对齐后端点评预算（200s）
                                    // R3243：推理模型拥挤期生成 15-30s/次，
                                    // 40s 帽会在兜底即将成功时提前放弃
+/* R77（用户实测「AI 故事版卡住」）：无进度看门狗——分片连续 20s
+ * 没变长就收摊。后端最坏预算 200s，提供方挂着不回时任务会一直
+ * pending，旧代码只能干等 NR_POLL_CAP_S，用户盯着半句话 + 闪烁
+ * 光标以为前端死了。收摊时保留已写出的部分，只补一句「写到一半
+ * 断了」+ 重试钮，不毁稿。 */
+var NR_IDLE_S = 20;
 
 /* R230q（R28-P3-8）：后台标签页/断网下轮询空转——每 500ms 白打一个
  * 注定失败的请求（恢复瞬间还会连发）。门控：hidden/offline 时不取数。 */
@@ -3065,7 +3071,13 @@ function _nrRetryable(out, msg) {
  * 轮询原样带回，这里只把新尾巴接上去。取代原来的「等 amd 发全，再像
  * 流逝一样一个字一个字往外冒」（typewriteInto 假打字机）。
  * 与 _chatStreamInto 同构：非前缀（禁语冻结清空过/服务端重灌）整条重渲，
- * 不把旧尾巴留在气泡里。 */
+ * 不把旧尾巴留在气泡里。
+ * R77（用户实测截图：正文裸着 `**李荷**：`，行尾一个孤零零的 `**` 加
+ * 闪烁光标，像卡死）：流式期间也按富文本渲染——renderRichText 的
+ * `\*{2,}` 兜底会吃掉没配对的 **，半截粗体不会露符号；流式与终态共用
+ * 同一套渲染器，也不会出现「写完瞬间整段被换掉」的闪跳。行业口径见
+ * Vercel streamdown 的「unterminated block parsing」：流式 markdown 必须
+ * 持续解析未闭合标记，而不是把原文直接贴上屏。 */
 function _nrStreamInto(box, full) {
   if (!box || !full) return;
   /* 首个分片：先把「✨ AI 故事版」壳和正文槽建出来，再把等待文案替掉。
@@ -3080,21 +3092,52 @@ function _nrStreamInto(box, full) {
   if (!_p) return;
   var _have = (typeof box.dataset.nrStream === 'string')
     ? box.dataset.nrStream : null;
-  var _tail;
-  if (_have === null) {
-    _p.innerHTML = '';
-    _p.classList.add('tw-typing');
-    _tail = full;
-  } else if (full.length >= _have.length && full.indexOf(_have) === 0) {
-    _tail = full.slice(_have.length);      /* 正常增量 */
-  } else {
+  if (_have === full) return;
+  if (_have !== null &&
+      !(full.length >= _have.length && full.indexOf(_have) === 0)) {
     /* 非前缀（禁语冻结清空过/服务端重灌）——整条重渲，别留旧尾巴。 */
-    _p.innerHTML = '';
-    _tail = full;
+    _have = null;
   }
-  if (!_tail) return;
   box.dataset.nrStream = full;
-  _p.appendChild(document.createTextNode(_tail));
+  if (_have === null) _p.classList.add('tw-typing');
+  /* 节流：80ms 内的连续分片只渲最后一次——推理模型分片很密，逐片
+   * innerHTML 重建是白烧主线程。 */
+  var _paint = function () {
+    var _txt = box.dataset.nrStream;
+    if (!_txt) return;
+    _p.innerHTML = renderRichText(_txt);
+    try {
+      box.dataset.nrRichAt = String(
+        (typeof performance !== 'undefined' ? performance.now() : Date.now()));
+    } catch (eRA) {}
+  };
+  var _nowT = (typeof performance !== 'undefined'
+    ? performance.now() : Date.now());
+  if (_nowT - (+(box.dataset.nrRichAt || 0)) < 80) {
+    if (box._nrRichT) clearTimeout(box._nrRichT);
+    box._nrRichT = setTimeout(_paint, 80);
+    return;
+  }
+  _paint();
+}
+/* R77：故事版收摊——保留已写出的部分，只在末尾补一句人话 + 重试钮。
+ * 不能调 _nrRetryable：它整块替换 innerHTML，写了一半的稿子就没了。 */
+function _nrStallNote(out) {
+  if (!out) return;
+  if (out.querySelector('.nr-stall')) return;
+  var _wrap = document.createElement('div');
+  _wrap.className = 'no-evidence nr-stall';
+  _wrap.textContent = '故事版写到一半断了——上面的先看着，好了再试一次 ';
+  var _b = document.createElement('button');
+  _b.type = 'button';
+  _b.className = 'nr-retry';
+  _b.textContent = '再试一次';
+  _b.addEventListener('click', function () {
+    var _bb = el('nameReviewBtn');
+    if (_bb && !_bb.disabled) _bb.click();
+  });
+  _wrap.appendChild(_b);
+  out.appendChild(_wrap);
 }
 
 /* 起名点评终态：先撤打字光标，再换富文本（故事版段落已在 #nrAiOut 内）。 */
@@ -3111,6 +3154,8 @@ function pollNameReview(taskId) {
   var deadline = performance.now() + NR_POLL_CAP_S * 1000;   /* R3245：点评独立预算 78s——通用 62s 帽会在链跑完前判死 */
   var _wait = AI_POLL_INTERVAL_MS;    /* R230t（R32-P2-20）：退避轮询 */
   var _nri = 0;
+  /* R77：无进度看门狗的记分板——分片长度 + 上次变长的时刻。 */
+  var _nrLen = 0, _nrGrowAt = performance.now();
   var tick = function () {
     if (_gen !== _NR_GEN) { _nameReviewDone(); return; }   /* 新点评接管 */
     /* R3244：AI 段落写进 #nrAiOut——点击时已先渲确定性「典故先读」
@@ -3123,6 +3168,14 @@ function pollNameReview(taskId) {
     if (_nrw && _nrw.querySelector('.no-evidence')) {
       _nrw.querySelector('.no-evidence').textContent =
         _NR_WAIT_NOTES[(++_nri) % _NR_WAIT_NOTES.length];
+    }
+    /* R77：分片连续 20s 没变长 → 收摊。服务端最坏 200s 预算内任务
+     * 可能一直 pending（提供方挂着不回），死等预算只会让用户盯着
+     * 半句话加闪烁光标以为界面死了（用户实测截图正是这个状态）。 */
+    if (_nrLen > 0 && performance.now() - _nrGrowAt > NR_IDLE_S * 1000) {
+      _nrStallNote(_nrTgt());
+      _nameReviewDone();
+      return;
     }
     if (_aiPollGate()) {   /* R230q（R28-P3-8）：后台/断网暂停取数 */
       if (performance.now() < deadline) setTimeout(tick, 2000);
@@ -3157,16 +3210,34 @@ function pollNameReview(taskId) {
       }
       /* R76（#2）：真流式分片——pending 且已有部分正文即追加显字。
        * 分片在流 ≠ 卡死：轮询预算从此刻重新起算、退避回快档，
-       * 字才跟得上模型往外蹦的速度。 */
+       * 字才跟得上模型往外蹦的速度。
+       * R77（用户实测「AI 故事版卡住」的头号根因）：这一支原来直接
+       * return，没有排下一拍轮询——收到第一个分片后轮询永久停摆，
+       * 服务端还在写、前端停在半句话上（截图里行尾一个光秃秃的
+       * `**` 加闪烁光标，正是这个状态的指纹）。同族的
+       * _pollChatReply 是落到底部统一 setTimeout 的，所以侧栏聊天
+       * 不卡、故事版卡。补上排程，与聊天口径对齐。 */
       if (st && st.status === 'pending' && st.text) {
         _nrStreamInto(out, st.text);
         deadline = performance.now() + NR_POLL_CAP_S * 1000;
         _wait = AI_POLL_INTERVAL_MS;
         _nri = 0;
+        if (st.text.length > _nrLen) {
+          _nrLen = st.text.length;
+          _nrGrowAt = performance.now();
+        }
+        setTimeout(tick, _wait);
         return;
       }
       if (st && st.status === 'failed') {
-        _nrRetryable(out, '故事版这次没写出来');
+        /* R77：写了一半才败的，稿子留着——整块替换等于把用户已经
+         * 看见的故事版抹掉重来（服务端同口径保留已发布分片）。 */
+        if (st.text && out.dataset &&
+            typeof out.dataset.nrStream === 'string') {
+          _nrStallNote(out);
+        } else {
+          _nrRetryable(out, '故事版这次没写出来');
+        }
         _nameReviewDone();
         return;
       }
@@ -25467,6 +25538,14 @@ function _meSave(key, rec) {
    * 得重填一遍（用户眼里就是「你根本没记住我」）。data-touched
    * 字段不动，只填没动过/此前由档案填的格。 */
   try { _meFillAll(); } catch (e4) {}
+  /* R77（用户实测「改完生日另一台设备不更新」）：写完顺手挂个
+   * 防抖推送——此前只有切走标签页才推，关页/杀进程那一下常推
+   * 不出去，云端停在旧档，另一台设备自然拉不到新档案。
+   * 钩子挂在 window 上由账号模块提供（_meSave 与账号卡同一个
+   * 大 IIFE，但账号那段是内层闭包，照项目既有的 __acctPush/
+   * __syncMeName 惯例走 window 桥，不引入第二份实现）。 */
+  try { if (window.__acctDirtyPush) window.__acctDirtyPush(); }
+  catch (eDP) {}
 }
 /* R3239：档案落档统一器——此前各表单「农历不落档」（R3206 防农历数
  * 进公历坐标系）遍地开花；换算端点上线后统一成：农历→换算公历坐标+
@@ -30962,9 +31041,14 @@ function baziPersonaCard(j) {
           var _ls = '', _lp = '';
           try { _ls = localStorage.getItem(_SYNC_KEY) || ''; } catch (e) {}
           try { _lp = localStorage.getItem(_PULL_KEY) || ''; } catch (e) {}
+          /* R77：云端有备份而本机没传过时明说——此前的「没传过」
+           * 让人以为云端是空的（用户实测在 Chrome 上看成「没传过」，
+           * 其实那份档案是从另一台设备推上去的）。 */
           _lastSync.textContent = _ls
             ? ('上次上传 ' + _ls + (_lp ? ' · 上次拉回 ' + _lp : ''))
-            : (_lp ? ('没传过 · 上次拉回 ' + _lp) : '还没同步过');
+            : (_lp ? ('没传过 · 上次拉回 ' + _lp)
+                   : (_cloudTs() ? '云端已有备份 · 本机还没传过'
+                                 : '还没同步过'));
         } else {
           _form.hidden = false;
           _logged.hidden = true;
@@ -31008,7 +31092,20 @@ function baziPersonaCard(j) {
         } catch (e) {}
       };
       var _syncBusy = false, _pullBusy = false;
-      async function _push(showOk, keepAlive) {
+      /* R77：opt.reportFail——自动/后台推失败仍要说一句。注册首推
+       * 走的是静默 keepalive（showOk=false），推失败时用户屏幕上
+       * 什么都没有，转头就忘——账号卡显示「没传过」，换设备登录
+       * 才发现云端是空的（用户实测踩过）。手动点、登录补推这些
+       * 有人等着的路径照旧由 showOk 说话。 */
+      async function _push(showOk, keepAlive, opt) {
+        opt = opt || {};
+        var _sayFail = function (m) {
+          /* R77：推失败就留 pending——开页补推一条全量，不让云端
+           * 停在旧包（此前只有「包太大」才留痕，网络失败的推
+           * 静默蒸发，用户以为同步好了）。 */
+          try { localStorage.setItem(_PEND_KEY, '1'); } catch (eP) {}
+          if (showOk || opt.reportFail) showToast(m, 'warn');
+        };
         var c = _creds();
         if (!c) return;
         /* R3363-P2-11：拉回在途时 push 会和导入交错产出撕裂
@@ -31148,18 +31245,71 @@ function baziPersonaCard(j) {
             showToast(r.msg ||
               '另一台设备刚推了新备份——先点「从云端拉回」再同步',
               'warn');
-          } else if (showOk) {
-            showToast((r && r.msg) || '没同步上，过会儿再试', 'warn');
+          } else {
+            _sayFail((r && r.msg) || '没同步上，过会儿再试');
           }
         } catch (e) {
-          if (showOk) {
-            showToast('没同步上：' + _humanizeErr(e.message || e), 'warn');
-          }
+          _sayFail('没同步上：' + _humanizeErr(e.message || e));
         } finally { _syncBusy = false; }
       }
       window.__acctPush = _push;
       var _pullArm = false, _pullArmT = null;
-      async function _pull() {
+      /* R77（用户实测双设备不同步）：编辑即推——此前改完档案只靠
+       * 「切走标签页才推」，移动端关页/杀进程那一下 keepalive 也
+       * 未必活下来，云端就停在旧档。_meSave 末尾挂这个钩子，2.5s
+       * 防抖合掉连续写（打卡/心情/档案连改只推一份）。
+       * 拉回在途不推——否则刚拉下来的包又被原样推回去，白涨一次
+       * 云端 updated_at，别的设备跟着做一次无用的自动拉回。 */
+      var _dirtyT = null;
+      function _acctDirtyPush() {
+        if (_pullBusy || !_creds()) return;
+        if (_dirtyT) clearTimeout(_dirtyT);
+        _dirtyT = setTimeout(function () {
+          _dirtyT = null;
+          _push(false, false);
+        }, 2500);
+      }
+      window.__acctDirtyPush = _acctDirtyPush;
+      /* R77：开页/回前台探一次云端版本。联网调研结论：多设备同步
+       * 的行业口径是「前台即同步」——已登录的设备不能只在登录那一刻
+       * 问云端，否则另一台改了档案，这台刷新多少次都看不见（用户
+       * 实测：Chrome 注册、DuckDuckGo 改生日，Chrome 反复刷新不更新）。
+       * 轻量 meta 只比 updated_at（UTC ISO 串，字典序=时间序），
+       * 严格新于本机基线才拉整包；云端更旧只对齐基线不动本机数据。 */
+      var _META_TTL_MS = 45000, _metaLastAt = 0, _autoPulling = false;
+      function _cloudTs() {
+        try { return localStorage.getItem(_CLOUDTS_KEY) || ''; }
+        catch (e) { return ''; }
+      }
+      async function _autoSyncCheck(why) {
+        var c = _creds();
+        if (!c) return;
+        if (_syncBusy || _pullBusy || _autoPulling) return;
+        var _t = Date.now();
+        if (_t - _metaLastAt < _META_TTL_MS) return;
+        _metaLastAt = _t;
+        var _base = _cloudTs();
+        var r = null;
+        try {
+          r = await postJSON('/api/account/backup/meta',
+            { nickname: c.n, passcode: c.p }, { silent: true });
+        } catch (eM) { return; }
+        if (!r || !r.ok || !r.updated_at) return;
+        if (r.updated_at === _base) return;
+        if (r.updated_at < _base) {
+          /* 云端比本机已知的旧（刚在别处推过/刚拉过）——只把基线
+           * 对齐，不拿旧包盖本机。 */
+          try { localStorage.setItem(_CLOUDTS_KEY, r.updated_at); }
+          catch (eB) {}
+          return;
+        }
+        _autoPulling = true;
+        try { await _pull({ quiet: true, why: why }); }
+        finally { _autoPulling = false; }
+      }
+      window.__acctAutoSync = _autoSyncCheck;
+      async function _pull(opt) {
+        opt = opt || {};
         var c = _creds();
         if (!c) return;
         /* R3363-P2-11：零在途锁时双点=双份导入（双倍请求+双 toast）；
@@ -31202,7 +31352,12 @@ function baziPersonaCard(j) {
                 .replace(' ', 'T'));
               /* R3363-P2-9：原生 confirm 换两段式按钮（全站口径）——
                * 云端比本机上次同步旧 60s+，再点一次才拉回。 */
-              if (_ex && _ls0 && _ex < _ls0 - 60000 && !_pullArm) {
+              /* R77：quiet=自动拉回。「云端比本机旧」那条二次确认闸
+               * 只给手动拉——人点了就得防它盖掉较新的本机数据；自动拉
+               * 只在云端严格新于本机已知基线时触发，语义上已经保证不会
+               * 拿旧包盖新数据，再过一次闸只会让它永远拉不回来。 */
+              if (_ex && _ls0 && _ex < _ls0 - 60000 && !_pullArm &&
+                  !opt.quiet) {
                 _pullArm = true;
                 if (_pullArmT) clearTimeout(_pullArmT);
                 _pullArmT = setTimeout(function () {
@@ -31217,13 +31372,13 @@ function baziPersonaCard(j) {
               /* R3363-P1-8：包上设备戳与本机不同且比上次上传
                * 新——另一台设备刚写过，点一句不拦路。 */
               if (_b0 && _b0.dev && _b0.dev !== _devId() &&
-                  _ex && _ls0 && _ex > _ls0 + 60000) {
+                  _ex && _ls0 && _ex > _ls0 + 60000 && !opt.quiet) {
                 showToast('另一台设备最近也同步过——已拉回最新这份',
                           'info');
               }
               /* R3363-P2-14：旧版页面打的包没有 ver2——新功能的
                * 键可能没带，明说不静默。 */
-              if (_b0 && !_b0.ver2) {
+              if (_b0 && !_b0.ver2 && !opt.quiet) {
                 showToast('这份备份是旧版本打的，新功能的数据可能' +
                           '没带齐', 'warn');
               }
@@ -31257,14 +31412,22 @@ function baziPersonaCard(j) {
              * 事件更新了——低频大动作直接重载最一致。 */
             /* R3370-低-11：1.2s 重载把「导入好了」toast 几乎瞬杀
              * ——拉到 3.5s 让确认读得完。 */
+            if (opt.quiet) {
+              /* R77：自动拉回也说一句——不然用户以为页面自己跳了。 */
+              showToast('另一台设备刚更新了档案——已拉回最新这份', 'info');
+            }
             setTimeout(function () {
               try { location.reload(); } catch (eRL) {}
             }, 3500);
           } else {
-            showToast((r && r.msg) || '云端还没有备份', 'warn');
+            if (!opt.quiet) {
+              showToast((r && r.msg) || '云端还没有备份', 'warn');
+            }
           }
         } catch (e) {
-          showToast('拉不回来：' + _humanizeErr(e.message || e), 'error');
+          if (!opt.quiet) {
+            showToast('拉不回来：' + _humanizeErr(e.message || e), 'error');
+          }
         } finally { _pullBusy = false; }
       }
       /* R20（用户直报）：生辰一并读走——注册要，登录也读（老账号云端
@@ -31503,8 +31666,11 @@ function baziPersonaCard(j) {
               try { _renderMeStrip(); } catch (eRS1) {}
               /* R3363-P1-4：注册首推用 keepalive——注册即关页时
                * 普通 fetch 会被掐，首份备份静默丢（此时包小，不
-               * 会撞 64KiB 上限）。 */
-              _push(false, true);
+               * 会撞 64KiB 上限）。
+               * R77：首推失败要留痕——reportFail 让「注册好了但云
+               * 端没收到」这句话真的能出现在屏幕上，不再静默；pending
+               * 标记照旧由超限/失败路径留下，开页补推。 */
+              _push(false, true, { reportFail: true });
             } else {
               showToast((r && r.msg) || '没注册上，过会儿再试', 'warn');
             }
@@ -31602,11 +31768,18 @@ function baziPersonaCard(j) {
       /* 后台/关页时自动推一份——visibilitychange 比 beforeunload
        * 在移动端靠谱（iOS 不一定给 unload 机会）。
        * R3362（R3359 审-P2）：普通 fetch 在 hidden/关页时可能被
-       * 浏览器直接掐断——keepalive:true 让请求熬过页面隐藏。 */
+       * 浏览器直接掐断——keepalive:true 让请求熬过页面隐藏。
+       * R77：回前台（visible）改成探云端版本——多设备同步的行业
+       * 口径是「前台即同步」，只推不问等于另一台改了档案这台永远
+       * 不知道（用户实测：Chrome 刷新多次不更新）。pageshow 补
+       * iOS Safari 的 back-forward 缓存回场。 */
       document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'hidden' && _creds()) {
-          _push(false, true);
-        }
+        if (!_creds()) return;
+        if (document.visibilityState === 'hidden') _push(false, true);
+        else _autoSyncCheck('focus');
+      });
+      window.addEventListener('pageshow', function () {
+        _autoSyncCheck('back');
       });
       /* 云端形态探测：libsql=生产态；local=本机兜底（明说）。 */
       api('/api/account/status', { silent: true }).then(function (r) {
@@ -31625,6 +31798,12 @@ function baziPersonaCard(j) {
           _push(false, false);
         }
       } catch (eP2) {}
+      /* R77：开页探一次云端——登录/注册那一次 _pull 之后，别处
+       * 又改过档案的话，这一次开页比对就能发现并拉回（用户实测
+       * 「Chrome 刷新好多次都不更新」的根因：拉回只挂在登录上，
+       * 已登录的设备开页从不问云端）。延迟一拍，让首屏与状态探测
+       * 先画完，不跟首屏抢连接。 */
+      setTimeout(function () { _autoSyncCheck('load'); }, 1500);
     })();
     var _imb = document.getElementById('historyImportBtn');
     var _imf = document.getElementById('historyImportFile');
