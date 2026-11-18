@@ -735,7 +735,9 @@ def ai_task_status(tid: str) -> dict | None:
                 "queued": "started" not in rec,
                 # R230t（R31-P2-6）：进程启动记号透传——前端据此识别
                 # 「重启失忆」并在气泡间插分隔提示。
-                "boot": _BOOT_ID}
+                "boot": _BOOT_ID,
+                # R76（#5）：本轮历史被窗口截断——前端据此插一条可见提示
+                "ctx_trimmed": bool(rec.get("ctx_trimmed"))}
 
 
 # ---------------------------------------------------------------------------
@@ -1427,6 +1429,10 @@ _SENSITIVE_REPLY = ("愿意说出来已经很不容易了——这个话题我�
 # 「没戏/必离/注定孤独/他克你」）。
 _CHAT_BANNED_PAT = _BANNED_OUT_PAT
 
+# R76（#5）：聊天历史窗口（字符）。4K 时 assistant 单条常态 1K+，
+# 第三轮起就截断，用户体感「聊三句就失忆」；8K 约 5–8 轮。
+# 仍然有界——6 轮全量重发最坏 ~51K token 的老坑不能回去。
+_CHAT_HIST_CHARS = 8000
 _chat_sessions: dict[str, dict] = {}
 _chat_lock = threading.Lock()
 # 每会话一把调用锁：历史快照→LLM 往返→落历史整段串行化。
@@ -1589,13 +1595,17 @@ def chat(session_id: str, user_msg: str,
                 return _CHAT_CLOSERS[_over % len(_CHAT_CLOSERS)]
 
             # R230t（R32-P1-5）：历史总长截断——assistant 单条可到 8K，
-            # 6 轮全量重发最坏 ~51K ≈ 5 万 token/轮。只带最近 ~4K 字符的
-            # 轮次（约 2–3 轮），更远的细节模型记不住也不该烧。
+            # 6 轮全量重发最坏 ~51K ≈ 5 万 token/轮。只带最近 _CHAT_HIST_CHARS
+            # 字符的轮次，更远的细节模型记不住也不该烧。
+            # R76（#5）：窗口 4000 → 8000。用户实测「聊到第四轮她就忘了
+            # 第一句」——4K 只够 2–3 轮，而 assistant 单条常态就 1K+，
+            # 第三轮起必截断。8K 约 5–8 轮，够把一段话题聊完；仍然有界，
+            # 不会退回 6 轮全量重发那个 5 万 token 的老坑。
             history = list(sess["messages"])
             _hb, _hkeep = 0, []
             for _m in reversed(history):
                 _hb += len(_m.get("content") or "")
-                if _hb > 4000:
+                if _hb > _CHAT_HIST_CHARS:
                     break
                 _hkeep.append(_m)
             history = _hkeep[::-1]
@@ -1603,6 +1613,11 @@ def chat(session_id: str, user_msg: str,
             # 了」，会对「我刚才说过…」类引用臆造。截断发生时写进人设
             # 尾巴一句实话。
             _truncated = len(_hkeep) < len(sess["messages"])
+            # R76（#5）：截断事实落会话档——spawn_chat_task 据此在任务行
+            # 上打 ctx_trimmed，前端才能在气泡间给用户一条「更早的几句
+            # 被省略了」的可见提示。此前只有 system 里一句软提示，用户
+            # 根本不知道她的话被丢了，只会觉得「她怎么又忘了」。
+            sess["ctx_trimmed"] = bool(_truncated)
             # R230a-6（R12-P2-7）：判定事实落会话档——第 1 轮的判定在第 2
             # 轮 prompt 会消失（回复还在历史里、依据没了），模型只能自由
             # 发挥。新一轮判定覆盖旧的。
@@ -1718,8 +1733,15 @@ def chat(session_id: str, user_msg: str,
                              "别像第一次那样泛泛起头；可以点名「你还是惦记"
                              "着这事」。")
         if _truncated:
-            _sys += ("\n更早的聊天内容被省略了，用户提到「我之前说过…」"
-                     "而你没看到时，老实说记不清了，不要编。")
+            # R76（#5）：原句只在她真拿「我之前说过」对质时才兜得住，
+            # 而她多数时候只会闷着觉得「她怎么又忘了」。改成主动交底：
+            # ①承认省略这件事；②给一句可执行的补救（重说/换个说法），
+            #   别让她自己琢磨哪里断了；③仍然禁止拿省略的内容编造。
+            _sys += ("\n注意：更早的聊天内容因为太长被省略了，你现在只看"
+                     "得到最近几轮。如果她的问题明显接不上前文、或者你判"
+                     "不准她指的是哪件事，就主动说「前面聊的那些我记不全"
+                     "了」，并请她把想聊的那件事重说一遍；不要猜、不要拿"
+                     "你没看到的内容编细节。")
         payload_msgs = [{"role": "system", "content": _sys}]
         _coords = _coords_snap
         _user_msg = msg
@@ -2435,6 +2457,16 @@ def spawn_chat_task(session_id: str, user_msg: str,
                 rec["status"] = status
                 rec["text"] = text
                 rec["closed"] = chat_session_closed(session_id)
+                # R76（#5）：本轮是不是撞了历史窗口上限——透传给前端，
+                # 让用户在气泡间看到「更早的几句被省略了」而不是莫名觉得
+                # 她失忆。读会话档（chat() 里已写），会话已被 GC 逐出时
+                # 按 False 处理，不阻断主链路。
+                try:
+                    with _chat_lock:
+                        _sx = _chat_sessions.get(session_id) or {}
+                    rec["ctx_trimmed"] = bool(_sx.get("ctx_trimmed"))
+                except Exception:
+                    rec["ctx_trimmed"] = False
 
     threading.Thread(target=_run, name="ai-chat-" + tid[:8],
                      daemon=True).start()

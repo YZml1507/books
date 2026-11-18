@@ -1590,6 +1590,27 @@ function _chatFreshNote(st, ty) {
   ty.parentNode.insertBefore(d, ty);
 }
 
+/* R76（#5）：历史窗口到顶——本轮 prompt 只带了最近 8K 字符，更早的
+ * 轮次被省略。此前这件事只有 system 里一句软提示，用户根本不知道
+ * 自己的话被丢了，只会觉得「她怎么又忘了」。这里照 boot/fresh 同款
+ * 插一条轻分隔：说清省略了什么、给一条出路（想聊的事重说一遍），
+ * 并挂「记不全？开个新话题」。 */
+function _chatTrimNote(st, ty) {
+  if (!st || !st.ctx_trimmed || !ty || !ty.parentNode) return;
+  /* 同一次失忆两条注脚叠着太吵——刚插过分隔就跳过。 */
+  var _pv = ty.previousSibling;
+  if (_pv && _pv.classList && _pv.classList.contains('chat-divider')) return;
+  var d = document.createElement('div');
+  d.className = 'chat-bubble chat-ai chat-divider';
+  d.style.opacity = '.72';
+  d.style.fontSize = '.9em';
+  d.textContent = '（聊得有点长了，更早的几句小满这回没带上。' +
+    '想接着聊哪件事，直接重说一遍就好）';
+  _CHAT_NEED_RECAP = true;
+  d.appendChild(_chatResetBtn('🌱 记不全？开个新话题'));
+  ty.parentNode.insertBefore(d, ty);
+}
+
 /* R3208：断档回放旗标——fresh/boot 失忆被检测后置位，
  * 下一条消息经 _chatFacts 注入 transcript 尾巴，一次性消费。 */
 var _CHAT_NEED_RECAP = false;
@@ -2781,6 +2802,7 @@ function _pollChatReply(tid, ty, sid0, action, msg) {
       if (st && st.status === 'done' && st.text) {
         _chatBootNote(st, ty);       /* 重启失忆插分隔 */
         _chatFreshNote(st, ty);      /* TTL 回收分隔 */
+        _chatTrimNote(st, ty);       /* R76（#5）历史窗口到顶分隔 */
         /* R3241：回复逐字蹦——打完再换富文本终态+路标 chip。
          * transcript 立即存全量（存档不受放映影响）。
          * R74：流式已经把字显过了（dataset.streamText 有值）——
