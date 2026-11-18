@@ -98,7 +98,21 @@ window.addEventListener('unhandledrejection', function () {
   showToast('操作没完成，网络或服务可能不稳，再试一次？', 'warn');
 });
 window.addEventListener('error', function (e) {
-  if (e && e.message) showToast('页面出了点小状况，刷新一下试试～', 'warn');
+  if (e && e.message) {
+    /* R73（用户实测 2026-11-18）：错误只弹一句通用提示，用户无法
+     * 提供任何线索（「点解签弹了个窗」）。把 message/stack/位置落
+     * 到 window.__lastErr——复现时一读便知，下次同类反馈可定位。 */
+    try {
+      window.__lastErr = {
+        m: String(e.message),
+        s: (e.error && e.error.stack) ? String(e.error.stack) : '',
+        f: e.filename || '', l: e.lineno || 0, c: e.colno || 0,
+        t: new Date().toISOString()
+      };
+    } catch (eR) {}
+    try { console.warn('[uncaught]', window.__lastErr); } catch (eC) {}
+    showToast('页面出了点小状况，刷新一下试试～', 'warn');
+  }
 });
 
 /** HTML 转义——所有动态文本入 innerHTML 前必过这里。 */
@@ -6664,9 +6678,14 @@ async function loadDaily() {
         }).join('');
         /* R3628：峰值日建议——峰值日的十神白话标+适合做的事，
          * 「哪天电足」落到「那天适合干什么」。 */
-        var _pk = _wk[_peakI] || {};
-        var _pkTag = _TEN_GOD_TAG[_pk.g] || '';
-        var _pkAct = _TEN_GOD_ACT[_pk.g] || '';
+        /* R73（用户实测 2026-11-18）：_pk 这个名字在 loadDaily 里被
+         * 「解签」按钮占用（点击回调闭包捕获的是这个变量）——此处再
+         * 声明一次，回调触发时 _pk 已是这个普通对象，setAttribute 直接
+         * TypeError → window error → 「页面出了点小状况」弹窗。改名
+         * _peak 让两处彻底隔离。 */
+        var _peak = _wk[_peakI] || {};
+        var _pkTag = _TEN_GOD_TAG[_peak.g] || '';
+        var _pkAct = _TEN_GOD_ACT[_peak.g] || '';
         _pc2.push('<div class="e-week" role="img" aria-label="本周能量走向">' +
           _bars +
           '<span class="e-week-note">周' +
@@ -20861,6 +20880,10 @@ function _openSaByKey(k) {
     var now = Date.now();
     if (now - lastTrail < 40) return;
     lastTrail = now;
+    /* R73（用户实测）：部分内嵌内核会在 touches 已清空时仍派发
+     * touchmove——e.touches[0] 取空即 TypeError，经 window error
+     * 弹「页面出了点小状况」。拖尾是纯装饰，缺坐标就安静跳过。 */
+    if (!e.touches || !e.touches.length) return;
     var t = e.touches[0];
     var d = document.createElement('span');
     d.className = 'fx-trail';
@@ -22666,9 +22689,6 @@ function _dailyMetaCap() {
     });
   var _vis = _kids.filter(function (n) { return !n.hidden; });
   _kids.forEach(function (n) { n.dataset.capped = ''; });
-  /* R72（抱怨4）：分组标签随展开态增删（放在 early return 之前——
-     ≤5 粒时展开态也可能挂着）。 */
-  _metaGroupSync(_metaRow, _vis, _metaRow.dataset.expanded === '1');
   /* R3412-P2-1（裂变终扫）：跨年仪式行一年只有 5 天有效，恰好
    * 排最末被「+N 条」折叠藏掉——pin 标目永不进折叠池也不占
    * 5 粒名额（它是限时位不是常驻粒）。 */
@@ -22676,10 +22696,17 @@ function _dailyMetaCap() {
     return n.dataset.pin !== '1';
   });
   var _more = el('dailyMetaMore');
+  /* R73（用户实测 2026-11-18）：≤5 粒时早退路径也要收标签——
+   * 否则「展开态」粘在 meta 行上（dataset 跨重渲染不重置），
+   * 某次渲染后粒变少，标签挂在没折叠的 3 粒上方，凭空多一行
+   * 「今日宜忌」标题。没折叠就不分组。 */
   if (_unpin.length <= 5) {
+    _metaGroupSync(_metaRow, _vis, false);
     if (_more) _more.hidden = true;
     return;
   }
+  /* R72（抱怨4）：分组标签随展开态增删。 */
+  _metaGroupSync(_metaRow, _vis, _metaRow.dataset.expanded === '1');
   var _open = _metaRow.dataset.expanded === '1';
   if (!_open) {
     _unpin.slice(5).forEach(function (n) { n.dataset.capped = '1'; });
@@ -25216,10 +25243,25 @@ function _renderMeStrip() {
     try { _av = __avatarPick(me.n, me.g === 'm' ? 'm' : 'f'); } catch (eP) {}
   }
   _av = String(_av).replace(/[^a-z0-9.\-_]/gi, '');
-  box.innerHTML = (_av ? '<img class="daily-me-face" src="/static/avatars/' +
+  /* R73（用户实测 2026-11-18）：档案行整块可点→账号页。此前头像
+   * 看着可点却毫无反应（品牌行 pill 里那枚同款头像一点就进账号
+   * 页）——同元素两种行为=affordance 说谎。统一成「点头像/档案行
+   * 都进账号页」，档案摘要本就是账号页内容的首页预览（progressive
+   * disclosure：首页一句摘要 → 账号页全量+可删）。「改」保留为直达
+   * 编辑的快捷钮。 */
+  box.innerHTML = '<button type="button" class="daily-me-go"' +
+    ' title="看看账号里都存了什么" aria-label="打开账号">' +
+    (_av ? '<img class="daily-me-face" src="/static/avatars/' +
       _av + '" alt="" onerror="this.style.display=\'none\'">' : '') +
     '<span class="daily-me-txt">' + esc(txt) + '</span>' +
+    '<span class="daily-me-chev" aria-hidden="true">›</span>' +
+    '</button>' +
     '<button type="button" class="daily-me-edit">改</button>';
+  /* R73：档案行主体→账号页（见上：头像可点性统一）。 */
+  var _go = box.querySelector('.daily-me-go');
+  if (_go) _go.addEventListener('click', function () {
+    if (typeof showView === 'function') showView('account');
+  });
   var btn = box.querySelector('.daily-me-edit');
   if (btn) btn.addEventListener('click', function () {
     var bd = el('birthDrawer');
@@ -28846,6 +28888,197 @@ function baziPersonaCard(j) {
     } catch (e) {}
     return ks;
   }
+  /* R73（用户实测 2026-11-18）：「愿望 1 个」「3 段对话」只是计数，
+   * 点开摘要行要看见到底存了什么。各族 detail() 返回纯文本行数组
+   * （渲染时统一 esc）——口径与 sum() 同源，同样 try 兜底。 */
+  var _MEM_DETAIL = {
+    me: function () {
+      var m = _meGet('me') || {};
+      var L = [];
+      if (m.n) L.push('昵称：' + m.n);
+      if (m.y && m.m && m.d) {
+        L.push('生辰：' + m.y + ' 年 ' + m.m + ' 月 ' + m.d + ' 日' +
+          (m.lunar ? '（' + m.lunar + '）' : '（公历）'));
+      }
+      L.push('性别：' + (m.g === 'm' ? '男生' : '女生'));
+      L.push('时辰：' + ((m.h == null || m.h === '') ?
+        '不知道' : m.h + ' 时'));
+      return L;
+    },
+    rel: function () {
+      var L = [];
+      var p = _meGet('me:partner');
+      if (p) {
+        L.push('TA：' + (p.n || '没起名') +
+          (p.y && p.m && p.d ? ' · ' + p.y + '-' + p.m + '-' + p.d : '') +
+          (p.g === 'm' ? ' · 男生' : p.g === 'f' ? ' · 女生' : ''));
+      }
+      try {
+        var b = JSON.parse(localStorage.getItem('mochi:board') || '[]');
+        if (Array.isArray(b)) {
+          b.forEach(function (x) {
+            if (x && typeof x === 'object' && typeof x.n === 'string') {
+              L.push('默契榜：' + x.n + ' 拿了 ' + x.s + ' 分');
+            }
+          });
+        }
+      } catch (eB) {}
+      try { if (localStorage.getItem('mochi:hosts')) L.push('出过默契题'); }
+      catch (eH) {}
+      return L;
+    },
+    mind: function () {
+      var L = [];
+      var days = [];
+      _xmKeys().forEach(function (k) {
+        if (/^mood:\d{4}-\d{2}-\d{2}$/.test(k)) days.push(k.slice(5));
+      });
+      days.sort();
+      if (days.length) L.push('点亮过的心情：' + days.join('、'));
+      try {
+        var fl = JSON.parse(localStorage.getItem('futureLetters') || '[]');
+        if (Array.isArray(fl)) {
+          fl.forEach(function (lt) {
+            if (!lt || typeof lt !== 'object') return;
+            var _s = String(lt.text || '').replace(/\s+/g, ' ')
+              .slice(0, 40);
+            L.push((lt.opened ? '已收的信' : '在途的信') + '：' + _s +
+              (lt.deliver ? '（' + lt.deliver + ' 送达）' : ''));
+          });
+        }
+      } catch (eF) {}
+      try {
+        var w = JSON.parse(localStorage.getItem('wishbottle') || 'null');
+        var ws = [];
+        if (Array.isArray(w)) ws = w;
+        else if (w && typeof w === 'object') {
+          if (w.t) ws.push(w);
+          if (w.ny && w.ny.t) ws.push(w.ny);
+        }
+        ws.forEach(function (x) {
+          if (x && typeof x === 'object' && x.t) {
+            L.push('愿望：' + String(x.t).slice(0, 40));
+          }
+        });
+      } catch (eW) {}
+      try {
+        var mf = JSON.parse(localStorage.getItem('mantraFav') || '[]');
+        if (Array.isArray(mf)) {
+          mf.slice(0, 8).forEach(function (x) {
+            if (x && typeof x === 'object' && x.t) {
+              L.push('咒语：' + String(x.t).slice(0, 30) +
+                (x.d ? '（' + x.d + '）' : ''));
+            }
+          });
+        }
+      } catch (eM) {}
+      return L;
+    },
+    rit: function () {
+      var L = [];
+      var cd = [], mf = [];
+      _xmKeys().forEach(function (k) {
+        if (/^checkin:\d{4}-\d{2}-\d{2}$/.test(k)) cd.push(k.slice(8));
+        if (/^manifest:\d{4}-\d{2}-\d{2}$/.test(k)) mf.push(k.slice(9));
+      });
+      cd.sort(); mf.sort();
+      if (cd.length) L.push('打过卡的日子：' + cd.join('、'));
+      try {
+        var qh = JSON.parse(localStorage.getItem('qian:hist') || '[]');
+        if (Array.isArray(qh)) {
+          qh.forEach(function (x) {
+            if (x && typeof x === 'object' && x.d) {
+              L.push('求签：' + x.d + ' 第 ' + x.n + ' 签');
+            }
+          });
+        }
+      } catch (eQ) {}
+      if (mf.length) L.push('念过咒的日子：' + mf.join('、'));
+      var my = parseInt(localStorage.getItem('muyu:total') || '0', 10) || 0;
+      if (my) L.push('木鱼敲了 ' + my + ' 下');
+      var hg = parseInt(localStorage.getItem('hugin') || '0', 10) || 0;
+      if (hg) L.push('收到好运 ' + hg + ' 个');
+      var hgo = parseInt(localStorage.getItem('hugout') || '0', 10) || 0;
+      if (hgo) L.push('递出好运 ' + hgo + ' 次');
+      return L;
+    },
+    chat: function () {
+      var L = [];
+      var keys = [];
+      _xmKeys().forEach(function (k) {
+        if (k.indexOf('chatTranscript') === 0 &&
+            k !== 'chatTranscript:lastsid') keys.push(k);
+      });
+      try {
+        for (var i = 0; i < sessionStorage.length; i++) {
+          var sk = sessionStorage.key(i);
+          if (sk && sk.indexOf('chatTranscript') === 0 &&
+              sk !== 'chatTranscript:lastsid' && keys.indexOf(sk) < 0) {
+            keys.push(sk);
+          }
+        }
+      } catch (eS) {}
+      keys.sort();
+      keys.forEach(function (k) {
+        var n = 0, first = '';
+        try {
+          var a = JSON.parse(localStorage.getItem(k) || '[]');
+          if (Array.isArray(a)) {
+            n = a.length;
+            for (var j = 0; j < a.length; j++) {
+              if (a[j] && a[j].role === 'user' && a[j].text) {
+                first = String(a[j].text).replace(/\s+/g, ' ')
+                  .slice(0, 24);
+                break;
+              }
+            }
+          }
+        } catch (eT) {}
+        L.push('一段对话 · ' + n + ' 句' + (first ? '：「' + first + '…」' : ''));
+      });
+      try {
+        if (typeof _chatTopicsArr === 'function') {
+          _chatTopicsArr().forEach(function (x) {
+            if (x && x.t) L.push('聊过：' + x.t + (x.d ? '（' + x.d + '）' : ''));
+          });
+        }
+      } catch (eP) {}
+      return L;
+    },
+    trk: function () {
+      var L = [];
+      try {
+        var v = String(localStorage.getItem('visits') || '')
+          .split(',').filter(Boolean);
+        if (v.length) {
+          L.push('来过的日子：' + v.slice(-15).join('、') +
+            (v.length > 15 ? ' 等 ' + v.length + ' 天' : ''));
+        }
+      } catch (eV) {}
+      var _PAGE_LABEL = { home: '首页', daily: '今日', account: '账号' };
+      _xmKeys().forEach(function (k) {
+        if (k.indexOf('rlast:') === 0) {
+          var d = '';
+          try { d = localStorage.getItem(k) || ''; } catch (eR) {}
+          var pg = k.slice(6);
+          L.push('上次看' + (_PAGE_LABEL[pg] || pg) + '：' +
+            (/^\d{4}-\d{2}-\d{2}$/.test(d) ? d : '刚看过'));
+        }
+      });
+      try {
+        _xmKeys().forEach(function (k) {
+          if (k.indexOf('remind:') === 0) {
+            var rv = '';
+            try { rv = localStorage.getItem(k) || ''; } catch (eR2) {}
+            L.push('提醒钟点：' + (rv || k.slice(7)));
+          }
+        });
+        var nt = localStorage.getItem('notify:time') || '';
+        if (nt) L.push('通知时间：' + nt);
+      } catch (eN) {}
+      return L;
+    }
+  };
   /* R3446：卡顶一句「她注意到的规律」——近 7 天心情点亮天数 /
    * 连念天数 / 木鱼总数，取最亮的一条，一句封顶。 */
   function _memNote() {
@@ -28903,13 +29136,25 @@ function baziPersonaCard(j) {
       try { s = g.sum(); } catch (eGS) { s = '还没有'; }
       var has = !(s === '还没有' || s === '还没填');
       if (has) any = true;
-      html += '<div class="mem-row" data-memgroup="' + g.id + '">' +
+      html += '<div class="mem-row' + (has ? ' has' : '') + '"' +
+        ' data-memgroup="' + g.id + '"' +
+        (has ? ' role="button" tabindex="0"' +
+              ' aria-expanded="false"' +
+              ' title="点开看看具体记了什么"' : '') + '>' +
         '<span class="mem-ico" aria-hidden="true">' + g.icon + '</span>' +
         '<span class="mem-label">' + g.label + '</span>' +
         '<span class="mem-sum">' + esc(s) + '</span>' +
+        (has ? '<span class="mem-chev" aria-hidden="true">›</span>' : '') +
         (has ? '<button type="button" class="mem-del" data-g="' + g.id +
                '">忘掉</button>' : '') +
         '</div>';
+      /* R73（用户实测 2026-11-18）：摘要只是计数——「愿望 1 个」
+       * 「3 段对话」到底装了什么，点开才看得见。明细块跟在行后，
+       * 首开时按需渲染（各族 detail() 自己读 localStorage）。 */
+      if (has) {
+        html += '<div class="mem-detail" hidden data-memd="' + g.id +
+          '"></div>';
+      }
     });
     if (!any) {
       /* R3448（审-P2）：「用两天」歧读——本意是用（app）两天。 */
@@ -29022,6 +29267,48 @@ function baziPersonaCard(j) {
         }
         showToast(g.label + '忘掉啦', 'info');
         _xmMemRender();
+      });
+    });
+    /* R73（用户实测 2026-11-18）：点摘要行（除「忘掉」外整行）→
+     * 展开明细。每行渲染时新建绑定（行节点随重渲染换代，不会叠
+     * 监听）；键盘 Enter/Space 同效，aria-expanded 同步。 */
+    _memBx.querySelectorAll('.mem-row.has').forEach(function (row) {
+      var _toggle = function () {
+        var gid = row.dataset.memgroup;
+        var bx = null;
+        try {
+          bx = _memBx.querySelector('.mem-detail[data-memd="' + gid + '"]');
+        } catch (eQ2) {}
+        if (!bx) return;
+        var open = !!bx.hidden;
+        if (open && bx.dataset.filled !== '1') {
+          var lines = [];
+          try {
+            var fn = _MEM_DETAIL[gid];
+            if (fn) lines = fn() || [];
+          } catch (eD) { lines = []; }
+          bx.innerHTML = lines.length
+            ? lines.map(function (l) {
+                return '<div class="mem-dline">· ' + esc(l) + '</div>';
+              }).join('')
+            : '<div class="mem-dline">空的——还没有可看的。</div>';
+          bx.dataset.filled = '1';
+        }
+        bx.hidden = !open;
+        row.dataset.open = open ? '1' : '';
+        try { row.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        catch (eA2) {}
+      };
+      row.addEventListener('click', function (ev) {
+        if (ev.target && ev.target.closest &&
+            ev.target.closest('.mem-del')) return;
+        _toggle();
+      });
+      row.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          _toggle();
+        }
       });
     });
   }
