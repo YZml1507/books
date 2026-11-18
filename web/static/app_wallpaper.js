@@ -440,28 +440,29 @@ function _souliconPaint(res, bg, ch) {
   /* 角色名大字（带暗衬椭圆） */
   ctx.fillStyle = 'rgba(38,30,22,0.42)';
   ctx.beginPath();
-  ctx.ellipse(360, 1046, 225, 88, 0, 0, Math.PI * 2);
+  ctx.ellipse(360, 1036, 225, 84, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.font = '700 84px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = '#FFF6E8';
   ctx.shadowColor = 'rgba(0,0,0,0.35)';
   ctx.shadowBlur = 18; ctx.shadowOffsetY = 4;
-  ctx.fillText(_pStr(j && j._icName) || '灵魂角色', 360, 1078);
+  ctx.fillText(_pStr(j && j._icName) || '灵魂角色', 360, 1068);
   ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-  /* 凭什么是他 + 一句角色写照 */
+  /* 凭什么是他 + 一句角色写照——逐行往下排，行距按字号走，
+   * 末行与落款之间留 18px 气（1280 底，别贴边）。 */
   ctx.font = '400 28px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.96)';
   var _gl = _wapWrap(ctx, _pStr(j && j._icWhy) || '', 620, 2);
   _gl.forEach(function (ln, i) {
-    ctx.fillText(ln, 360, 1140 + i * 36); });
+    ctx.fillText(ln, 360, 1124 + i * 32); });
   ctx.font = '400 25px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.88)';
   var _vib = _wapWrap(ctx, _pStr(j && j._icVibe) || '', 620, 2);
   _vib.forEach(function (ln, i) {
-    ctx.fillText(ln, 360, 1212 + i * 32); });
+    ctx.fillText(ln, 360, 1192 + i * 28); });
   ctx.font = '400 22px "LXGW WenKai","PingFang SC",sans-serif';
   ctx.fillStyle = 'rgba(255,246,232,0.72)';
-  ctx.fillText('@小满的解忧铺 · 知命·仅供娱乐', 360, 1268);
+  ctx.fillText('@小满的解忧铺 · 知命·仅供娱乐', 360, 1260);
   res(cv);
 }
 
