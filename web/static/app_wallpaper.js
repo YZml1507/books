@@ -366,6 +366,73 @@ function _wapBeast(j) {
   });
 }
 
+/* R78：灵魂角色锁屏画家——透明底角色图（icons/ic-<wx>.png）铺暖底。
+ * 角色图是抠过透明的 PNG，不是整幅底图：所以自己铺渐变、自己摆
+ * 角色，文字用深墨色（底是亮的，不能用守护图腾那套奶白字）。 */
+function _wapSoulIcon(j) {
+  return new Promise(function (res, rej) {
+    var _img = new Image();
+    _img.onload = function () {
+      var cv = document.createElement('canvas');
+      cv.width = 720; cv.height = 1280;
+      var ctx = cv.getContext('2d');
+      /* 暖底：与 --bg/#FFF8E7 同族，中段稍亮托住角色 */
+      var g = ctx.createLinearGradient(0, 0, 0, 1280);
+      g.addColorStop(0, '#F7E9D2');
+      g.addColorStop(0.42, '#F1DCB8');
+      g.addColorStop(1, '#E4C9A0');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 720, 1280);
+      /* 中心一团柔光，别让渐变太平 */
+      var rg = ctx.createRadialGradient(360, 560, 40, 360, 560, 620);
+      rg.addColorStop(0, 'rgba(255,252,244,0.55)');
+      rg.addColorStop(1, 'rgba(255,252,244,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, 0, 720, 1280);
+      /* 角色：contain 适配，居中偏上（下半留名字与台词） */
+      var _iw = _img.width, _ih = _img.height;
+      var _sc = Math.min(620 / _iw, 820 / _ih);
+      var _dw = _iw * _sc, _dh = _ih * _sc;
+      ctx.drawImage(_img, (720 - _dw) / 2, 170, _dw, _dh);
+      /* 脚下一道淡影，让角色别像贴上去的 */
+      var sg = ctx.createRadialGradient(360, 170 + _dh, 10,
+                                        360, 170 + _dh, _dw * 0.55);
+      sg.addColorStop(0, 'rgba(74,63,53,0.20)');
+      sg.addColorStop(1, 'rgba(74,63,53,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(0, 170 + _dh - 90, 720, 180);
+      ctx.textAlign = 'center';
+      /* 店招 */
+      ctx.font = '600 28px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = 'rgba(74,63,53,0.72)';
+      ctx.fillText('小 满 的 解 忧 铺', 360, 96);
+      /* 角色名大字（带浅衬椭圆，亮底上反着来） */
+      ctx.fillStyle = 'rgba(255,252,244,0.55)';
+      ctx.beginPath();
+      ctx.ellipse(360, 1044, 235, 92, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = '700 92px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = '#4A3F35';
+      ctx.fillText(_pStr(j && j._icName) || '灵魂角色', 360, 1074);
+      /* 凭什么是他 + 一句角色写照 */
+      ctx.font = '400 28px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = 'rgba(74,63,53,0.86)';
+      var _gl = _wapWrap(ctx, _pStr(j && j._icWhy) || '', 620, 2);
+      _gl.forEach(function (ln, i) {
+        ctx.fillText(ln, 360, 1150 + i * 40); });
+      var _vib = _wapWrap(ctx, _pStr(j && j._icVibe) || '', 620, 2);
+      _vib.forEach(function (ln, i) {
+        ctx.fillText(ln, 360, 1210 + i * 36); });
+      ctx.font = '400 22px "LXGW WenKai","PingFang SC",sans-serif';
+      ctx.fillStyle = 'rgba(74,63,53,0.55)';
+      ctx.fillText('@小满的解忧铺 · 知命·仅供娱乐', 360, 1266);
+      res(cv);
+    };
+    _img.onerror = function () { rej(new Error('soulicon img')); };
+    _img.src = _pStr(j && j._icImgUrl) || '/static/icons/ic-wood.png';
+  });
+}
+
 /* R76：开运图落盘——从 showPosterModal 的比例切换里抽出来共用。
  * square=头像 1:1，否则壁纸 9:16。触屏端弹层长按即可存，不必静默
  * 落盘（R3326：iOS/微信 a[download] 多半落空）。 */
@@ -438,6 +505,35 @@ function downloadWallpaper(j, variant) {
         }
       }, 'image/png');
       showPosterModal(cv, 'guardian-wap', j);
+    }).catch(function () {
+      showToast('壁纸没做好，再点一次', 'warn');
+    });
+  }
+  /* R78（用户实测：灵魂角色卡没锁屏钮）：灵魂角色壁纸变体。
+ * 与 _wapBeast 的区别在底——beast 用烘焙好的整幅 JPEG，这里
+ * 角色图是 R78 新抠的透明 PNG（icons/ic-<wx>.png），得自己铺底。
+ * 铺站点暖色渐变而不是留白：角色本身是暖调绘本风，落在纯白上
+ * 会飘；暖底与卡面、与其余几张壁纸的观感连得上。 */
+  if (variant && variant.soulicon) {
+    return _wapSoulIcon(j).then(function (cv) {
+      var _tS = (typeof navigator !== 'undefined' &&
+        (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      if (_tS && !/MicroMessenger/i.test(navigator.userAgent || '')) {
+        showPosterModal(cv, 'soul-wap', j);
+        return;
+      }
+      cv.toBlob(function (blob) {
+        if (!blob) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '小满-灵魂角色壁纸.png';
+        document.body.appendChild(a);
+        try { a.click(); } finally {
+          setTimeout(function () {
+            URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        }
+      }, 'image/png');
+      showPosterModal(cv, 'soul-wap', j);
     }).catch(function () {
       showToast('壁纸没做好，再点一次', 'warn');
     });

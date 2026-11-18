@@ -10200,6 +10200,9 @@ var _POSTER_TITLES = {
   'soulart-wap': '灵魂色谱壁纸',
   /* R3486：图腾壁纸模态标题/文件名。 */
   'guardian-wap': '守护图腾壁纸',
+  /* R78（用户实测：灵魂角色卡没有锁屏钮，守护图腾/灵魂纹样/灵魂
+   * 色谱都有）——补上，弹层标题/下载文件名同口径收表。 */
+  'soul-wap': '灵魂角色壁纸',
   /* R3379：周记信海报弹层标题/下载文件名。 */
   weekletter: '小满的上周小记',
   /* R3596：月度复盘海报弹层标题/下载文件名。 */
@@ -20904,6 +20907,10 @@ function _icCard(j) {
       '真人生剧本还得自己写</div>' +
     '<button class="ghost fav-btn" type="button" id="icShare" ' +
       'title="生成灵魂角色分享图">📸 晒出我的角色</button>' +
+    /* R78（用户实测：守护图腾/灵魂纹样/灵魂色谱都有锁屏钮，
+       唯独灵魂角色没有）——补上，与 _gdCard 的 #gdWap 同款。 */
+    '<button class="ghost fav-btn" type="button" id="icWap" ' +
+      'title="下载灵魂角色锁屏壁纸">📱 做我的锁屏</button>' +
     '</div>';
   return { html: _h, pick: _p };
 }
@@ -20919,6 +20926,16 @@ function _icOpen(j) {
                _icImg: document.querySelector('.ic-card .sm-hero'),
                _icImgUrl: _c.pick.f.img };
     return downloadPoster(Object.assign({}, j, _o), 'soulicon');
+  });
+  /* R78：灵魂角色锁屏——透明底角色图自己铺暖底（app_wallpaper.js
+   * _wapSoulIcon），与守护图腾的 gdWap 一个路子。 */
+  on('icWap', function () {
+    var _wxEn = { '木': 'wood', '火': 'fire', '土': 'earth',
+                  '金': 'metal', '水': 'water' }[_c.pick.wx] || 'wood';
+    var _wo = { _icName: _c.pick.f.name, _icGlyph: _c.pick.f.glyph,
+                _icWhy: _c.pick.why, _icVibe: _c.pick.f.vibe,
+                _icImgUrl: '/static/icons/ic-' + _wxEn + '.png' };
+    return downloadWallpaper(_wo, { soulicon: true });
   });
   _icBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }

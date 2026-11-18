@@ -50,6 +50,11 @@ EXTRA_GLOBS = (
     # R3396（记账）：soulmate 六张氛围图同病——换图必须换 CACHE 名。
     # R3402 修正：图在 static/soulmate/ 不在 cream/——原 glob 零命中。
     "soulmate/sm-*.jpg",
+    # R78（用户实测：守护图腾/灵魂角色卡头插画换透明底）：这两组 PNG
+    # 同样是无 ?v 的二线资产（.sm-hero 直接 img src），此前不在哈希里，
+    # 换图老客靠 SW 缓存无限期看旧图。补进来。
+    "icons/gd-*.png",
+    "icons/ic-*.png",
 )
 
 

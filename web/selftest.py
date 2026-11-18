@@ -4926,6 +4926,20 @@ def _run_inner() -> list[str]:
         "soulart: '灵魂色谱'" in _appsrc2, \
         "灵魂色谱：按钮/卡片/色谱表/海报/画家分支/别名/标题缺一"
     ok.append("frontend.soulart_wiring")
+    # R3490 + R78 灵魂角色：按钮/出卡/角色表/海报 case/锁屏钮/壁纸
+    # 画家/别名/标题八件套——缺一则卡空渲、海报死链、锁屏钮不现或
+    # 弹层归错视图（R78 之前就漏了锁屏钮：守护图腾/灵魂纹样/灵魂
+    # 色谱都有，唯独灵魂角色没有，用户实测点名）。
+    _wapsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "static", "app_wallpaper.js"),
+                   encoding="utf-8").read()
+    assert "shareSoulicon" in _appsrc2 and "_icOpen" in _appsrc2 and \
+        "_IC_FIGURE" in _appsrc2 and "case 'soulicon'" in _postsrc and \
+        "id=\"icWap\"" in _appsrc2 and "_wapSoulIcon" in _wapsrc and \
+        "soulicon: '灵魂角色'" in _appsrc2 and \
+        "'soul-wap': '灵魂角色壁纸'" in _appsrc2, \
+        "灵魂角色：按钮/卡片/角色表/海报/锁屏钮/壁纸画家/别名/标题缺一"
+    ok.append("frontend.soulicon_wiring")
     # R3464 算命 prompt：生成器/复制器/接线三件套缺一即死钮
     assert "_promptText" in _appsrc2 and "_promptCopy" in _appsrc2 and \
         "sharePrompt" in _appsrc2 and "location.origin" in _appsrc2, \
@@ -5321,7 +5335,10 @@ def _run_inner() -> list[str]:
                "celeb.json",
                # R3403：soulmate 六张氛围图同口径——R3402 发现本表
                # 与 bump_sw EXTRA_GLOBS 已漂移过一次，务必同改。
-               "soulmate/sm-*.jpg"):
+               "soulmate/sm-*.jpg",
+               # R78：守护图腾/灵魂角色卡头插画（无 ?v 的 .sm-hero 直链图）
+               # 同口径——换透明底老客得靠 SW 换桶才拿到新图。
+               "icons/gd-*.png", "icons/ic-*.png"):
         _eps = sorted(_gl5.glob(_os.path.join(
             _os.path.dirname(__file__), "static", _g)))
         # 零命中即列表漂移（与 bump_sw 护栏同口径）——静默跳过
