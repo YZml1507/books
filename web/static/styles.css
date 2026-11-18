@@ -702,8 +702,43 @@ select.da-cal, select.da-gender{flex:0 1 auto; width:auto; min-height:44px; padd
  * 登录面板，主区被 JS inert + body 锁滚。登录成功即隐藏并归位。 */
 .auth-wall{position:fixed; inset:0; z-index:99999; display:flex;
   align-items:center; justify-content:center; padding:20px 16px;
-  background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  /* R8x：登录/注册大背景板专属背景——agnes-image-2.5-flash 生图
+   * （cream/auth-wall-bg.jpg，奶油熊绘本风）。中央径向纱罩保证账号卡
+   * 在任何屏幕比例下都可读，四角插画（小熊/木门/灯笼/彩旗）保持鲜活。
+   * 只挂这块墙：登录成功即 hidden，主站界面无感知。 */
+  background:
+    radial-gradient(62% 58% at 50% 50%,
+      rgba(255,251,243,.60) 0%, rgba(255,250,240,.42) 58%,
+      rgba(255,247,235,.14) 100%),
+    url("./cream/auth-wall-bg.jpg") center/cover no-repeat,
+    var(--bg);
+  overflow-y:auto; -webkit-overflow-scrolling:touch;}
 .auth-wall[hidden]{display:none;}
+/* R8x：墙上的店招——绝对定位不参与 flex 居中，账号卡该在哪还在哪。
+ * 快乐体（ZCOOL KuaiLe）与站内标题层同字体；pointer-events:none
+   绝不抢卡的点击。 */
+.auth-wall-art{position:absolute; top:20px;
+  top:max(20px, env(safe-area-inset-top));
+  left:0; right:0; display:flex; flex-direction:column; align-items:center;
+  gap:7px; pointer-events:none;}
+.auth-wall-sign{font-family:"ZCOOL KuaiLe",var(--font-serif); font-weight:400;
+  font-size:34px; letter-spacing:.14em; text-indent:.14em; color:#8A5A33;
+  text-shadow:0 1px 0 rgba(255,255,255,.7), 0 2px 10px rgba(255,248,236,.8);}
+.auth-wall-sub{font-size:12px; letter-spacing:.3em; text-indent:.3em;
+  color:#B08A63; text-shadow:0 1px 0 rgba(255,255,255,.6);}
+@media (max-width:640px){
+  /* 注册态卡最高（约 620px）——店招小一号并贴顶，让位给卡不上叠。 */
+  .auth-wall-art{top:12px; gap:5px;}
+  .auth-wall-sign{font-size:24px;}
+  .auth-wall-sub{font-size:10px; letter-spacing:.24em; text-indent:.24em;}
+}
+@media (max-height:760px){
+  /* 矮屏窗口（<760px 高）注册卡顶缘会上探——店招再收一档，
+   * 保证「小满的解忧铺」不被卡的上缘盖住。 */
+  .auth-wall-art{top:10px; gap:4px;}
+  .auth-wall-sign{font-size:26px;}
+  .auth-wall-sub{font-size:10px; letter-spacing:.2em; text-indent:.2em;}
+}
 .auth-wall #accountCard{width:100%; max-width:430px; margin:0 auto;
   box-shadow:0 12px 40px rgba(0,0,0,.10);}
 body.auth-locked{overflow:hidden;}

@@ -356,3 +356,38 @@ torch 被回收，#19 修复按设计优雅跳过）。
 **已知观测**：端点相位抖动 3–22s，全部落在 110s 预算内；极端拥挤时 AI
 段落静默缺席或后到，确定性主体不受影响（设计降级语义）。换任何
 OpenAI 兼容端点只需改 llm_config.json 的 base_url/model/api_key 三字段。
+
+## S5 · 登录墙背景（agnes-image-2.5-flash 生图）（2026-11-18）
+
+**用户指令**：给登录/注册时的大背景板加一个可爱的、带上「小满的解忧铺」的、
+符合店铺风格的背景；只加在登录墙；用 agnes 生图模型；弄好更新华为云服务器。
+
+**改动**（4 文件，全部实测）：
+1. `web/static/cream/auth-wall-bg.jpg`（新增）：agnes-image-2.5-flash 生图
+   （scripts/image_gen.py，secrets/agnes_image.key），1440×900 请求、实际
+   1248×832；扁平插画 + 暖奶油/蜜桃色 + 儿童绘本风，与站内奶油熊资产同源：
+   小熊挥手/打开的书/咖啡、彩旗灯笼、木门暖光、底部云朵星星；**中央大片
+   留白**给账号卡。PIL 转 JPEG q86 → **67KB**。
+2. `web/static/index.html`：`#authWall` 内加 `.auth-wall-art` 店招
+   （aria-hidden 纯装饰，快乐体「小满的解忧铺」+「☾ 推门进来，坐吧」）。
+   只在未登录这块墙后出现，登录成功墙 hidden，主站零感知。
+3. `web/static/styles.css`：`.auth-wall` 挂背景图 + 中央径向纱罩
+   （保证账号卡任何屏比可读、四角插画保持鲜活）；店招绝对定位不参与
+   flex 居中；≤640px 店招 24px 贴顶让位注册态高卡。
+4. `web/static/sw.js`：新图入 SHELL（未登录用户首屏，断网不破回裸色）；
+   `scripts/bump_sw.py` → CACHE `books-shell-1ba1d309ac82`。
+
+**闸门**：沙箱 `web/selftest.py` **PASS (466 checks)**（含 sw.shell_hash、
+sw.shell_completeness、static.styles.css、account.* 全套）；bazi.semantic
+按设计 SKIP(env)。
+
+**服务器同步（受阻，如实记录）**：uppcoder/websson（华为云）实例当前不可达——
+公网 `qlbmx89w-fastapi-stepfun-studio-books.apps-6.websson.cloud/` 与
+`/api/health` 均 **404**（S3 期是 200）；SSH(2222) SSHPier 代理层接受密钥
+（partial success）但**上游容器拒绝**（Permission denied publickey，新旧两把
+钥匙均如此），与 S0 记录的沙箱回收同形态——环境已被回收/重建。GitHub 推送
+亦无凭证（`git push` 报 could not read Username）。Render 实例
+（books-ctsw.onrender.com）活着但 `/` 403 口令闸、且只认 GitHub 推送。
+**待用户提供可达的服务器通道后，只需传 4 个文件即可上线**：
+`web/static/cream/auth-wall-bg.jpg`、`web/static/index.html`、
+`web/static/styles.css`、`web/static/sw.js`（静态文件，无需重启进程）。

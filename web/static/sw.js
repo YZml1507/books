@@ -8,7 +8,7 @@
 /* R229z续14++：CACHE 名直接派生自 app.js 内容哈希（scripts/bump_sw.py
  * 重写下一行）。selftest 闸「sw.shell_hash」比对标记与文件现状——
  * 改了 app.js 忘跑 bump_sw.py 会直接红，杜绝老客粘旧壳。 */
-var CACHE = 'books-shell-483473a2287f';   // shell-hash: 483473a2287f
+var CACHE = 'books-shell-1ba1d309ac82';   // shell-hash: 1ba1d309ac82
 /* R2348（R67-P1）：运行时缓存独立桶（随版本号自动换名，activate 阶段
  * 连旧 RT 一起清），上限 60 条在 fetch 回写处维护。 */
 var RT = CACHE + '-rt';
@@ -53,6 +53,9 @@ var SHELL = ['/', '/static/index.html', '/static/app.js', '/static/app_poster.js
              /* R233d（R42-#5）：首屏图 + 礼盒 + 吉凶字字体补进 SHELL——
               * 装完即断网不再破图/回落字体（gift 另有 onerror 双保险）。 */
              '/static/cream/cream-hero-v2.jpg',
+             /* R8x：登录墙背景（未登录用户的首屏）——奶油熊绘本风，
+                断网时墙也不能破回裸色。 */
+             '/static/cream/auth-wall-bg.jpg',
              '/static/cream/avatar-xiaoman-cream.jpg',
              '/static/cream/icon-180.png',
              /* R2510（审-SW-P2）：manifest maskable 图标此前不在 SHELL——

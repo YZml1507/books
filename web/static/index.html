@@ -241,6 +241,15 @@ try {
      （fail-closed：脚本挂了用户看到的也是登录面板，不是裸站）。
      登录成功后 #accountCard 归位回排盘历史的 #acctSlot。 -->
 <div class="auth-wall" id="authWall">
+      <!-- R8x：登录墙专属背景店招——图片背景（cream/auth-wall-bg.jpg，
+           agnes-image-2.5-flash 生图）由 styles.css 的 .auth-wall 负责；
+           这里只放「小满的解忧铺」七个字（快乐体，aria-hidden 纯装饰，
+           卡内结构自带无障碍语义）。只在未登录的这块大背景板后出现，
+           登录成功墙即 hidden，不进主站任何界面。 -->
+      <div class="auth-wall-art" aria-hidden="true">
+        <span class="auth-wall-sign">小满的解忧铺</span>
+        <span class="auth-wall-sub">☾ 推门进来，坐吧</span>
+      </div>
       <div class="acct-card" id="accountCard">
         <div class="acct-head">
           <span aria-hidden="true">⚙️</span> 小满账号
