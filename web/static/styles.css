@@ -995,6 +995,15 @@ html[data-theme="dark"] .e-today .e-bar{background:#e0bb6e;}
 .mb-today.got{background:var(--card); color:var(--secondary);
   box-shadow:none; border:1px solid var(--line); cursor:default;}
 .mb-rit-tip{font-size:11px; color:var(--muted);}
+/* R80：待收空格 + 填法提示——册子只有一两句时整页空着，既读不出
+ * 「这是个册子」也不知道拿什么填（用户实测「咒语册没有填满」）。
+ * 空格用虚线框+极淡底，格面写明入口是今日咒语旁那颗 🤍。 */
+.mb-blank{border-style:dashed; background:rgba(214,137,90,.05);
+  box-shadow:none;}
+.mb-t-blank{color:var(--muted); font-weight:500; letter-spacing:.24em;}
+.mb-hint{font-size:11.5px; color:var(--muted); line-height:1.7;
+  margin-top:2px;}
+.mb-hint strong{color:var(--primary-ink);}
 /* R3317-E：上周小记信卡——信纸感淡卡，收下即收 */
 .weekly-letter{margin:0 0 10px; border-radius:16px; overflow:hidden;
   border:1px solid rgba(214,169,110,.4);
@@ -1169,6 +1178,16 @@ html[data-theme="dark"] .daily-mantra b{
   /* R228d：--primary #D4B5FF 在卡底仅 1.74:1，焦点环改 --text（与全站一致） */
   outline:3px solid var(--text); outline-offset:2px;
 }
+/* R80（用户实测第 4 张截屏「很明显的看到有黑色边框没有填满」）：
+ * #funcGrid 是 nav[tabindex=-1] 的聚焦落点（app.js 里关 toast /
+ * 欢迎条 / 装机提示 / 分享弹层后都 funcGrid.focus()，skip-link 也跳
+ * 这里），本身不是交互控件。浏览器于是把默认焦点环画在整个网格外
+ * 沿——实测是绕功能区一整圈 3-4px 深色方框，环内没有任何填充，
+ * 触屏上尤其莫名，而且关掉弹层后一直留着。
+ * tabindex=-1 不在 Tab 序里，键盘党根本到不了它，环纯噪音；程序聚焦
+ * 仍保留（下一个 Tab 好落进功能区），只把可视环摘掉。单卡自己的
+ * :focus-visible 环（上面那条）不受影响。 */
+.func-grid:focus,.func-grid:focus-visible{outline:none;}
 .func-icon{
   font-size:36px; margin-bottom:10px; line-height:1;
   filter:grayscale(0.1);
@@ -2342,6 +2361,18 @@ details.warm-pro-fold > summary{
 /* C-003：交叉引用样式 */
 .cross-ref{ margin-top:10px; padding:8px 12px; background:#F5F0FF; border-radius:12px; font-size:13px; color:var(--secondary); line-height:1.5; }
 .cross-ref-icon{ margin-right:6px; }
+/* R80：cross-ref 装 CTA 钮时（黄历卡→星座引流，唯一一处）——文字版
+ * 那套「淡紫盒 + 盒内小钮」在这里全是死空间：全局 button 带
+ * margin-top:20px，把钮推到盒顶下方 70px，右侧剩 1600-994=600px 空
+ * 淡紫。实测截图里就是「一个大空盒漂一颗紫钮」。改成整行 CTA：盒子
+ * 退场（无底无 padding），钮撑满卡宽、去掉继承 margin、文案居中，
+ * 上下留白用 margin 控制。文字版 cross-ref 不受影响。 */
+.cross-ref-cta{margin-top:14px; padding:0; background:none;}
+.cross-ref-cta .thread-view{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; margin-top:0; padding:13px 20px; font-size:15px;
+  letter-spacing:.02em;
+}
 
 /* R208b：历史记录迁入左侧栏 */
 .side-hist{margin-top:10px;}
@@ -4621,14 +4652,27 @@ html[data-theme="dark"] .outfit-share{background:#3A3237;color:#E8C6D4;
  *      --primary-ink + 行 hover 柔光补偿，不再靠下划线；
  *   ② 虚线软卡底改 quiet 行（与 .checkin-q 同族），高度随内容收缩，
  *      空盒观感消除；.fl-pend 待送达计数保留，写信链路零改动。 */
-.fl-entry{display:flex; align-items:center; gap:10px;
-  margin:6px 0 2px; padding:5px 6px; flex-wrap:wrap;
-  background:none; border:0; border-radius:8px;
-  transition:background .15s;}
-.fl-entry:hover{background:var(--accent-soft);}
-.fl-write{background:none; border:0; padding:0; font-size:12.5px;
-  color:var(--primary-ink); cursor:pointer;}
-.fl-pend{font-size:11px; color:var(--muted);}
+/* R80（用户实测本轮第 6 条「他那个排版感觉还是有问题，你好像压根没改过
+ * 他」）：上面那次只把空盒收成 quiet 行，行本身仍是 12.5px 主色文字钮、
+ * 无 chevron、无行高，跟签册/许愿瓶/烦恼粉碎机三个 .ck-album 行不同族
+ * ——读起来像粘在打卡区末尾的一行小字，不像第四个收集入口。改成同族
+ * quiet 行：同字号（12px）同色（--secondary）同 chevron（▸）同触控高
+ * （min-height 40px）；差别只在它是 button（点开写信弹层）不是 details。
+ * 类名刻意不叫 ck-album——app.js 的 querySelector('.ck-album') 取文档序
+ * 第一个当签册委托宿主，别让 div 混进去抢。 */
+.ck-fl{display:flex; align-items:center; gap:4px 10px; flex-wrap:wrap;
+  margin-top:10px;}
+.ck-fl-sum{border:none; background:none; padding:0; margin:0;
+  font-family:inherit; font-size:12px; color:var(--secondary);
+  cursor:pointer; min-height:40px; display:flex; align-items:center;
+  gap:6px; -webkit-tap-highlight-color:transparent;}
+.ck-fl-sum::before{content:'▸ ';}
+.ck-fl-sum:hover{color:var(--accent-ink);}
+.ck-fl .fl-pend{margin-left:auto; font-size:11px; color:var(--muted);}
+/* .fl-recover（坏 JSON 救援链）住在 .fl-pend 里，跟着它右对齐 */
+.fl-recover{border:none; background:none; padding:0; font-size:11px;
+  color:var(--muted); cursor:pointer; text-align:left;}
+.fl-recover:hover{color:var(--accent-ink); text-decoration:underline;}
 .fl-modal textarea{width:100%; border:1px solid var(--line);
   /* R3432-P2-7（审）：textarea 不在全局 16px 名单——13.5px 聚焦
    * 必触发 iOS 整页缩放，写信主战场不可留。 */
@@ -4651,7 +4695,8 @@ html[data-theme="dark"] .outfit-share{background:#3A3237;color:#E8C6D4;
 .fl-note{font-size:11px; color:var(--muted); margin:8px 0 0;
   text-align:center;}
 html[data-theme="dark"] .fl-letter{background:linear-gradient(160deg,#322A2E,#2E282B);}
-html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
+/* R80：.fl-write 已改成 .ck-fl-sum（同族 quiet 行），暗色跟随
+ * .ck-album>summary 的 --secondary，不再单独覆写。 */
 .fl-done{margin:6px 0 0; font-size:12px; color:var(--muted);}
 .fl-done summary{cursor:pointer; font-size:12px;}
 .fl-done-item{padding:8px 0; border-top:1px dashed var(--line);

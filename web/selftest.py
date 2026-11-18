@@ -4949,6 +4949,50 @@ def _run_inner() -> list[str]:
         "'soul-wap': '灵魂角色壁纸'" in _appsrc2, \
         "灵魂角色：按钮/卡片/角色表/海报/锁屏钮/壁纸画家/别名/标题缺一"
     ok.append("frontend.soulicon_wiring")
+    # R80（用户实测本轮「洛神……他的『做我的壁纸』也是很难看」）：灵魂
+    # 角色锁屏从「透明 PNG 自己铺暖渐变」换成烘焙场景底图。缺 ic-wap-
+    # 底图选择/浅色字/scrim 任意一样，就退回 R78 那版「角色贴在色块上」
+    # 的难看态；app.js 不带 _icWap 则 404 回落渐变，等于没改。
+    assert "_icWap" in _appsrc2 and "ic-wap-" in _appsrc2 and \
+        "_icWap" in _wapsrc and "ic-wap-" in _wapsrc and \
+        "_souliconPaint" in _wapsrc and "rgba(38,30,22," in _wapsrc and \
+        "#FFF6E8" in _wapsrc, \
+        "灵魂角色壁纸：_icWap 传参/场景底图选择/暗角/浅色字缺一"
+    ok.append("frontend.soulicon_wap_scene")
+    # R80（用户实测本轮「咒语册没有填满，而且这个咒语册好像和今日咒语的
+    # 那颗小心心有关」）：册页原来只吐实句格——攒 1 句时整册空着，既读不
+    # 出「这是个册子」也不知道拿什么填。三件套：待收空格（_MB_SLOTS/
+    # _mbBlank）+ 指向今日咒语 🤍 的提示（.mb-hint）+ 第二条入册路
+    # （「今日念一遍」顺手 _mantraFavAdd）。缺一即回到空册态。
+    assert "_MB_SLOTS" in _appsrc2 and "_mbBlank" in _appsrc2 and \
+        "mb-blank" in _csssrc2 and "mb-hint" in _csssrc2 and \
+        "_filedNew" in _appsrc2 and "_mantraFavAdd" in _appsrc2, \
+        "咒语册填满：待收空格/空槽样式/填法提示/念一遍入册缺一"
+    ok.append("frontend.mantra_book_slots")
+    # R80（用户实测本轮「写给未来的自己那个排版感觉还是有问题，你好像
+    # 压根没改过他」）：入口从 12.5px 主色文字钮改成与签册/许愿瓶/烦恼
+    # 粉碎机同族的 quiet 行（.ck-fl + .ck-fl-sum + ▸ chevron）。旧
+    # .fl-entry/.fl-write 两套死类若还在，说明改了一半。
+    assert 'class="ck-fl"' in _appsrc2 and "ck-fl-sum" in _appsrc2 and \
+        "ck-fl-sum" in _csssrc2 and "ck-fl" in _csssrc2 and \
+        ".fl-entry{" not in _csssrc2 and "fl-write{" not in _csssrc2, \
+        "写给未来的自己入口：同族 quiet 行/chevrone/旧死类未清"
+    ok.append("frontend.ck_fl_row")
+    # R80（用户实测本轮截图 4）：功能网格外沿那道黑色边框是浏览器焦点环
+    # 画在 tabindex=-1 的 #funcGrid 上——toast/欢迎条/装机提示/分享弹层
+    # 关闭后 funcGrid.focus() 逐个触发。摘环（不摘程序聚焦）。
+    # 拆空白后比对：CSS 里这条规则自带换行/分号，裸 in 会因写法漂移误红。
+    _cssflat80 = "".join(_csssrc2.split())
+    assert ".func-grid:focus,.func-grid:focus-visible{outline:none;}" in \
+        _cssflat80, "funcGrid 焦点环：.func-grid:focus 未摘环"
+    ok.append("css.funcgrid_focus")
+    # R80（用户实测本轮截图 3）：黄历卡→星座 CTA 实测盒 1616×200px、钮
+    # 仅 109px 高、上方空 70px——「大空盒漂一颗紫钮」。盒子退场、钮撑满
+    # 整行。
+    assert "cross-ref-cta" in _appsrc2 and "cross-ref-cta" in _csssrc2 and \
+        "cross-ref-cta .thread-view" in _csssrc2, \
+        "黄历 CTA：盒子退场/钮撑满整行缺一"
+    ok.append("css.cross_ref_cta")
     # R3464 算命 prompt：生成器/复制器/接线三件套缺一即死钮
     assert "_promptText" in _appsrc2 and "_promptCopy" in _appsrc2 and \
         "sharePrompt" in _appsrc2 and "location.origin" in _appsrc2, \

@@ -14339,7 +14339,12 @@ async function _doHuangli(offset, reveal, spokenWord) {
      * 全文，卡底不再复读，改成「去星座页看看」的可点链接
      * （天然引流点此前是纯文本）。data-xview 在点击委托里收。 */
     if (j.cross_ref && j.cross_ref.zodiac_sign) {
-      html += '<div class="cross-ref"><button type="button" ' +
+      /* R80（用户实测第 3 张截屏「背景和按钮排版有点问题」）：这个
+       * cross-ref 里装的是 CTA 钮而不是文字，却沿用文字版的淡紫盒 +
+       * 全局 button 的 margin-top:20px——实测盒 1616×200px、钮只占
+       * 109px 高，上方空 70px、右侧空一大片，像颗钮漂在空盒里。
+       * 加 cross-ref-cta 让盒子退场、钮撑满整行（见 styles.css）。 */
+      html += '<div class="cross-ref cross-ref-cta"><button type="button" ' +
         'class="thread-view" data-xview="xingzuo">⭐ 看看' +
         esc(j.cross_ref.zodiac_sign) + '座' + esc(_dayWord) +
         '的运势 →</button></div>';
@@ -20928,13 +20933,16 @@ function _icOpen(j) {
     return downloadPoster(Object.assign({}, j, _o), 'soulicon');
   });
   /* R78：灵魂角色锁屏——透明底角色图自己铺暖底（app_wallpaper.js
-   * _wapSoulIcon），与守护图腾的 gdWap 一个路子。 */
+   * _wapSoulIcon），与守护图腾的 gdWap 一个路子。
+   * R80：_wapSoulIcon 已换成烘焙场景底图（ic-wap-<wx>.jpg），这里把
+   * 底图路径一并带上；取不到时它自己回落渐变兜底。 */
   on('icWap', function () {
     var _wxEn = { '木': 'wood', '火': 'fire', '土': 'earth',
                   '金': 'metal', '水': 'water' }[_c.pick.wx] || 'wood';
     var _wo = { _icName: _c.pick.f.name, _icGlyph: _c.pick.f.glyph,
                 _icWhy: _c.pick.why, _icVibe: _c.pick.f.vibe,
-                _icImgUrl: '/static/icons/ic-' + _wxEn + '.png' };
+                _icImgUrl: '/static/icons/ic-' + _wxEn + '.png',
+                _icWap: '/static/wallpapers/ic-wap-' + _wxEn + '.jpg' };
     return downloadWallpaper(_wo, { soulicon: true });
   });
   _icBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -24289,8 +24297,15 @@ function renderCheckin(dateKey) {
   var _flHtml = '';
   /* R3329（审-P2）：坏 JSON 让整段 catch——写信入口是唯一入口
    * 必须在 try 外保底渲染。 */
-  var _flEntryHtml = '<div class="fl-entry">' +
-    '<button type="button" class="fl-write" id="flWrite">✉️ 写给未来的自己</button>' +
+  /* R80（用户实测本轮第 6 条「他那个排版感觉还是有问题，你好像压根
+   * 没改过他」）：R79 只把入口从打卡问句之前搬到打卡区收尾，行本身
+   * 没动——仍是 12.5px 主色文字钮、无 chevron、无行高、无留白，跟上面
+   * 三个 .ck-album 行（12px 次级色 + ▸ + min-height 40px）不同族，读起来
+   * 像粘在末尾的一行小字而不是第四个收集入口。改成同族 quiet 行（见
+   * styles.css .ck-fl）。骨架仍以 </span></div> 收尾，下面两处 replace
+   * 往里灌 pend 徽标/救援链的写法不用动。 */
+  var _flEntryHtml = '<div class="ck-fl">' +
+    '<button type="button" class="ck-fl-sum" id="flWrite">✉️ 写给未来的自己</button>' +
     '<span class="fl-pend" id="flPend"></span></div>';
   try {
     /* R3431-P1-2（审）：坏 JSON 直接跳外层 catch——链上空无
@@ -27296,6 +27311,21 @@ function _mantraBookMeta() {
     });
   }
 }
+/* R80（用户实测「咒语册没有填满，而且这个咒语册好像和今日咒语的
+ * 那颗小心心有关」）：原渲染只吐实句格——攒 1 句时整个册页就一格、
+ * 四周全空，既读不出「这是个册子」也不知道拿什么填。改成「实句格 +
+ * 待收空格」：空格补到至少 _MB_SLOTS 格，格面直接写明入口是今日咒语
+ * 旁那颗 🤍；句数够了空格自动退场，格子往下长。 */
+var _MB_SLOTS = 6;
+function _mbBlank(n) {
+  var out = '';
+  for (var i = 0; i < n; i++) {
+    out += '<div class="mb-cell mb-blank">' +
+      '<div class="mb-t mb-t-blank">待　收</div>' +
+      '<div class="mb-d">今日咒语旁那颗 🤍</div></div>';
+  }
+  return out;
+}
 function _renderMantraBook() {
   /* 只在册页在屏时渲——storage 跨 tab 同步也走这里，早退零成本。 */
   var vw = el('view-mantra');
@@ -27303,43 +27333,48 @@ function _renderMantraBook() {
   var body = el('mantraBookBody');
   if (!body) return;
   var a = _mantraFavAll();
-  if (!a.length) {
-    body.innerHTML = '<div class="ph-empty">册子还空着呢——' +
-      '看到喜欢的那句，点旁边的小心心 🤍 就收进来啦</div>';
-  } else {
-    /* R3376 显化打卡环：「今日念一遍」——点过记 manifest:<date>
-     * 并把今日咒语顺手进剪贴板；连念天数进册头。 */
-    var _mst = _manifestStreak(), _mdone = _manifestDone(todayIso());
-    body.innerHTML = '<div class="mb-count">攒了 <strong>' + a.length +
-      '</strong> 句 · 满 40 最旧的先出册</div>' +
-      '<div class="mb-ritual"><button type="button" class="mb-today' +
-        (_mdone ? ' got' : '') + '" data-mb="today"' +
-        (_mdone ? ' disabled' : '') + '>' +
-        (_mdone ? '✅ 今日已念' : '📿 今日念一遍') +
-        (_mst ? ' · 连念 ' + _mst + ' 天' : '') + '</button>' +
-        (_mdone ? ''
-               : '<span class="mb-rit-tip">点一下，今天的咒语顺手帮你复制</span>') +
-      '</div>' +
-      '<div class="mb-grid">' +
-      a.map(function (x) {
-        return '<div class="mb-cell">' +
-          '<div class="mb-t">「' + esc(x.t) + '」</div>' +
-          /* R3362（R3361 审-P2）：ISO 日期裸贴与全站「10月4日」
-           * 口径不一；「再念一遍」名不符实（实际是复制）。 */
-          '<div class="mb-d">' + esc(String(x.d || '')
-            .replace(/^(\d{4})-(\d{1,2})-(\d{1,2}).*/,
-              function (_, y, m, d) {
-                return (+m) + '月' + (+d) + '日（' + y + '）';
-              })) + ' 收的</div>' +
-          '<div class="mb-acts">' +
-            '<button type="button" class="mb-act" data-mb="copy" data-ts="' +
-              esc(String(x.ts)) + '" title="复制这句">存个档</button>' +
-            '<button type="button" class="mb-act mb-del" data-mb="del" ' +
-              'data-ts="' + esc(String(x.ts)) +
-              '" title="从咒语册删掉" aria-label="删除这条咒语">请出册子</button>' +
-          '</div></div>';
-      }).join('') + '</div>';
-  }
+  /* R3376 显化打卡环：「今日念一遍」——点过记 manifest:<date>
+   * 并把今日咒语顺手进剪贴板；连念天数进册头。 */
+  var _mst = _manifestStreak(), _mdone = _manifestDone(todayIso());
+  var _blank = Math.max(0, _MB_SLOTS - a.length);
+  body.innerHTML = (a.length
+      ? '<div class="mb-count">攒了 <strong>' + a.length +
+        '</strong> 句 · 满 40 最旧的先出册</div>'
+      : '<div class="mb-count">册子还空着——先从今天这句开始</div>') +
+    '<div class="mb-ritual"><button type="button" class="mb-today' +
+      (_mdone ? ' got' : '') + '" data-mb="today"' +
+      (_mdone ? ' disabled' : '') + '>' +
+      (_mdone ? '✅ 今日已念' : '📿 今日念一遍') +
+      (_mst ? ' · 连念 ' + _mst + ' 天' : '') + '</button>' +
+      (_mdone ? ''
+             : '<span class="mb-rit-tip">点一下，今天的咒语复制走，' +
+               '顺手也收进册子</span>') +
+    '</div>' +
+    '<div class="mb-grid">' +
+    a.map(function (x) {
+      return '<div class="mb-cell">' +
+        '<div class="mb-t">「' + esc(x.t) + '」</div>' +
+        /* R3362（R3361 审-P2）：ISO 日期裸贴与全站「10月4日」
+         * 口径不一；「再念一遍」名不符实（实际是复制）。 */
+        '<div class="mb-d">' + esc(String(x.d || '')
+          .replace(/^(\d{4})-(\d{1,2})-(\d{1,2}).*/,
+            function (_, y, m, d) {
+              return (+m) + '月' + (+d) + '日（' + y + '）';
+            })) + ' 收的</div>' +
+        '<div class="mb-acts">' +
+          '<button type="button" class="mb-act" data-mb="copy" data-ts="' +
+            esc(String(x.ts)) + '" title="复制这句">存个档</button>' +
+          '<button type="button" class="mb-act mb-del" data-mb="del" ' +
+            'data-ts="' + esc(String(x.ts)) +
+            '" title="从咒语册删掉" aria-label="删除这条咒语">请出册子</button>' +
+        '</div></div>';
+    }).join('') + _mbBlank(_blank) + '</div>' +
+    (_blank
+      ? '<div class="mb-hint">还有 <strong>' + _blank +
+        '</strong> 个空格等着——在今日咒语旁边点那颗 🤍 就收进来' +
+        '（点上面的「📿 今日念一遍」也会顺手收今天这句）</div>'
+      : '<div class="mb-hint">前 ' + _MB_SLOTS + ' 格都收满了——' +
+        '再收的句子排在后面，格子自己往下长</div>');
   /* 委托绑在容器上（innerHTML 重渲不掉绑定）——copy/del 同链路。 */
   if (!body.dataset.bound) {
     body.dataset.bound = '1';
@@ -27350,20 +27385,35 @@ function _renderMantraBook() {
       var act = b.dataset.mb, ts = b.dataset.ts;
       if (act === 'today') {
         var _stNew = _manifestMark();
+        /* R80：第二条入册路——「今日念一遍」顺手把今天这句收进册子。
+         * 用户实测「咒语册没有填满……和今日咒语那颗小心心有关」：心
+         * 是收藏入口没错，但只靠心一条路，册子攒得极慢（一天一句还
+         * 得记得点）。念一遍是比心更常点的动作，接上它，册子才填得动。
+         * 已收过不重复入（去重键 t|d）。 */
+        var _filedNew = false;
         try {
-          var _mt3 = el('dailyMantra');
-          var _mtxt = (_mt3 && _mt3.dataset)
-            ? String(_mt3.dataset.m || '') : '';
-          if (_mtxt && navigator.clipboard &&
+          var _mt4 = el('dailyMantra');
+          var _mtxt2 = (_mt4 && _mt4.dataset)
+            ? String(_mt4.dataset.m || '') : '';
+          var _md2 = (_mt4 && _mt4.dataset)
+            ? String(_mt4.dataset.d || '') || todayIso() : todayIso();
+          if (_mtxt2 && !_mantraFavHas(_mtxt2, _md2)) {
+            _mantraFavAdd(_mtxt2, _md2);
+            _filedNew = true;
+            _mantraFavSync(_mtxt2, _md2);
+          }
+          if (_mtxt2 && navigator.clipboard &&
               navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(_mtxt).catch(function () {});
+            navigator.clipboard.writeText(_mtxt2).catch(function () {});
           }
         } catch (eMT) {}
         showToast(
           _stNew && _MANIFEST_MILES[_stNew]
             ? '📿 连念 ' + _stNew + ' 天达成——' +
               _MANIFEST_MILES[_stNew] + '，明天接着来'
-            : '今日咒语念过一遍啦——明天接着来', 'ok');
+            : (_filedNew
+               ? '今日咒语念过一遍啦——这句也收进册子了'
+               : '今日咒语念过一遍啦——明天接着来'), 'ok');
         _renderMantraBook();
         _mantraBookMeta();
         return;
