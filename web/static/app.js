@@ -6532,14 +6532,34 @@ async function loadDaily() {
     setText('dailyDo', j.do || '—');
     setText('dailyDont', j.dont || '—');
     /* R233q：签号上卡——「今日第 N 签」的求签感是小红书日签标配 */
+    /* R75a（用户实测 2026-11-18）：卦签钮与签卡收进同一个 .sign-block，
+     * 整块挂在 meta 行正下方。R74 修完「点了没反应」后用户仍报
+     * 「解签钮和解出来的卦隔得太远，只知道浏览器往下自动滑了一段，
+     * 并不知道哪个是解出来的卦」——实测 meta 行 20 粒药丸高 272px，
+     * 卦签排第 4 粒，签卡却插在整行之后，中间隔着 16 粒药丸的高度
+     * （352px）。现在钮在卡正上方 8px，一眼看出这一卡是那钮解出来的。
+     * R2349l 当初「签卡挂 .daily-meta 行外，防横滚容器 overflow+mask
+     * 裁剪」的理由已随 R72 换行改版失效（.daily-meta 无 overflow），
+     * 块级容器照旧不进 flex 行，隔离仍然保留。 */
+    var _mrow0 = document.querySelector('#dailyCard .daily-meta');
+    var _swrap = el('signBlock');
+    if (!_swrap && _mrow0) {
+      _swrap = document.createElement('div');
+      _swrap.id = 'signBlock';
+      _swrap.className = 'sign-block';
+      var _host = _mrow0.parentNode || _mrow0;
+      _host.insertBefore(_swrap, _mrow0.nextSibling);
+    }
     var _sg = el('dailySignNo');
     if (!_sg) {
       _sg = document.createElement('div');
       _sg.id = 'dailySignNo';
       _sg.className = 'daily-meta-item';
       _sg.title = '每天一张签，签号跟着日子走';
-      var _mrow = document.querySelector('#dailyCard .daily-meta');
-      if (_mrow) _mrow.appendChild(_sg);
+      if (_swrap) _swrap.appendChild(_sg);
+    } else if (_swrap && _sg.parentNode !== _swrap) {
+      /* 老会话里还挂在 meta 药丸流里的，就地迁进块内 */
+      _swrap.appendChild(_sg);
     }
     if (_sg) {
       /* R2349l（R73-P1-1）：签号可点——展开这签对应的卦名+白话签意
@@ -6557,11 +6577,17 @@ async function loadDaily() {
         _scl = document.createElement('div');
         _scl.id = 'signCard'; _scl.className = 'sign-card';
         _scl.hidden = true;
-        var _mr2 = document.querySelector('#dailyCard .daily-meta');
-        if (_mr2 && _mr2.parentNode) _mr2.parentNode.insertBefore(_scl, _mr2.nextSibling);
+        if (_swrap) _swrap.appendChild(_scl);
+      } else if (_swrap && _scl.parentNode !== _swrap) {
+        /* R74 那版签卡插在 meta 行之后（隔着 352px），迁到钮正下方 */
+        _swrap.appendChild(_scl);
       }
       if (_scl) {
-        _scl.innerHTML = '<strong>' +
+        /* R75a：加一行小标——用户实测报「浏览器往下滑了一段，并不知道
+           哪个是解出来的卦」。钮卡已经贴在一起，再补一个直白的标签，
+           扫一眼就知道这一卡是答案，不用猜。 */
+        _scl.innerHTML = '<i class="sign-card-tag">解签解出来啦</i>' +
+          '<strong>' +
           esc(_signText(j.date).split('·')[0] || '') + '</strong>' +
           '<span>' + esc(_signText(j.date).split('·')[1] || '') + '</span>';
       }
@@ -6588,6 +6614,12 @@ async function loadDaily() {
               var _r0 = sc.getBoundingClientRect();
               var _want = _sy + _r0.bottom -
                 ((window.innerHeight || 0) - 96);
+              /* R75a：钮和卡现在贴在一起（只隔 8px），卡长一点就会把钮
+               * 顶出屏顶——实测卡 89px 高时钮顶到 -2px，按钮自己看不见
+               * 了。补一道夹逼：钮顶至少留 8px，滚动量取更保守的那个。 */
+              var _rB0 = _pk.getBoundingClientRect();
+              var _wantTop = _sy + _rB0.top - 8;
+              if (_wantTop < _want) _want = _wantTop;
               if (_want > _sy + 1) {
                 try {
                   window.scrollTo({ top: _want, behavior: 'smooth' });
@@ -8052,10 +8084,35 @@ function _drawKlineEl(cv, k) {
     var _dk = document.documentElement.getAttribute('data-theme') === 'dark';
     var _cFrame = _dk ? '#E8C988' : '#7A5C2E';
     var _cDot = _dk ? '#C9857A' : '#8A4A3C';
-    var W = cv.width, H = cv.height, ctx = cv.getContext('2d');
+    /* R75c（用户实测「人生K线那个图感觉很模糊很不好看」）：位图分辨率
+       没跟着屏幕密度走——canvas 固定 680×250，手机容器只有 ~350 CSS px
+       却要按 DPR 3 铺成 1050 设备像素，等于把 680 的位图放大 1.5 倍画，
+       线和字全都发虚。改成按 clientWidth×DPR 开 backing store，再
+       setTransform(dpr) 让下面的绘制全部按 CSS 像素写，字和线都是
+       1:1 设备像素，锐利。 */
+    /* 折叠态（details 收起）clientWidth=0——此时画出来的尺寸是假的，
+       直接不画，等 toggle 回调按真实宽度补（见下方 toggle 监听）。 */
+    var _cssW = cv.clientWidth || 0;
+    if (_cssW < 40) return;
+    var _dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    var _cssH = Math.round(_cssW * 250 / 680);
+    var W = _cssW, H = _cssH;
+    var _bw = Math.max(1, Math.round(W * _dpr));
+    var _bh = Math.max(1, Math.round(H * _dpr));
+    if (cv.width !== _bw || cv.height !== _bh) {
+      cv.width = _bw; cv.height = _bh;
+    }
+    var ctx = cv.getContext('2d');
     if (!ctx) return;
+    ctx.setTransform(_dpr, 0, 0, _dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
     var padL = 30, padR = 10, padT = 26, padB = 46;
     var plotW = W - padL - padR, plotH = H - padT - padB;
+    /* R75c：年支刻度间隔按可用宽度算——每个刻度（「10岁」+「2008」
+     * 两行）至少要 34px 才不糊，90 根蜡烛在窄屏上排不开就自动放宽。 */
+    var _perAge = plotW / Math.max(1, cs.length);
+    var _ageStep = 10;
+    while (_perAge * _ageStep < 34 && _ageStep < 40) _ageStep += 10;
     var maxS = 4, mid = padT + plotH / 2;
     var bw = Math.max(2, Math.floor(plotW / cs.length) - 1);
     var step = plotW / cs.length;
@@ -8067,6 +8124,16 @@ function _drawKlineEl(cv, k) {
       ctx.fillStyle = c.score > 0 ? '#C4624E'
         : (c.score < 0 ? '#8FA98A' : '#C9BCA6');
       ctx.fillRect(x, top, bw, Math.max(2, hgt));
+      /* R75c（用户实测「图感觉不好看」）：收一根走势线穿过各柱顶/
+         底中点——光有一排红绿柱子只是「柱状图」，加了这条线才像
+         「走势」，一眼看出起伏。细虚线、深墨色，不抢柱子的戏。 */
+      var _cy = mid - (c.score / maxS) * (plotH / 2);
+      if (i === 0) {
+        ctx.beginPath();
+        ctx.moveTo(x + bw / 2, _cy);
+      } else {
+        ctx.lineTo(x + bw / 2, _cy);
+      }
       /* 今年框 */
       if (c.age === k.this_age) {
         ctx.strokeStyle = _cFrame; ctx.lineWidth = 2;
@@ -8096,7 +8163,11 @@ function _drawKlineEl(cv, k) {
         ctx.arc(x + bw / 2, fy, 3, 0, Math.PI * 2); ctx.fill();
       }
       /* 年支刻度每 10 岁 */
-      if (c.age % 10 === 0) {
+      /* R75c：刻度间隔跟着画布宽度走——canvas 改成按容器宽度开后，
+       * 手机上只剩 ~248 CSS px，90 根蜡烛每根才 2.3px，每 10 岁一个
+       * 刻度（23px）连「10岁」两个字都排不下，实测挤成
+       * 「0岁10岁20岁…」一团糊。窄屏自动改每 20/30 岁一个刻度。 */
+      if (c.age % _ageStep === 0) {
         ctx.fillStyle = '#B7A98A';
         ctx.font = '10px "LXGW WenKai",sans-serif';
         ctx.textAlign = 'center';
@@ -8104,6 +8175,13 @@ function _drawKlineEl(cv, k) {
         ctx.fillText(c.year + '', x + bw / 2, padT + plotH + 42);
       }
     }
+    /* 走势线收笔——深墨细虚线，压在所有柱子上方 */
+    ctx.save();
+    ctx.strokeStyle = _dk ? '#F0E2C8' : '#5C4630';
+    ctx.lineWidth = 1.4;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.restore();
     /* 中线 */
     ctx.strokeStyle = '#E0D4C0'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(padL - 6, mid); ctx.lineTo(W - 4, mid);
@@ -8118,6 +8196,23 @@ function _paintKlineNow() {
     });
   } catch (e) {}
 }
+/* R75c：视口宽度/屏幕密度变了，canvas 的 backing store 尺寸就作废——
+   不清重画标记的话下次 _drawKlineEl 直接早退，图上还是老尺寸那张
+   （横竖屏切换、桌面拖窗口都会复现模糊）。 */
+(function () {
+  var _t = 0;
+  window.addEventListener('resize', function () {
+    clearTimeout(_t);
+    _t = setTimeout(function () {
+      try {
+        document.querySelectorAll('.kline-canvas').forEach(function (cv) {
+          cv._klineDone = false;
+        });
+        if (window._paintKlineNow) window._paintKlineNow();
+      } catch (eR) {}
+    }, 180);
+  });
+})();
 /* 折叠点开补画（口吻切换重渲时 DOM 换新、_klineDone 复位） */
 document.addEventListener('toggle', function (e) {
   if (e.target && e.target.classList &&
@@ -8544,17 +8639,16 @@ async function submitBazi(event) {
        * R3485-P2-1：展开后钮置 disabled + aria-expanded——否则
        * 再点静默无反应像死钮。stay-disabled 让 guardedCall
        * 收尾不复活它（在途忙态会自动重 enable）。 */
+      /* R75b（用户实测「人生K线那一栏里的守护图腾/守护颜色那些，
+         看上去只能点开不能收起」）：原来展开完就把钮 disabled 掉
+         （stayDisabled），用户再也没有办法把那排钮收回去。改成真折叠
+         ——开和收都能点，aria-expanded 跟着真实状态走。 */
       on('saZoneToggle', function () {
         var _z = el('saZone');
-        if (_z && _z.hidden) {
-          _z.hidden = false;
-          var _t = el('saZoneToggle');
-          if (_t) {
-            _t.setAttribute('aria-expanded', 'true');
-            _t.dataset.stayDisabled = '1';
-            _t.disabled = true;
-          }
-        }
+        if (!_z) return;
+        _z.hidden = !_z.hidden;
+        var _t = el('saZoneToggle');
+        if (_t) _t.setAttribute('aria-expanded', _z.hidden ? 'false' : 'true');
       });
     };
     rememberResult('bazi', j, body.question || '', body);   /* R219b（P0-2）：聊聊上下文；v2 补 body（性别） */
@@ -20917,12 +21011,10 @@ function _openSaByKey(k) {
   if ('EFGCPSRN'.indexOf(k || '') < 0) return false;
   var _z = el('saZone');
   if (_z) _z.hidden = false;
+  /* R75b：深链开区不再把折叠钮禁掉——禁了用户就再也收不回去
+     （用户实测「只能点开不能收起」）。 */
   var _tg = el('saZoneToggle');
-  if (_tg) {
-    _tg.setAttribute('aria-expanded', 'true');
-    _tg.dataset.stayDisabled = '1';
-    _tg.disabled = true;
-  }
+  if (_tg) _tg.setAttribute('aria-expanded', 'true');
   var j = _r.json;
   if (k === 'F') _fdOpen(j); else if (k === 'G') _gdOpen(j);
   else if (k === 'C') _crOpen(j); else if (k === 'S') _saOpen(j);
@@ -20937,6 +21029,58 @@ function _openSaByKey(k) {
   else return false;
   return true;
 }
+
+/* R75b（用户实测「守护图腾/守护颜色/图魂那些只能点开不能收起」）：
+ * 折叠区的钮已改成真折叠（见 saZoneToggle），但开出来的小惊喜卡
+ * （fd/gd/cr/sa/ic/em/nc 七类）此前开一张留一张、越点越多，没有一处
+ * 能收。这里给每张 .sm-card 补一枚统一的「收起」钮：一个观察器覆
+ * 盖七类卡位，后续加卡不必改这里；点收起＝清掉该卡内容，卡位回到
+ * 未开状态（各 _xxOpen 都是重写 innerHTML，清了不影响下次开）。 */
+(function () {
+  var _SM_BOXES = ['fdCard', 'gdCard', 'crCard', 'saCard',
+                   'icCard', 'emCard', 'ncCard'];
+  function _arm(box) {
+    if (!box || box.dataset.smArmed) return;
+    box.dataset.smArmed = '1';
+    var _fill = function () {
+      [].slice.call(box.querySelectorAll('.sm-card')).forEach(function (c) {
+        if (c.querySelector('.card-dismiss')) return;
+        var _b = document.createElement('button');
+        _b.type = 'button';
+        _b.className = 'card-dismiss';
+        _b.title = '收起这张卡';
+        _b.setAttribute('aria-label', '收起这张卡');
+        _b.textContent = '收起这张';
+        c.appendChild(_b);
+      });
+    };
+    try {
+      new MutationObserver(_fill).observe(box, { childList: true, subtree: true });
+    } catch (eMO) {}
+    _fill();
+  }
+  _SM_BOXES.forEach(function (id) { _arm(document.getElementById(id)); });
+  /* 卡位是结果卡的 HTML 串现场造的（buildBaziResult），页面加载时还不
+   * 存在——挂一个父级观察器等它们出现，出现即武装（自身幂等）。 */
+  var _host = document.getElementById('view-bazi') || document.body;
+  if (_host) {
+    try {
+      new MutationObserver(function () {
+        for (var i = 0; i < _SM_BOXES.length; i++) {
+          _arm(document.getElementById(_SM_BOXES[i]));
+        }
+      }).observe(_host, { childList: true, subtree: true });
+    } catch (eMO2) {}
+  }
+  document.addEventListener('click', function (e) {
+    var t = (e && e.target && e.target.closest) ?
+      e.target.closest('.card-dismiss') : null;
+    if (!t) return;
+    var _card = t.closest('.sm-card');
+    var _box = _card && _card.parentNode;
+    if (_box) _box.innerHTML = '';
+  });
+})();
 
 /* ── R213b：微交互特效（点击涟漪 + 星星迸发 / 滑动拖尾 / 卡片入场）──
  * 纪律：全部只动 transform/opacity（check_plain_first 判据 2 门柱安全）；
@@ -30956,15 +31100,16 @@ function baziPersonaCard(j) {
        * 注册时还没有这功能、云端拉回缺字段、或用户手清过。缺了就按
        * 「昵称+性别」确定性兜底一张：同一个人永远同一张，不会每次刷新
        * 换脸；也别让头像位空着假装有头像。 */
-      /* R26：兜底收成全局唯一一份（window.__avatarOf），这里只委托，
-       * 不再维护第二套算法——两套漂移就会档案行和账号卡两张脸。 */
-      function _avatarOf() {
-        try { return __avatarOf(); } catch (eD) {}
-        var _p = _AVATAR_POOL.f;
-        return _p[0];
-      }
-      /* 档案行（另一作用域）也要用同一把兜底，挂全局 */
-      try { window.__avatarOf = _avatarOf; } catch (eW) {}
+      /* R75d（用户实测「新注册了一个账号，头像还是之前那个号的，
+       * 没有及时更新过来」）：这里原本还有一层 _avatarOf 委托，紧接着
+       * window.__avatarOf = _avatarOf；而 _avatarOf 内部调的
+       * __avatarOf() 解析到的正是刚挂上去的全局属性——就是它自己。
+       * 无限递归被 try/catch 吞掉，最后永远 return 池里第一张 =
+       * avatar-f1.jpg。于是全站共用同一张默认脸，me.av 写了也显示不
+       * 出来（用户以为「还是上一个号的头像」，其实是所有人的默认脸）。
+       * 删掉这层有害委托：真实现早就由 _dailyAcctText 旁边那份
+       * window.__avatarOf = __avatarOf 挂全局了，一份就够，不维护
+       * 第二套算法。 */
       function _acctGender() {
         var _on = document.querySelector('.acct-gender-btn.is-on');
         return (_on && _on.getAttribute('data-g')) || 'f';
@@ -31003,8 +31148,11 @@ function baziPersonaCard(j) {
           _row.appendChild(_who);
         }
         var _im = document.getElementById('acctFace');
-        /* R25：老账号没有 me.av 也要有脸——走 _avatarOf() 确定性兜底 */
-        var _av = _avatarOf();
+        /* R25：老账号没有 me.av 也要有脸——走全局唯一那份确定性兜底。
+         * R75d：原来调的是本 IIFE 的 _avatarOf，那层有害委托已删（自指
+         * 递归把所有人锁成 avatar-f1），改调 window.__avatarOf。 */
+        var _av = '';
+        try { _av = window.__avatarOf(); } catch (eA5) {}
         if (!_im) return;
         if (_av) { _im.src = '/static/avatars/' + _av; _im.hidden = false; }
         else { _im.hidden = true; }
@@ -31159,6 +31307,13 @@ function baziPersonaCard(j) {
                 _meSave('me', { av: _pickAvatar(_acctGender()),
                                 g: _acctGender() });
               } catch (eAvR) {}
+              /* R75d（用户实测「新注册了一个账号，头像还是之前那个号的，
+                 没有及时更新过来」）：头像在 _meSave 里才落地，而
+                 _acctRender()/右上角那张脸在这之前就已经画完——共用设备
+                 上（上一任没登出）那张脸停在旧档头像，刷新才变。补一次
+                 重渲：右上角头像 + 档案行都按新档刷新。 */
+              try { _dailyAcctText(); } catch (eAF1) {}
+              try { _renderMeStrip(); } catch (eRS1) {}
               /* R3363-P1-4：注册首推用 keepalive——注册即关页时
                * 普通 fetch 会被掐，首份备份静默丢（此时包小，不
                * 会撞 64KiB 上限）。 */
@@ -31202,6 +31357,10 @@ function baziPersonaCard(j) {
                * _pull 会明说「先在原设备同步一次」。 */
               await _pull();
               _syncMeName(f.n);
+              /* R75d：登录拉回的云端档里可能带着另一个头像（换设备主
+                 场景）——拉完就重渲，别让右上角那张脸停在本地旧档上。 */
+              try { _dailyAcctText(); } catch (eAF2) {}
+              try { _renderMeStrip(); } catch (eRS2) {}
               /* R20（用户直报）：老账号（本功能上线前注册）云端备份里
                * 没有 me 生辰档——登录时按表单填的补一份并推回云端，
                * 下次换设备登录就是完整档案、礼物直接拆。云端已有档的

@@ -3966,7 +3966,18 @@ html[data-theme="dark"] .hl-festival{color:#EAC39A;}
   background:var(--card);border:1px solid var(--border);border-radius:12px;
   padding:10px 14px;font-size:13px;
   box-shadow:0 6px 20px rgba(0,0,0,.10);}
-.sign-card strong{display:block;color:var(--primary-ink);margin-bottom:2px;}
+/* R75a（用户实测「解签钮和解出来的卦隔 352px，不知道哪个是解出来
+   的」）：签卡改成一眼可辨的「答案卡」——左粗 accent 边+暖底，
+   卦名放大到 15px，顶部一行小标直说这是解出来的结果。 */
+.sign-card{background:linear-gradient(135deg,var(--accent-soft,#fdf2ea),var(--card));
+  border:1px solid var(--accent);border-left:4px solid var(--accent-ink);}
+.sign-card .sign-card-tag{display:block;font-style:normal;
+  font-size:11px;color:var(--accent-ink);letter-spacing:.02em;margin-bottom:2px;}
+.sign-card strong{display:block;color:var(--primary-ink);margin-bottom:2px;
+  font-size:15px;}
+/* R75a：卦签钮+签卡同一个块，整块挂在 meta 行正下方 */
+.sign-block{margin-top:8px;}
+.sign-block .daily-meta-item{margin:0;}
 .sign-card span{color:var(--secondary);}
 .hl-daychip.has-flag{opacity:.72; border-style:dashed;}
 
@@ -4693,6 +4704,13 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .sm-card { margin: 12px 0; border: 1px solid var(--line, #e8dccf);
   border-radius: 14px; overflow: hidden; background: var(--card, #fffdfa);
   text-align: center; }
+/* R75b：小惊喜卡统一「收起」钮——开出来的卡得能收回去（用户实测
+   「守护图腾那些只能点开不能收起」）。安静的小字钮，贴在卡底部。 */
+.card-dismiss { display: block; margin: 10px auto 12px; padding: 4px 14px;
+  font: inherit; font-size: 11px; color: var(--muted, #9a8b76);
+  background: none; border: 1px dashed var(--line, #e8dccf);
+  border-radius: 999px; cursor: pointer; }
+.card-dismiss:active { transform: scale(.96); }
 .sm-art { width: 100%; max-height: 300px; overflow: hidden; }
 .sm-art img { display: block; width: 100%; height: 100%;
   object-fit: cover; object-position: center 30%; }
