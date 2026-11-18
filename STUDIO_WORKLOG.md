@@ -394,3 +394,73 @@ books-shell-1ba1d309ac82。**注**：部署期间发现沙箱出口 IP 为 NAT �
 （6 次请求 6 个 IP，跨 47.117/8.133/139.224 三个段）——安全组按单 IP
 放行不可行，已按 0.0.0.0/0 放行 22，用户看完可收紧。
 
+
+## S6 · 首页 meta 药丸三连 + 灵魂锁屏报错 + 守护水晶/灵魂名片上生图（2026-11-19）
+
+用户直报四条（截图 3 张），逐条对源后一条 commit（`ec4c3b0`）收口。
+
+**1. 咒语册药丸「有空隙，边框外面还有一圈框没填满」**
+实测该粒 **78px 高**，里面只一行 12px 字。根因不是宽度，是全局
+`button{}`（`styles.css` ~L1726）整份继承进 `.daily-meta-item` 里的
+`.mantra-book-link`：`min-height:44px` + `margin-top:20px` 撑高，
+`border-radius:999px` + `box-shadow:0 4px 16px rgba(194,90,78,.25)`
+在药丸自身描边**内侧**再描一圈——用户说的「外框里面还有一圈框」正是
+这两层同心圆角，中间全是空白。`.mantra-book-link` 把这些全部清零
+（`box-shadow:none; border-radius:0; min-height:22px; margin:0;
+line-height:1.6`），只留行盒；另给 `.daily-meta` 补
+`align-items:flex-start`——flex 容器默认 `stretch`，高个把同行
+今日贵人/宜试试整条拉到等高（实测同样 ~78px），一排放空框。
+
+**2. 灵魂角色「做我的锁屏」报「页面出了点小状况」**
+`app_wallpaper.js` 的 `_souliconPaint` 丢参。`_wapSoulIcon` 有
+bg / ch 两条互斥路径（有底图画背景、无底图画角色），两条都要靠
+第 4 参 `j` 才能走到挂点；HEAD 只传 3 参，未定义变量直接把
+`app.js` L100–117 那支 `window.addEventListener('error')` 全局兜底
+toast 点亮。补回 `j`，两处调用点（L381/L384）同步。
+
+**3. 「写给未来的自己」外面多一圈边框**
+同一个全局 `button{}` 的玫瑰投影漏筛——上面只清了
+border/background/padding/margin，`box-shadow` / `border-radius` /
+`font-weight` / `letter-spacing` / `transition` 全在，在文字外沿
+描出一圈淡玫粉光环，与签册/许愿瓶/烦恼粉碎机三个 details 行不同族。
+一并收干净；`min-height` 提到 `var(--tap)`，与 `.ck-album>summary`
+的 44px 触控下限对齐。
+
+**4. 守护水晶 / 灵魂名片没有 agnes 生图**
+补 10 张：`img/gem/gem-<wx>.jpg`、`img/nc/nc-<wx>.jpg`（720×540
+4:3 横图，`agnes-image-2.5-flash`，沿用守护图腾/灵魂角色那一套
+奶油绘本静物口径）。接进 `_crCard` / `_ncCard` 卡头 `.sm-hero`，
+并经 `_crOpen` / `_ncOpen` 把 `_crImgUrl`/`_crImgEl`/`_ncImgUrl`/
+`_ncImgEl` 带进 `downloadPoster` 预解码与 crystal / namecard 两个
+poster 视图的卡片位。水晶沿用 guardian 440×440 几何保一致；
+名片取 440×300，为 7 行命盘数据让位（440×440 会把行高压到
+line-cap 以下弹行）。`_ncWx` 取日干五行（本命）而非喜用五行——
+印记答「你是谁」，不答「你缺什么」。生图脚本
+`scripts/gen_crystal_namecard_assets.py` 一并入库。
+
+**闸门**：沙箱 `web/selftest.py` **PASS (466 checks)**；服务器
+`/opt/books/app` 下同脚本 **PASS (467 checks)**（bazi.semantic 在
+真身不再 SKIP(env)）。均含 `sw.shell_hash`、`sw.shell_completeness`、
+`frontend.crystal_wiring`、`frontend.guardian_wiring`、
+`frontend.soulicon_wap_scene`、`frontend.mantra_book_slots`、
+`frontend.ck_fl_row`。`bump_sw.py` 与 `selftest.py` 的 glob 清单
+同步扩 `img/gem/*.jpg` + `img/nc/*.jpg`（两侧必须逐字对称，
+否则 `sw.shell_hash` 红牌）；CACHE → `books-shell-f4d093c70f62`。
+
+**服务器同步（已完成）**：`116.205.229.222`，静态根
+`/opt/books/app/web/static/`，传前备份至
+`/opt/books/backups/r81-20261119-*`。传 6 个改动文件 + 新建
+`img/gem/`、`img/nc/` 共 10 图 + `web/selftest.py`。
+双端 md5 逐一致（app.js `6e365791`、app_poster `48b4a6f3`、
+app_wallpaper `7cd13042`、styles.css `373b0e7b`、sw `cb6ccd4a`、
+selftest `5d0d47f3`）。静态文件免重启。
+线上实测：`_souliconPaint(res, bg, ch, j)` 已上线（修前为 3 参）；
+10 张新图全部 200；`/static/app.js` 走 `web/app.py` 的
+on-the-fly minify（1.74MB → 927KB），`_CR_IMG`/`_NC_IMG`/`sm-hero`
+均在位；index.html `?v=` 与 sw CACHE 同步到 `f4d093c70f62`。
+**注**：`app.js` 线上 md5 与本地不同是 minify 所致，非漏传；
+`app_poster.js` / `app_wallpaper.js` / `styles.css` / `sw.js`
+为逐字节一致。
+
+**GitHub**：`YZml1507/books` main 已推 `7e14bef..ec4c3b0`（PAT 直传，
+未写入任何被跟踪文件）。**该 PAT 由用户以明文贴出，已提醒吊销/轮换。**
