@@ -378,17 +378,24 @@ function _wapBeast(j) {
 function _wapSoulIcon(j) {
   return new Promise(function (res, rej) {
     var _bg = new Image();
-    _bg.onload = function () { _souliconPaint(res, _bg, null); };
+    _bg.onload = function () { _souliconPaint(res, _bg, null, j); };
     _bg.onerror = function () {
       var _ch = new Image();
-      _ch.onload = function () { _souliconPaint(res, null, _ch); };
+      _ch.onload = function () { _souliconPaint(res, null, _ch, j); };
       _ch.onerror = function () { rej(new Error('soulicon img')); };
       _ch.src = _pStr(j && j._icImgUrl) || '/static/icons/ic-wood.png';
     };
     _bg.src = _pStr(j && j._icWap) || '/static/wallpapers/ic-wap-wood.jpg';
   });
 }
-function _souliconPaint(res, bg, ch) {
+/* R81（用户直报 2026-11-19 第 2 条「灵魂角色『做我的锁屏』时有第二张截
+ * 屏那样的报错」）：R80 把画家从 _wapSoulIcon 里抽成独立函数时，签名写成
+ * (res, bg, ch) 却没把 j 传进去——而函数体下半段的角色名/本命依据/写照
+ * 三处 ctx.fillText 都在读 j._icName / j._icWhy / j._icVibe。合成器每次走
+ * 到这里就抛 ReferenceError: j is not defined，冒到 window error 处理器弹
+ * 「⚠️ 页面出了点小状况，刷新一下试～」——所以不是底图 404，是签名漏参。
+ * 加回第 4 个形参 j，两处调用点一起补。 */
+function _souliconPaint(res, bg, ch, j) {
   var cv = document.createElement('canvas');
   cv.width = 720; cv.height = 1280;
   var ctx = cv.getContext('2d');

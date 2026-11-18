@@ -774,7 +774,14 @@ body.auth-locked{overflow:hidden;}
    的裁切感，属空间重叠型杂乱）；可见数仍由 R2363 的 5 粒硬上限
    把关，收起/展开语义不变。 */
 .daily-meta{display:flex; gap:8px; margin-top:18px; flex-wrap:wrap;
-  padding-bottom:0;}
+  padding-bottom:0;
+  /* R81（用户直报 2026-11-19 第 1 条「咒语册那里仍然是有空隙……边框
+   * 外面还有一圈框没有填满」）：flex 容器默认 align-items:stretch，行内
+   * 一旦有高个（咒语册入口按钮曾带着 min-height:44px+margin-top:20px 的
+   * 全局 button{} 遗产，实测 78px；用户机上更高），同行的今日贵人/宜试试
+   * 就被整条拉到等高，里面只一行字——用户看到的正是「一个大空框，字挤在
+   * 中间」。flex-start 让每粒 pill 只占自己内容的高度，谁也不被拉长。 */
+  align-items:flex-start;}
 .daily-meta::-webkit-scrollbar{display:none;}
 .daily-meta-item{
   display:flex; align-items:center; gap:6px; flex-shrink:0;
@@ -987,9 +994,28 @@ html[data-theme="dark"] .e-today .e-bar{background:#e0bb6e;}
 .mantra-fav.got{color:var(--primary-ink); border-style:solid;
   background:linear-gradient(135deg, rgba(214,137,90,.16), rgba(214,169,110,.12));}
 /* R3350：咒语册入口——meta 行小链（攒了才现身） */
+/* R81（用户直报 2026-11-19 第 1 条「咒语册那里仍然是有空隙……边框外面
+ * 还有一圈框没有填满」）：这条本身是 <button>，全局 button{} 的玫瑰投影
+ * box-shadow:0 4px 16px rgba(194,90,78,.25) / border-radius:999px /
+ * min-height:44px / margin-top:20px / font-weight:600 / letter-spacing:.04em
+ * 全部活着（选择器只压过 border/background/padding/font-size/color）——
+ * 于是文字外沿再描一圈淡玫粉圆角框（用户说的「外面还有一圈框」），还
+ * 把整条 meta 行撑高、同行 pill 被 stretch 成空框（「没有填满」）。
+ * 逐项退回普通文本链口径，pill 回到「文字+底板」一件事。 */
 .mantra-book-link{border:none; background:none; padding:0;
   font-size:12px; color:var(--secondary); cursor:pointer;
-  text-decoration:none;}
+  text-decoration:none;
+  /* R81b（用户直报 2026-11-19 第 1 条·收口）：全局 button{} 的
+   * min-height:44px + margin-top:20px + padding:12px 28px +
+   * border-radius:999px + box-shadow:0 4px 16px rgba(194,90,78,.25)
+   * 曾把这一粒撑到实测 78px 高——里面只一行 12px 字，用户看到的正是
+   * 「外框（药丸描边）里面还有一圈框（按钮自身的圆角+投影），没填满」。
+   * 全部清零后只留行盒；min-height:22px + line-height:1.6 让本粒高度
+   * 36px，与隔壁 14px 文字的 36.4px 对齐，不再一粒高一粒矮。 */
+  box-shadow:none; border-radius:0; font-weight:400;
+  letter-spacing:normal; line-height:1.6; min-height:22px; margin:0;
+  width:auto; transition:none;
+  display:inline-flex; align-items:center;}
 .mantra-book-link:hover{color:var(--accent-ink);
   text-decoration:underline;}
 /* R3350：咒语册格页（view-mantra）——软格卡+行尾小动作，
@@ -4699,14 +4725,28 @@ html[data-theme="dark"] .outfit-share{background:#3A3237;color:#E8C6D4;
   margin-top:10px;}
 .ck-fl-sum{border:none; background:none; padding:0; margin:0;
   font-family:inherit; font-size:12px; color:var(--secondary);
-  cursor:pointer; min-height:40px; display:flex; align-items:center;
-  gap:6px; -webkit-tap-highlight-color:transparent;}
+  cursor:pointer; min-height:var(--tap); display:flex; align-items:center;
+  gap:6px; -webkit-tap-highlight-color:transparent;
+  /* R81（用户直报 2026-11-19 第 3 条「写给未来的自己下面有一圈边框
+   * 呀」）：上面只清了 border/background/padding/margin，漏了全局 button{}
+   * 的玫瑰投影 box-shadow:0 4px 16px rgba(194,90,78,.25) ——它在文字外沿
+   * 描出一圈淡玫粉光环（外加 font-weight:600、letter-spacing:.04em、
+   * border-radius:999px、transition），跟签册/许愿瓶/烦恼粉碎机三个
+   * details 行不同族，用户一眼看出「多了一圈框」。同族按钮一并收干净：
+   * 投影/圆角/字重/字距/过渡全部退回普通文本行口径。 */
+  box-shadow:none; border-radius:0; font-weight:400;
+  letter-spacing:normal; transition:none;}
 .ck-fl-sum::before{content:'▸ ';}
 .ck-fl-sum:hover{color:var(--accent-ink);}
 .ck-fl .fl-pend{margin-left:auto; font-size:11px; color:var(--muted);}
 /* .fl-recover（坏 JSON 救援链）住在 .fl-pend 里，跟着它右对齐 */
+/* R81（用户直报 2026-11-19 第 3 条）：与 .ck-fl-sum 同一条行上的按钮，
+ * 同一份全局 button{} 漏项（box-shadow/border-radius/font-weight/
+ * letter-spacing/transition）——同族收干净，免得行尾再冒一圈玫粉光环。 */
 .fl-recover{border:none; background:none; padding:0; font-size:11px;
-  color:var(--muted); cursor:pointer; text-align:left;}
+  color:var(--muted); cursor:pointer; text-align:left;
+  box-shadow:none; border-radius:0; font-weight:400;
+  letter-spacing:normal; transition:none;}
 .fl-recover:hover{color:var(--accent-ink); text-decoration:underline;}
 .fl-modal textarea{width:100%; border:1px solid var(--line);
   /* R3432-P2-7（审）：textarea 不在全局 16px 名单——13.5px 聚焦

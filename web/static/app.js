@@ -20605,6 +20605,32 @@ var _CR_GEM = {
     wear: '睡前摘下来放床头，安神用',
     tip: '泡澡或河边坐坐，水气直接补到身上' },
 };
+/* R81（用户直报 2026-11-19 第 4 条「水晶，名片这些你都没有用生图模型
+ * （agnes）画出来呀」）：同排八件里，守护图腾（gd-*.png/jpg）与灵魂角色
+ * （ic-*.png / ic-wap-*.jpg）都是 agnes 烘的真插画，唯独守护水晶与灵魂
+ * 名片两族一直是纯渐变底+emoji+文字——「一件有图五件没图」，用户一眼
+ * 看穿。补 10 张（scripts/gen_crystal_namecard_assets.py，模型
+ * agnes-image-2.5-flash，720×540 4:3 横幅，与海报卡图区同族）：
+ * 晶石静物 5 张（img/gem/gem-<wx>.jpg）接 _crCard 卡头 hero 与 crystal
+ * 海报卡图；命盘印记 5 张（img/nc/nc-<wx>.jpg）接 _ncCard 卡头 hero 与
+ * namecard 海报卡图。键与 _CR_GEM / _SM_GAN_WX 同口径（木火土金水）。 */
+var _CR_IMG = {
+  '木': '/static/img/gem/gem-wood.jpg',
+  '火': '/static/img/gem/gem-fire.jpg',
+  '土': '/static/img/gem/gem-earth.jpg',
+  '金': '/static/img/gem/gem-metal.jpg',
+  '水': '/static/img/gem/gem-water.jpg'
+};
+var _NC_IMG = {
+  '木': '/static/img/nc/nc-wood.jpg',
+  '火': '/static/img/nc/nc-fire.jpg',
+  '土': '/static/img/nc/nc-earth.jpg',
+  '金': '/static/img/nc/nc-metal.jpg',
+  '水': '/static/img/nc/nc-water.jpg'
+};
+/* R81：五行→图文件名（与 _gdWap/_icWap 的 _wxEn 同一张表）。 */
+var _WX_EN = { '木': 'wood', '火': 'fire', '土': 'earth',
+               '金': 'metal', '水': 'water' };
 function _crPick(j) {
   var fe = (j && j.calc && j.calc.five_elements) || {};
   var counts = fe.counts || {};
@@ -20671,6 +20697,12 @@ function _crCard(j) {
   var _p = _crPick(j);
   var _br = _crBracelet(j);
   var _h = '<div class="cr-card sm-card">' +
+    /* R81（用户直报 2026-11-19 第 4 条）：晶石静物上卡头 hero——
+       agnes 烘的 4:3 横幅，与守护图腾/灵魂角色同一 .sm-hero 位，
+       海报卡图共用这一张。取不到就 quietly 退场，判词照常。 */
+    '<img class="sm-hero" src="' + esc(_CR_IMG[_p.wx] || '') + '" alt="' +
+      esc(_p.g.name) + '" width="150" height="150" loading="lazy" ' +
+      'decoding="async" onerror="this.remove()">' +
     '<div class="cr-gem">' + _p.g.glyph + ' <strong>' +
       esc(_p.g.name) + '</strong></div>' +
     '<div class="sm-tip">🔮 ' + esc(_p.why) + '</div>' +
@@ -20695,7 +20727,10 @@ function _crOpen(j) {
     var _o = { _crName: _c.pick.g.name, _crGlyph: _c.pick.g.glyph,
                _crWx: _c.pick.wx, _crWhy: _c.pick.why,
                _crVibe: _c.pick.g.vibe, _crWear: _c.pick.g.wear,
-               _crBracelet: _crBracelet(j).short };
+               _crBracelet: _crBracelet(j).short,
+               /* R81：agnes 烘的晶石静物——海报卡图与卡面 hero 同源。 */
+               _crImgUrl: _CR_IMG[_c.pick.wx] || '',
+               _crImgEl: document.querySelector('.cr-card .sm-hero') };
     return downloadPoster(Object.assign({}, j, _o), 'crystal');
   });
   _crBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -21248,7 +21283,15 @@ function _ncCard(j) {
   }
   _hype.push({ k: '角色',
     v: _ic.f.name + '同款——盘里住的是神话级人物' });
+  /* R81（用户直报 2026-11-19 第 4 条「名片没有用 agnes 画」）：命盘
+   * 印记上卡头 hero——agnes 烘的 4:3 横幅，五行按日主本命取（与
+   * 纹样/角色同源，不是喜用：印记是「你是谁」不是「你补什么」）。 */
+  var _ncWx = _SM_GAN_WX[String((j && j.paipan && j.paipan.day_master)
+    || '').charAt(0)] || '木';
   var _h = '<div class="nc-card sm-card">' +
+    '<img class="sm-hero" src="' + esc(_NC_IMG[_ncWx] || '') + '" alt="' +
+      '命盘印记" width="150" height="150" loading="lazy" ' +
+      'decoding="async" onerror="this.remove()">' +
     '<div class="nc-head">📇 <strong>灵魂名片</strong></div>';
   rows.forEach(function (r) {
     _h += '<div class="sm-tip nc-row">' + r.ic + ' <strong>' + r.k +
@@ -21262,7 +21305,7 @@ function _ncCard(j) {
     '<button class="ghost fav-btn" type="button" id="ncHype" ' +
       'title="让命盘狠狠夸夸你">🎤 夸夸我</button>' +
     '</div>';
-  return { html: _h, rows: rows, hype: _hype };
+  return { html: _h, rows: rows, hype: _hype, wx: _ncWx };
 }
 function _ncOpen(j) {
   var _ncBox = el('ncCard');
@@ -21270,7 +21313,11 @@ function _ncOpen(j) {
   var _c = _ncCard(j);
   _ncBox.innerHTML = _c.html;   // esc-reviewed：_ncCard 内动态字段均过 esc()
   on('ncShare', function () {
-    var _o = { _ncRows: _c.rows };
+    var _o = { _ncRows: _c.rows,
+               /* R81：agnes 烘的命盘印记——海报卡图与卡面 hero 同源。 */
+               _ncWx: _c.wx,
+               _ncImgUrl: _NC_IMG[_c.wx] || '',
+               _ncImgEl: document.querySelector('.nc-card .sm-hero') };
     return downloadPoster(Object.assign({}, j, _o), 'namecard');
   });
   on('ncHype', function () {

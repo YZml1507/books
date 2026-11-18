@@ -55,6 +55,11 @@ EXTRA_GLOBS = (
     # 换图老客靠 SW 缓存无限期看旧图。补进来。
     "icons/gd-*.png",
     "icons/ic-*.png",
+    # R81（用户直报 2026-11-19 第 4 条「水晶，名片这些你都没有用生图
+    # 模型（agnes）画出来呀」）：守护水晶/灵魂名片的 agnes 烘图同样走
+    # .sm-hero 直链（无 ?v），同口径纳入。
+    "img/gem/*.jpg",
+    "img/nc/*.jpg",
 )
 
 

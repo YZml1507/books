@@ -5391,7 +5391,10 @@ def _run_inner() -> list[str]:
                "soulmate/sm-*.jpg",
                # R78：守护图腾/灵魂角色卡头插画（无 ?v 的 .sm-hero 直链图）
                # 同口径——换透明底老客得靠 SW 换桶才拿到新图。
-               "icons/gd-*.png", "icons/ic-*.png"):
+               "icons/gd-*.png", "icons/ic-*.png",
+               # R81（用户直报 2026-11-19 第 4 条）：守护水晶/灵魂名片的
+               # agnes 烘图同走 .sm-hero 直链（无 ?v），同口径纳入。
+               "img/gem/*.jpg", "img/nc/*.jpg"):
         _eps = sorted(_gl5.glob(_os.path.join(
             _os.path.dirname(__file__), "static", _g)))
         # 零命中即列表漂移（与 bump_sw 护栏同口径）——静默跳过

@@ -2085,6 +2085,14 @@ function buildShareData(view, j) {
       _cr.lines.push({ k: '口径', v: '图个念想，真买先量预算' });
       if (!_cr.lines.length) _cr.lines =
         [{ k: '结论', v: '晶石替你补着' }];
+      /* R81：agnes 烘的晶石静物进卡图区——几何与 guardian/soulicon
+         同一套（440×440 方卡 + 图下 120px 文字位），4:3 横幅 contain
+         进去刚好铺满图区宽度。 */
+      _cr.cardsW = 440; _cr.cardsH = 440; _cr.cardsY = 800;
+      _cr.cardsTextH = 120; _cr.linesTop = 780;
+      var _crIm = _pIconSync(j, 'crystal', '_crImgEl');
+      if (_crIm) _cr.cards.push({ img: _crIm, name: _crBig,
+        sub: _pStr(j && j._crWx) ? _pStr(j._crWx) + ' 行的晶石' : '今日守护晶' });
       return _cr;
     }
     case 'soulicon': {
@@ -2185,6 +2193,15 @@ function buildShareData(view, j) {
       _nc.lines.push({ k: '口径', v: '件件按盘里五行推，图个念想' });
       if (!_nc.lines.length) _nc.lines =
         [{ k: '结论', v: '名片收齐六件' }];
+      /* R81：agnes 烘的命盘印记进卡图区。名片是汇总海报——六件行+口径
+       * 行封顶 7 行，比 guardian/soulicon 的 3-6 行更吃行块高度，所以
+       * 卡图区收一档（440×300、图下 100px 文字位）并整体下移到 960：\       * 行块硬顶 950、卡图底缘 1260，与页脚品牌行（基线 1290）留 30px 缝。
+       * 640×480 的 contain 上限由图区 416×200 决定，缩比后仍是清晰小图。 */
+      _nc.cardsW = 440; _nc.cardsH = 300; _nc.cardsY = 960;
+      _nc.cardsTextH = 100; _nc.linesTop = 950;
+      var _ncIm = _pIconSync(j, 'namecard', '_ncImgEl');
+      if (_ncIm) _nc.cards.push({ img: _ncIm, name: '命盘印记',
+        sub: _pStr(j && j._ncWx) ? _pStr(j._ncWx) + ' 行的印记' : '本命印记' });
       return _nc;
     }
     case 'hype': {
@@ -2823,11 +2840,29 @@ var _PICON_SYNC = {};
  * 查表（五行→图标），分享链路重渲时不必依赖 DOM。 */
 function _pIconUrlFor(j, view) {
   try {
-    var u = _pStr(j && (view === 'soulicon' ? j._icImgUrl : j._gdImgUrl));
+    /* R81（用户直报 2026-11-19 第 4 条「水晶，名片这些你都没有用生图
+     * 模型（agnes）画出来呀」）：crystal / namecard 两族补上 agnes 烘图
+     * （img/gem|nc/<wx>.jpg）——app.js 直传 _crImgUrl/_ncImgUrl，取不到
+     * 时按 _CR_IMG/_NC_IMG 表反查（与 guardian/soulicon 的
+     * _GD_BEAST/_IC_FIGURE 反查同一条路）。 */
+    var u = _pStr(j && (view === 'soulicon' ? j._icImgUrl
+                       : view === 'crystal' ? j._crImgUrl
+                       : view === 'namecard' ? j._ncImgUrl
+                       : j._gdImgUrl));
     if (u) return u;
-    var wx = _pStr(j && (view === 'soulicon' ? j._icWx : j._gdWx));
+    var wx = _pStr(j && (view === 'soulicon' ? j._icWx
+                           : view === 'crystal' ? j._crWx
+                           : view === 'namecard' ? j._ncWx
+                           : j._gdWx));
     var tbl = (view === 'soulicon' ? window._IC_FIGURE : window._GD_BEAST) || {};
-    return (wx && tbl[wx]) ? _pStr(tbl[wx].img) : '';
+    if (wx && tbl[wx]) return _pStr(tbl[wx].img);
+    if (view === 'crystal' && wx && window._CR_IMG) {
+      return _pStr(window._CR_IMG[wx]);
+    }
+    if (view === 'namecard' && wx && window._NC_IMG) {
+      return _pStr(window._NC_IMG[wx]);
+    }
+    return '';
   } catch (eU) { return ''; }
 }
 function _pIconSync(j, view, elKey) {
@@ -2864,12 +2899,17 @@ async function downloadPoster(j, view) {
         typeof qrcode !== 'function') await _loadQrJs();
   } catch (eQL) {}
   /* R76（#14）：守护图腾/灵魂角色的主视觉先解码再画，不然 buildShareData
-   * 那一刻图还没就绪，海报只能退回纯文字大字。 */
+   * 那一刻图还没就绪，海报只能退回纯文字大字。
+   * R81：守护水晶 / 灵魂名片两族补 agnes 烘图（用户 2026-11-19 第 4 条
+   * 「水晶，名片这些你都没有用生图模型（agnes）画出来呀」）——同一
+   * 预热口径扩到这四个视图。 */
   try {
-    var _gi = (view === 'soulicon' || view === 'guardian')
+    var _gi = (view === 'soulicon' || view === 'guardian' ||
+               view === 'crystal' || view === 'namecard')
       ? _pIconUrlFor(j, view) : '';
     if (_gi) {
-      var _gim = await _pIcon(_gi, j._gdImg || j._icImg);
+      var _gim = await _pIcon(_gi, j._gdImg || j._icImg ||
+                                    j._crImgEl || j._ncImgEl);
       if (_gim) _PICON_SYNC[_gi] = _gim;
     }
   } catch (ePI) {}
