@@ -381,13 +381,16 @@ OpenAI 兼容端点只需改 llm_config.json 的 base_url/model/api_key 三字�
 sw.shell_completeness、static.styles.css、account.* 全套）；bazi.semantic
 按设计 SKIP(env)。
 
-**服务器同步（受阻，如实记录）**：uppcoder/websson（华为云）实例当前不可达——
-公网 `qlbmx89w-fastapi-stepfun-studio-books.apps-6.websson.cloud/` 与
-`/api/health` 均 **404**（S3 期是 200）；SSH(2222) SSHPier 代理层接受密钥
-（partial success）但**上游容器拒绝**（Permission denied publickey，新旧两把
-钥匙均如此），与 S0 记录的沙箱回收同形态——环境已被回收/重建。GitHub 推送
-亦无凭证（`git push` 报 could not read Username）。Render 实例
-（books-ctsw.onrender.com）活着但 `/` 403 口令闸、且只认 GitHub 推送。
-**待用户提供可达的服务器通道后，只需传 4 个文件即可上线**：
-`web/static/cream/auth-wall-bg.jpg`、`web/static/index.html`、
-`web/static/styles.css`、`web/static/sw.js`（静态文件，无需重启进程）。
+**服务器同步（已完成）**：华为云 ECS `116.205.229.222`（`hcss-ecs-f965`，
+systemd `books-app.service` + nginx，静态根 `/opt/books/app/web/static/`）。
+安全组放行沙箱 NAT 出口池（`0.0.0.0/0`，key-only）；新公钥
+`stepfun-sandbox-20261118-r2`（`~/.ssh/id_ed25519_books_r2`）已入库。
+传 4 文件前备份至 `/opt/books/backups/authwall-20261118-*`（回滚即拷回）。
+传后双端 md5 逐一致：jpg `ee6c451f`、index `f7c861a3`、css `3bafcfe2`、
+sw `ed97a246`。静态文件免重启，books-app/nginx 均 active。
+线上实测：`/static/cream/auth-wall-bg.jpg` 200/67056B；styles.css 2 处
+auth-wall-bg；index.html 含 auth-wall-sign+「推门进来」；sw CACHE →
+books-shell-1ba1d309ac82。**注**：部署期间发现沙箱出口 IP 为 NAT 池
+（6 次请求 6 个 IP，跨 47.117/8.133/139.224 三个段）——安全组按单 IP
+放行不可行，已按 0.0.0.0/0 放行 22，用户看完可收紧。
+
