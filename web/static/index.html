@@ -304,12 +304,14 @@ try {
              留着会让人以为数据不会自己回来、得手动搬——已全部撤掉。 -->
         <div class="acct-logged" id="acctLogged" hidden>
           <div class="acct-line">已登 <b id="acctWho"></b> · <span id="acctLastSync">还没同步过</span></div>
-          <div class="acct-tip">数据跟着账号走：换设备登录同名账号，档案和记录自己就回来了；离开页面时自动存上云端。不用手动导入导出。</div>
+          <!-- R74（用户直报「云端备份/数据跟着账号走那些解释不需要」）：
+               原来这里挂一整段数据通路说明——能力用户用得上自然知道，
+               内部机制（自动存云端/免导入导出）是工程口径，撤掉。 -->
           <div class="btn-group">
             <div class="btn-group-lab">⚙️ 账号</div>
             <div class="acct-btns">
               <button id="acctLogout" type="button" class="ghost">退出登录<small>只登出，数据不动</small></button>
-              <button id="historyWipe" type="button" class="ghost">注销账户<small>档案/记录/云端一起删，救不回</small></button>
+              <button id="historyWipe" type="button" class="ghost">注销账户<small>档案/记录一起删，救不回</small></button>
             </div>
           </div>
         </div>
@@ -326,7 +328,7 @@ try {
   <!-- R3264（R40）：久归深拥——≥3 天没来时的温暖横幅 -->
   <div id="returnBanner" class="return-banner" role="note" hidden>
     <span>🌾 你不在的日子小满也在，今天想测什么？</span>
-    <button type="button" class="ghost" id="returnChat" data-chat-entry>和小满聊聊</button>
+    <button type="button" class="ghost" id="returnChat" data-chat-entry data-chat-bare>和小满聊聊</button>
     <button type="button" class="welcome-close" id="returnDismiss" aria-label="知道了">×</button>
   </div>
   <!-- R210b（US7/US9）：页面装饰光斑层（纯装饰，不遮内容不挡点击） -->
@@ -532,7 +534,7 @@ try {
          九宫格保留在下（学科分类仍有用），这层是给「带着心事来」
          的人的一键直达。 -->
     <div class="scene-bar" role="group" aria-label="按你现在想的直达">
-      <button type="button" class="scene-chip" data-scene="chat" data-chat-entry>
+      <button type="button" class="scene-chip" data-scene="chat" data-chat-entry data-chat-bare>
         <b>💭 心里有事</b><i>和小满说说</i></button>
       <button type="button" class="scene-chip" data-scene="money">
         <b>💰 搞钱顺不顺</b><i>事业财运</i></button>
@@ -616,7 +618,7 @@ try {
     <!-- R2362（用户直报）：「和小满聊聊」无直达入口——悬浮钮太隐形。
          data-view="chat" 是伪视图：initViews 对它改走 chatOpen() 开侧栏，
          不切视图。 -->
-    <div class="func-card func-entry func-chat" data-view="chat" data-chat-entry role="button" tabindex="0" aria-label="和小满聊聊">
+    <div class="func-card func-entry func-chat" data-view="chat" data-chat-entry data-chat-bare role="button" tabindex="0" aria-label="和小满聊聊">
       <img class="func-icon-img" loading="lazy" decoding="async" src="/static/cream/avatar-xiaoman-cream.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">和小满聊聊</div><div class="func-desc">有心事随时来说</div>
     </div>
     <!-- R4939（外部评测+用户拍板）：首屏减负——12 个次级玩法收进
@@ -1423,17 +1425,15 @@ try {
     <div class="card">
       <h2><span aria-hidden="true">🧸</span> 我的 <span class="card-sub">身份 · 小满记得的 · 备份</span></h2>
       <div id="acctSlot"></div>
-      <p class="acct-empty" id="acctEmpty">还没登录——回首页登录后，你的档案、头像和云端备份就摆在这儿。</p>
+      <p class="acct-empty" id="acctEmpty">还没登录——回首页登录后，你的档案和头像就摆在这儿。</p>
       <!-- R32：#myTools（备份我的数据/导入备份/忘掉我的数据）整块撤掉——
            导出导入是账号通路的重复面；「忘掉」已并入账号卡的「注销账户」
            （连账号带云端备份一起删，见 R31-A）。 -->
       <div class="mem-card" id="memoryCard">
         <div class="acct-head">
           <span aria-hidden="true">🧠</span> 小满记得的
-          <span class="acct-sub">都存在这台设备上，随时可以让她忘掉</span>
         </div>
         <div class="mem-body" id="memBody"></div>
-        <div class="acct-tip">账号口令、历史小锁、主题皮肤归各自的面板管；想连档案记录一起清干净，用上面「注销账户」。</div>
       </div>
     </div>
   </div>

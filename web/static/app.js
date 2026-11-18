@@ -1682,6 +1682,39 @@ function typewriteInto(node, text, onDone) {
   return cancel;
 }
 
+/* R74（用户原话：「amd 往外冒一个字，我这边就显示一个字，而不是
+ * 我们故意等 amd 把消息发全，再像流逝一样一个字一个字往外冒」）：
+ * 真流式上屏。轮询每次带回任务行 text 的当前全文，这里只把新增后缀
+ * 追加进气泡（已显长度记在 dataset.streamText）。首片先把「小满正在
+ * 翻书…」三个点整块换掉并进入打字忙态（R3242c 同口径：读屏别逐字
+ * 轰炸），随后滚动跟随。 */
+function _chatStreamInto(ty, full) {
+  if (!ty || !full) return;
+  var _have = (typeof ty.dataset.streamText === 'string')
+    ? ty.dataset.streamText : null;
+  var _tail;
+  if (_have === null) {
+    ty.innerHTML = '';
+    ty.classList.add('tw-typing');
+    ty.setAttribute('aria-busy', 'true');   /* R3242c */
+    _tail = full;
+  } else if (full.length >= _have.length && full.indexOf(_have) === 0) {
+    _tail = full.slice(_have.length);       /* 正常增量 */
+  } else {
+    /* 不是前缀（禁语冻结把任务行 text 清空过、或服务端重灌）——
+     * 整条重渲，别把旧尾巴留在气泡里。 */
+    ty.innerHTML = '';
+    _tail = full;
+  }
+  if (!_tail) return;
+  ty.dataset.streamText = full;
+  var _sp = document.createElement('span');
+  _sp.textContent = _tail;
+  ty.appendChild(_sp);
+  var _flow = el('chatFlow');
+  if (_flow && ty.closest('#chatFlow')) _flow.scrollTop = _flow.scrollHeight;
+}
+
 /** 轮询 AI 任务直到终态/超时；任何错误静默停止（D-244a：失败不可见）。 */
 function pollAiPolish(containerId, taskId) {
   if (!taskId) return;
@@ -2704,6 +2737,7 @@ function _chatFailInto(ty, kind, msg, sid0) {
 function _chatRetrySend(msg, ty, sid0) {
   if (!msg || sid0 !== chatSid()) return;
   if (ty._twCancel) { try { ty._twCancel(); } catch (eT) {} }   /* R3241 */
+  delete ty.dataset.streamText;   /* R74：重投复用同一气泡，流式长度归零 */
   ty.innerHTML = '<span class="chat-typing" aria-hidden="true"><i></i><i></i><i></i></span><span class="chat-wait-note">小满正在翻书…</span>';
   postJSON('/api/chat', {
     session_id: sid0, message: msg,
@@ -2748,12 +2782,24 @@ function _pollChatReply(tid, ty, sid0, action, msg) {
         _chatBootNote(st, ty);       /* 重启失忆插分隔 */
         _chatFreshNote(st, ty);      /* TTL 回收分隔 */
         /* R3241：回复逐字蹦——打完再换富文本终态+路标 chip。
-         * transcript 立即存全量（存档不受放映影响）。 */
-        typewriteInto(ty, st.text, function () {
+         * transcript 立即存全量（存档不受放映影响）。
+         * R74：流式已经把字显过了（dataset.streamText 有值）——
+         * done 时直接换富文本终态，不再从头打字。那正是用户嫌弃的
+         * 「等 amd 发全了，再像流逝一样一个字一个字往外冒」。 */
+        if (typeof ty.dataset.streamText === 'string') {
           ty.innerHTML = renderRichText(st.text);
+          ty.classList.remove('tw-typing');
+          ty.removeAttribute('aria-busy');
+          delete ty.dataset.streamText;
           _chatActChip(ty, action);    /* R3195：路标 chip 随回复落地 */
           if (st.closed) _chatClosedHint(ty);
-        });
+        } else {
+          typewriteInto(ty, st.text, function () {
+            ty.innerHTML = renderRichText(st.text);
+            _chatActChip(ty, action);    /* R3195：路标 chip 随回复落地 */
+            if (st.closed) _chatClosedHint(ty);
+          });
+        }
         _chatTsSave('ai', st.text, action);   /* R3201：action 随泡入档 */
         return;
       }
@@ -2769,6 +2815,16 @@ function _pollChatReply(tid, ty, sid0, action, msg) {
         }
         _chatFailInto(ty, 'fail', msg, sid0);
         return;
+      }
+      /* R74：真流式分片——pending 且已有部分正文即追加显字。
+       * 分片在流 ≠ 卡死：轮询预算从此刻重新起算、退避回快档，
+       * 字才跟得上模型往外蹦的速度。 */
+      if (st && st.status === 'pending' && st.text) {
+        _chatStreamInto(ty, st.text);
+        deadline = performance.now() + AI_POLL_CAP_S * 1000;
+        _queueCap = performance.now() + 90000;
+        _wait = AI_POLL_INTERVAL_MS;
+        _wnI = 0;
       }
       if (st && st.status === 'pending' && st.queued) {
         /* 服务端排队中——生成预算从起动起算。 */
@@ -3127,7 +3183,10 @@ function chatOpen() {
   if (bd) bd.classList.add('open');
   chatEmptyGuide();   /* R212：空状态引导 */
   var tgl = el('recentToggle');
-  if (tgl) tgl.setAttribute('aria-expanded', 'true');
+  if (tgl) {
+    tgl.setAttribute('aria-expanded', 'true');
+    tgl.classList.add('is-open');   /* R74：与 _setRecent 同口径 */
+  }
   var flow = el('chatFlow');
   /* R3204：键盘态残留复位——上次 vv 收缩留下的 sb.style.bottom
    * 不随开栏自动清。 */
@@ -6515,6 +6574,28 @@ async function loadDaily() {
             sc.hidden = !sc.hidden;
             _pk.textContent = sc.hidden ? '解签' : '收起';
             _pk.setAttribute('aria-expanded', sc.hidden ? 'false' : 'true');
+            /* R74（用户直报「点了解签，它变成收起，然后什么都没有变」）：
+             * 签卡插在 meta 行后面——R72 起 meta 行 6 芯换行实测高
+             * 298px，卡片落在钮正下方 342px、贴视口底缘（y=829/932），
+             * 肉眼就是「点了没反应」（真因是卡片开了但不在视线里）。
+             * 开卡即滚到可见区：block:'nearest' 最小位移不跳动，
+             * smooth 柔化；老浏览器回落无参 scrollIntoView。 */
+            if (!sc.hidden) {
+              /* 单步 smooth：把签卡底缘抬到离视口底 96px 的位置
+               * （block:'nearest' 只保证「刚好看得见」，卡片会贴着
+               * 屏幕底缘，读起来顶手）。卡片本就够靠下时不动。 */
+              var _sy = window.scrollY || window.pageYOffset || 0;
+              var _r0 = sc.getBoundingClientRect();
+              var _want = _sy + _r0.bottom -
+                ((window.innerHeight || 0) - 96);
+              if (_want > _sy + 1) {
+                try {
+                  window.scrollTo({ top: _want, behavior: 'smooth' });
+                } catch (eS) {
+                  try { sc.scrollIntoView(); } catch (eS2) {}
+                }
+              }
+            }
           }
         });
       }
@@ -15541,7 +15622,12 @@ function initChatSidebar() {
     sb.inert = !open;
     sbFocusable(sb, open);
     sb.setAttribute('aria-hidden', open ? 'false' : 'true');
-    if (tgl) tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (tgl) {
+      tgl.setAttribute('aria-expanded', open ? 'true' : 'false');
+      /* R74：开态类同步给 FAB——桌面端开栏淡出让位（见 styles.css
+       * .recent-toggle.is-open），移动端靠它保持可点（z 已抬到遮罩上）。 */
+      tgl.classList.toggle('is-open', open);
+    }
     if (bd) bd.classList.toggle('open', open);
     _mainInert(open);   /* R228n：Tab 不许穿透到遮罩下的主区 */
     /* 关闭时若焦点还在侧栏里，还给悬浮入口钮 */
@@ -15627,6 +15713,12 @@ function initChatSidebar() {
     if (!_swallowPt) return;
     var p = _swallowPt;
     _swallowPt = null;
+    /* R74（用户直报「小圆框有时点不开」）：遮罩收栏后 700ms/40px 内的
+     * 下一发点击会被吞——用户「点遮罩关栏 → 顺手点 FAB」正落进这个窗，
+     * FAB 的开栏点击被静默吃掉。FAB 自己的点击永不被吞。 */
+    var _t0 = e.target;
+    if (_t0 && _t0.nodeType === 1 && tgl &&
+        (tgl === _t0 || tgl.contains(_t0))) return;
     if (Date.now() - p.ts > 700 ||
         Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > 40) return;
     e.stopImmediatePropagation();
@@ -15833,6 +15925,14 @@ function initBazi() {
      * 委托判定改走 data-chat-entry，误伤才停止（实测点「换一批」
      * 会拉开聊天侧栏还自动发一条上下文消息）。 */
     if (e.target.closest && e.target.closest('[data-chat-entry]')) {
+      /* R74（用户直报「点功能区和小满聊聊，它自己发了一条消息」）：
+       * 通用入口（首页功能卡/场景条/久归横幅）只负责开栏。自动发上下
+       * 文是给「💬 聊聊这件事」这类带着刚算完的结果来的入口用的
+       * （第一句必须带真实数据，R219b）；通用入口没有可带的上下文，
+       * 在首页还会落到 'daily' 兜底句「今天运势如何？」——用户没问
+       * 就被代表了。打 data-chat-bare 标的入口只开栏不代发
+       * （场景条 chip 另有自己的代写第一句，见 initViews）。 */
+      if (e.target.closest('[data-chat-bare]')) { chatOpen(); return; }
       /* R3244（用户实测「聊聊想点开时点不开」）：此前整段包在
        * chatSendBtn 锁里——AI 回复在途（最长 ~60s）期间点任何
        * 「聊聊这件事」都被静默吞掉，侧栏都不开。拆开：开栏永远
@@ -17832,7 +17932,17 @@ function init() {
          * "element is inert"，账号入口形同虚设）。顶行里只有账号钮是
          * 可交互的（问候/日期/礼盒图都不是控件），整行豁免无副作用；
          * 封面点击门槛 _tryReveal 一行未动。 */
-        if (c !== _cov && !c.hasAttribute('inert')) c.setAttribute('inert', '');
+        if (c !== _cov && !c.hasAttribute('inert')) {
+          /* R74（用户实测）：卡内「💬 聊聊这件事」入口跟着兄弟一起被
+           * 打 inert——封面没拆时它暗着（本来也看不见），可用户从
+           * 别处开着侧栏回来、或在封面拆除前触达过它时，就成了死键。
+           * 聊天入口是全局可达件，不参与封套锁定（与侧栏 pointerdown
+           * 那条 [data-chat-entry] 豁免同口径）。入口自身或其容器
+           * 带标的，整块跳过不打 inert。 */
+          var _hasEntry = (c.hasAttribute && c.hasAttribute('data-chat-entry')) ||
+            (c.querySelector && c.querySelector('[data-chat-entry]'));
+          if (!_hasEntry) c.setAttribute('inert', '');
+        }
       });
     };
     if (_card0) {
@@ -25228,10 +25338,11 @@ function _renderMeStrip() {
    * 「你的小档案」更像为她开的铺。 */
   /* R25（用户直报）：头像才是身份标识，🧸 emoji 是重复装饰——去掉，
    * 头像同时放大到 40px（原来 26px 在近千像素宽的档案行里等于没有）。 */
+  /* R74（用户直报「测算时自动代入」）：工程口径不该上屏——档案行只
+   * 说「谁的档案 + 生辰 + 打过几次卡」，「怎么进来的」是内部细节。 */
   var txt = (me.n ? me.n + ' 的小档案' : '你的小档案') +
     ' · ' + me.y + '年' + me.m + '月' + me.d + '日' +
-    (me.lunar ? '（' + me.lunar + '）' : '') +
-    '（测算时自动代入）';
+    (me.lunar ? '（' + me.lunar + '）' : '');
   if (ck) txt += ' · 打过 ' + ck + ' 次卡';
   if (partner && partner.y) txt += ' · 也存了TA的';
   /* R22d：档案行带头像——me.av 随备份走，日常视图也看得见 */
@@ -29116,20 +29227,10 @@ function baziPersonaCard(j) {
   function _xmMemRender() {
     var _memBx = document.getElementById('memBody');
     if (!_memBx) return;
-    /* R3448（审-P1）：「都存在这台设备上」对开了账号备份的用户
-     * 不成立（这些键都在备份白名单里云端有份）——登录态换口径。 */
-    try {
-      var _sub = _memBx.parentNode
-        ? _memBx.parentNode.querySelector('.acct-sub') : null;
-      if (_sub) {
-        var _lg = false;
-        try { _lg = !!JSON.parse(localStorage.getItem('xmaccount') || 'null'); }
-        catch (eLG) {}
-        _sub.textContent = _lg
-          ? '本机这份随时能让她忘掉；云端那份下次同步会跟着覆盖'
-          : '都存在这台设备上，随时可以让她忘掉';
-      }
-    } catch (eSub) {}
+    /* R74（用户直报「自动忘记/云端备份那些解释不需要」）：记忆卡头部
+     * 原本按登录态刷一句存储口径（「本机这份随时能让她忘掉；云端那份
+     * 下次同步会跟着覆盖」/「都存在这台设备上…」）——内部实现细节，
+     * 对用户零信息量。整段撤掉，头部只留「🧠 小满记得的」。 */
     var html = '', any = false;
     _MEM_GROUPS.forEach(function (g) {
       var s = '';
@@ -30546,7 +30647,9 @@ function baziPersonaCard(j) {
         _status.textContent = _issue ? _issue
           : (_backend === 'libsql'
             ? '云端已接' : (_backend === 'local'
-              ? '账号存在服务器本机库——换设备登录能拉回生辰和数据；只有服务器清盘才会没'
+              /* R74（用户直报「服务器本机库/清盘」这类解释不需要）：
+               * 只留用户真正关心的——换设备登录，数据跟着回来。 */
+              ? '账号在服务器上，换设备登录能拉回生辰和数据'
               : '查一下云端…'));
         /* R20（用户直报）：日卡顶行账号钮跟着登录态刷——已登录显昵称，
          * 退出回「🔐 账号」。 */

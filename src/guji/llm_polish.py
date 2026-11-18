@@ -1507,8 +1507,12 @@ def chat(session_id: str, user_msg: str,
          verdict_day: str | None = None,
          result_verdicts: list[str] | None = None,
          trusted_facts: list[str] | None = None,
+         on_delta=None,
          _task_started=None) -> str | None:
     """多轮陪伴对话：session 内存上下文 + 用户消息 → 回复文本。
+
+    on_delta：R74 真流式回调——只给主模型逐字回调用；兜底链与判词
+        纠偏重试不回调（换节点/重写整条，前端 done 时整条替换）。
 
     facts：前端透传的坐标事实，只作「话题参考」。
     trusted_facts：后端算好的话题参考（档案展开/功能路标/白话真值
@@ -1758,7 +1762,7 @@ def chat(session_id: str, user_msg: str,
         _dl0 = min(_dl, time.monotonic() + float(
             cfg.get("timeout_s") or _DEFAULTS["timeout_s"]) + 2)
         text = _chat_call(payload_msgs, cfg, _transport, deadline=_dl0,
-                          banned_seen=_banned_seen)
+                          banned_seen=_banned_seen, on_delta=on_delta)
         _used_cfg = cfg
         if not text:
             # R213b→R3223：备选大脑升级为兜底链——主模型失败按配置顺序
@@ -1839,21 +1843,135 @@ def _llm_log(msg: str) -> None:
         pass
 
 
+def _chat_call_stream(payload_msgs: list[dict], cfg: dict,
+                      timeout_s: float, on_delta,
+                      deadline: float | None = None) -> str | None:
+    """R74（用户原话：「amd 往外冒一个字，我这边就显示一个字，而不是
+    我们故意等 amd 把消息发全，再像流逝一样一个字一个字往外冒」）：
+    chat 的真流式单次调用——SSE 逐 delta 立刻吐给 on_delta(piece)，
+    返回拼齐的全文（未经 _sanitize，由调用方统一过闸）。
+
+    严格 fallback 安全：任何不合身一律 None——非 200、非 event-stream、
+    零 delta、分片解析错、finish_reason=length（截断）、超预算、异常。
+    None 时调用方按原 buffered 路径重跑，观感只差在「等整条再吐」，
+    不会更坏。AMD 端实测并发限流时 stream:true 与普通调用同错（容量
+    满），所以流式不可用是常态要防的第一种情况。"""
+    import httpx
+    url = cfg["base_url"].rstrip("/") + "/chat/completions"
+    headers = {"Authorization": "Bearer " + cfg["api_key"],
+               "Content-Type": "application/json"}
+    payload = {
+        "model": cfg.get("model") or _DEFAULTS["model"],
+        "messages": list(payload_msgs),
+        "max_tokens": int(cfg.get("max_tokens") or _DEFAULTS["max_tokens"]),
+        "temperature": 0.8,
+        "stream": True,
+    }
+    # 小满：关思考——同 _chat_call，extra_body 透传（AMD 开思考必超时）。
+    _extra = cfg.get("extra_body")
+    if isinstance(_extra, dict):
+        payload.update(_extra)
+    if deadline is None:
+        deadline = time.monotonic() + _POLL_BUDGET_S
+    _parts: list[str] = []
+    _finish = ""
+    try:
+        # 读超时按「分片间隔」算——生成中的长静默不该判死；总预算仍由
+        # deadline 在每片之后卡着。
+        _ck = {"timeout": httpx.Timeout(10.0, read=float(timeout_s))}
+        if _is_loopback(url):
+            _ck["trust_env"] = False   # B-020：loopback 不走系统代理
+        with httpx.Client(**_ck) as cli:
+            with cli.stream("POST", url, json=payload,
+                            headers=headers) as resp:
+                if resp.status_code != 200:
+                    _llm_log(f"stream HTTP {resp.status_code}")
+                    return None
+                _ct = (resp.headers.get("content-type") or "").lower()
+                if "text/event-stream" not in _ct:
+                    # 部分 provider 忽略 stream:true 回 JSON（限流/参数错）
+                    _llm_log(f"stream 非 SSE ct={_ct[:40]}")
+                    return None
+                for line in resp.iter_lines():
+                    if not line or not line.startswith("data:"):
+                        continue
+                    _body = line[5:].strip()
+                    if not _body:
+                        continue
+                    if _body == "[DONE]":
+                        break
+                    try:
+                        _chunk = json.loads(_body)
+                        _ch = (_chunk.get("choices") or [{}])[0]
+                        _delta = _ch.get("delta") or {}
+                        _piece = _delta.get("content") or ""
+                        _finish = _ch.get("finish_reason") or _finish
+                    except Exception as _jexc:
+                        _llm_log(f"stream 解析错 {type(_jexc).__name__}")
+                        return None
+                    if _piece:
+                        _parts.append(_piece)
+                        try:
+                            on_delta(_piece)
+                        except Exception:
+                            _llm_log("stream on_delta 抛错")
+                            return None
+                    if time.monotonic() > deadline:
+                        _llm_log("stream 超预算")
+                        return None
+    except Exception as _sexc:
+        # R3242 同口径：超时=节点饱和，交给 buffered 路径按原语义处理。
+        _llm_log(f"stream exc {type(_sexc).__name__}")
+        return None
+    if not _parts:
+        _llm_log("stream 零 delta")
+        return None
+    if _finish == "length":
+        # 与 buffered 同口径：截断按失败处理（已上屏的分片由 buffered
+        # 重跑的整条成稿替换）。
+        _llm_log("stream finish=length 截断")
+        return None
+    return "".join(_parts)
+
+
 def _chat_call(payload_msgs: list[dict], cfg: dict,
                _transport=None, keep_citations: bool = False,
                deadline: float | None = None,
-               banned_seen: list[bool] | None = None) -> str | None:
+               banned_seen: list[bool] | None = None,
+               on_delta=None) -> str | None:
     """单次对话调用：复用 polish 的传输细节与重试语义。失败 None。
 
     keep_citations=True 时输出保留《书名》引文（起名点评专用）。
     deadline：调用方传入的总预算终点（monotonic），单次尝试按剩余窗口递减
-    （R12-P2-4：主模型+dots 链共享同一预算，合计不超过前端轮询上限）。"""
+    （R12-P2-4：主模型+dots 链共享同一预算，合计不超过前端轮询上限）。
+    on_delta：R74 真流式回调（chat 专用）——给了就先试 SSE 逐字上屏，
+    任何不合身回落本函数的 buffered 路径，行为与流式前完全一致。"""
     url = cfg["base_url"].rstrip("/") + "/chat/completions"
     headers = {"Authorization": "Bearer " + cfg["api_key"],
                "Content-Type": "application/json"}
     timeout = float(cfg.get("timeout_s") or _DEFAULTS["timeout_s"])
     if deadline is None:
         deadline = time.monotonic() + _POLL_BUDGET_S
+    # R74：流式先行。_transport 是测试注入的假传输（签名不支持 SSE），
+ # 带它就跳过流式，mock 路径行为不变。
+    if on_delta is not None and _transport is None:
+        _to0 = min(timeout, max(0.5, deadline - time.monotonic()))
+        if _to0 > 0.5:
+            _raw = _chat_call_stream(payload_msgs, cfg, _to0, on_delta,
+                                     deadline=deadline)
+            if _raw:
+                _out = _sanitize(_raw, keep_citations=keep_citations)
+                if _out:
+                    return _out
+                # 成稿被 _sanitize 拦（禁语/漂移）——记 banned 后回落
+                # buffered 路径，由它按原语义重试/降级。
+                _llm_log("stream 成稿被 _sanitize 拦→回落 buffered")
+                if banned_seen is not None and \
+                        _BANNED_OUT_PAT.search(_scan_flat(_raw)):
+                    banned_seen.append(True)
+            # 流式不成（None）→ 继续走下面原 buffered 路径。已吐出的
+            # 分片停在气泡里，整条成稿在 done 时替换，用户看到的是
+            # 「先出字、后补全」，不会更坏。
     # R230t（R32-P1-6）：msgs 是可变副本——被拦后追加改正提示不影响调用方
     # 的原列表（主/dots 共享调用方 payload_msgs，不能把提示注进下一轮）。
     msgs = list(payload_msgs)
@@ -2277,12 +2395,35 @@ def spawn_chat_task(session_id: str, user_msg: str,
                 if rec0 is not None:
                     rec0["started"] = time.monotonic()
                     rec0["fresh"] = _fresh
+
+        # R74（用户原话「amd 往外冒一个字，我这边就显示一个字」）：流式
+        # 分片发布器——主模型每吐一片就追加进任务行 text，轮询端点
+        # /api/ai/{tid} 原样带回，前端即读即显（零新端点、零新 GC）。
+        # 两道闸：①禁语露头即冻结并清空已显分片——整条最终由 chat()
+        # 的禁语闸换成安全句，用户看不到违规措辞；②原样累加在 rec["raw"]
+        # 里供闸判定跨分片拼词（「注」+「定」分两片吐也要拦住）。
+        def _pub(piece: str) -> None:
+            if not piece:
+                return
+            with _tasks_lock:
+                rec0 = _tasks.get(tid)
+                if rec0 is None or rec0.get("frozen"):
+                    return
+                _acc = (rec0.get("raw") or "") + piece
+                rec0["raw"] = _acc
+                if _CHAT_BANNED_PAT.search(_scan_flat(_acc)):
+                    rec0["frozen"] = True
+                    rec0["text"] = ""
+                    _llm_log("chat 流式禁语露头→冻结")
+                    return
+                rec0["text"] = (rec0.get("text") or "") + piece
         try:
             text = chat(session_id, user_msg, facts=facts,
                         verdict_facts=verdict_facts, config=cfg,
                         _transport=_transport, verdict_day=verdict_day,
                         result_verdicts=result_verdicts,
                         trusted_facts=trusted_facts,
+                        on_delta=_pub,
                         _task_started=_mark_started)
             status = "done" if text else "failed"
         except BaseException as _wexc:    # R2511：同 polish 径防 pending 泄漏

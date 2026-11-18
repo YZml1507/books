@@ -1223,7 +1223,11 @@ html[data-theme="dark"] .daily-mantra b{
      掉文档尾不可见——先纯 px 兜底再覆盖（同 90vh→90dvh 双写法）。 */
   bottom:20px;
   bottom:max(20px, env(safe-area-inset-bottom, 20px));
-  z-index:60;
+  /* R74（用户直报「左下角小满聊一聊的小圆框有时点不开」）：原 z60 被
+   * 聊天遮罩（z182）整个压在底下——侧栏一开，点它就命中遮罩，侧栏
+   * 关了又开，观感就是「时灵时不灵/点了没反应」。抬到遮罩与侧栏之上
+   * （190，仍低于海报 200 / toast 300 / 连签 310 那些模态层）。 */
+  z-index:190;
   width:52px; height:52px; border-radius:50%;
   /* R230x（V-3）：白字浅紫底仅 ~1.7:1——换深紫底，白字 ≥5.6 */
   background:var(--primary-bg);
@@ -1242,6 +1246,12 @@ html[data-theme="dark"] .daily-mantra b{
    R3355：此前 transform 缩的是整个钮（命中域跟着缩到 37px）——
    改缩内部文字层，外层命中域保持原尺寸。 */
 .recent-toggle.is-mini{opacity:.6;}
+/* R74：桌面端侧栏在左侧，FAB（left:16）本来就压在输入行上——开栏即
+ * 淡出让位，✕/遮罩/ Esc 都能关。移动端 ≤600px FAB 在右下、侧栏在左，
+ 本来不叠，保持可见可点（点了就是关）。 */
+@media (min-width:601px){
+  .recent-toggle.is-open{opacity:0; pointer-events:none; transform:scale(.8);}
+}
 .recent-toggle.is-mini .recent-toggle-txt{transform:scale(.85);}
 .recent-toggle.is-mini:hover{opacity:.9;}
 .recent-toggle.is-mini:hover .recent-toggle-txt{transform:scale(.95);}
@@ -2469,22 +2479,30 @@ button:active{transform:scale(.96);}
 .ck-hug-back:active{background:var(--accent-ink); color:#fff;}
 /* R3618：目标日倒数——行内定/改/抹小表单。dday-form 不设
  * display 规则，[hidden] 由 UA 管（作者规则会吃掉 hidden）。 */
-.dday-set{font-size:11.5px; padding:2px 10px; border-radius:999px;
-  border:1px solid var(--accent-ink); background:transparent;
-  color:var(--accent-ink); cursor:pointer; min-height:var(--tap);}
-.dday-set:active{background:var(--accent-ink); color:#fff;}
+/* R74（用户直报「输入框和日期框排版有问题，调一下格式」）：
+ * 原排版是一条 inline-flex 硬挤一行——名字框 max-width 110px，长名字
+ * 直接截断；控件高仅 ~28px（远低于 44px 触达下限）；「记下」与
+ * 「抹掉」一模一样是描边小丸，主次不分。390px 实测名字框被挤到第二
+ * 行、日期框贴右边线，就是截图里那个「很有问题」的排布。
+ * 重排依据（移动表单实践；Luke W. 眼动 + NN/g 标签位结论：顶对齐
+ * 单列完成最快、触达目标 ≥44px、主操作沿视觉纵线放在字段之后）：
+ * 改成两行——名字框独占一行（flex 1 1 100%），日期框 + 主操作 +
+ * 次操作一行；间距 8px 防误触；「记下」给实心强调色拉开主次。 */
 .dday-hint{color:var(--muted); font-size:12px;}
-.dday-form{display:inline-flex; align-items:center; gap:6px;
-  flex-wrap:wrap;}
+.dday-form{display:flex; flex-wrap:wrap; align-items:center;
+  gap:8px; width:100%; margin-top:8px;}
 .dday-form[hidden]{display:none;}
-.dday-form input{font-size:12px; padding:4px 8px; border-radius:8px;
+.dday-form input{flex:1 1 100%; min-width:0; min-height:var(--tap);
+  font-size:14px; padding:8px 12px; border-radius:12px;
   border:1px solid var(--border); background:var(--card,#FFFDFB);
-  color:var(--primary-ink); max-width:110px;}
-.dday-form input.dday-d{max-width:140px;}
-.dday-save,.dday-clear{font-size:12px; padding:3px 12px;
+  color:var(--primary-ink);}
+.dday-form input.dday-d{flex:1 1 150px;}
+.dday-save,.dday-clear{flex:0 0 auto; font-size:13px; padding:0 18px;
   border-radius:999px; border:1px solid var(--accent-ink);
   background:transparent; color:var(--accent-ink);
   cursor:pointer; min-height:var(--tap);}
+/* 主操作实心强调——与「抹掉」的描边小丸拉开主次。 */
+.dday-save{background:var(--accent-ink); color:#fff; font-weight:600;}
 .dday-save:active,.dday-clear:active{background:var(--accent-ink);
   color:#fff;}
 /* R3596：月信「晒这月」钮——与 ck-hug-back 同族描边小丸。 */
