@@ -2682,6 +2682,15 @@ def _run_inner() -> list[str]:
     assert _home_seg.index("daily-ghost-grid") > \
         _home_seg.index("daily-main"), \
         ("home.ia.ghost-after-content",)
+    # R78（用户实测首页排序「写给未来的自己排在第一个功能·很空」，
+    # 判断权按调研结论裁）：写信入口必须排在打卡问句之后。旧顺序是
+    # renderCheckin 拼接顺序的产物（D-918 只修过空盒没裁过位置），
+    # 调研口径是 Nielsen「使用频率决定位置」——日活件在前、一次性
+    # 低频入口收尾。钉源码序防重构挪回去。
+    assert "_flHtml + _flEntryHtml +" not in _appsrc_g and \
+        _appsrc_g.index("_flEntryHtml;") > _appsrc_g.index(
+            '\'<div class="checkin-q" id="checkinQ">\' +'), \
+        ("home.ia.fl-entry-after-checkin",)
     ok.append("home.ia")
 
     # threads POST：写一条带**真实引文**的 claim → 回读 → 清理

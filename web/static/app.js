@@ -24484,7 +24484,7 @@ function renderCheckin(dateKey) {
       (_ddLine ? '<button type="button" class="dday-clear">抹掉</button>'
                : '') + '</span></div>';
   } catch (eDD) {}
-  box.innerHTML = _wlHtml + _ylHtml + _mlHtml + _flHtml + _flEntryHtml +
+  box.innerHTML = _wlHtml + _ylHtml + _mlHtml + _flHtml +
     '<div class="checkin-q" id="checkinQ">' +
     /* R2349g（R68-P1-1）：打卡问句 3→6。 */
     esc(_dayPick(['挑一个今天想要的：', '想求点什么：',
@@ -24608,7 +24608,17 @@ function renderCheckin(dateKey) {
        * 仪式意义=不留档：原文永不落盘，只记当天件数。 */
       '<details class="ck-album ck-shred"><summary>🗑️ 烦恼粉碎机' +
       '<span id="shredSum"></span></summary>' +
-      '<div class="ck-album-body" id="shredBody"></div></details>';
+      '<div class="ck-album-body" id="shredBody"></div></details>' +
+      /* R78（用户实测首页排序，判断权按调研结论裁）：写给未来的自己
+       * 原先排在打卡问句之前——那是 renderCheckin 拼接顺序的产物，
+       * 不是 IA 裁决。D-918 只修过它的「空盒」（82px 大空盒收成
+       * quiet 行），从没裁过它的位置。
+       * 调研口径：Nielsen「使用频率决定位置」+ 移动端拇指区高频优先
+       * ——每日打卡/许愿签是天天要点的日活件，写给未来的自己是一次
+       * 性低频入口（写完就走，几天后才回来收信）。低频入口垫在日活
+       * 前面，等于拿最短路径放最不常用的件。移到打卡区收尾：日活在
+       * 前，入口不消失，且与它真正的「回访时机」（信到日）分开。 */
+      _flEntryHtml;
   /* R3379：周记信晒图——取卡片里真实渲染的小记文本进海报。 */
   var _wls = box.querySelector('#wlShare');
   if (_wls && !_wls.dataset.bound) {
