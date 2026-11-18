@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="麒麟">
+  <defs>
+    <radialGradient id="e" cx="50%" cy="40%" r="58%">
+      <stop offset="0%" stop-color="#FBF3E4"/><stop offset="100%" stop-color="#EEDCB8"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#e)"/>
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#C08B4E" stroke-opacity=".22" stroke-width="1.6"/>
+  <!-- 尾 -->
+  <path d="M138 112q22 4 30 22q-18-6-30-10z" fill="#C08B4E"/>
+  <!-- 身 -->
+  <ellipse cx="104" cy="112" rx="38" ry="24" fill="#C08B4E"/>
+  <ellipse cx="104" cy="106" rx="30" ry="15" fill="#E0B478" fill-opacity=".7"/>
+  <!-- 腿 -->
+  <path d="M78 130q-4 16 2 24q6-10 8-22zM118 130q4 16-2 24q-6-10-8-22z" fill="#B07E44"/>
+  <!-- 颈 + 头 -->
+  <path d="M74 104q-14-12-10-30q16 8 22 24z" fill="#C08B4E"/>
+  <ellipse cx="60" cy="68" rx="16" ry="13" fill="#C08B4E"/>
+  <path d="M46 64q-10 0-12 6q10 3 14 1z" fill="#C08B4E"/>
+  <circle cx="55" cy="65" r="2.4" fill="#FFF8EE"/>
+  <!-- 角 -->
+  <path d="M58 56q-2-16 8-22q0 12 4 18zM70 56q4-14 14-16q-6 10-8 16z" fill="#E0B478"/>
+  <!-- 鬃毛 -->
+  <path d="M70 82q-10-4-14-14q12 4 18 10zM76 92q-12-2-18-12q14 2 20 8z" fill="#E0B478"/>
+  <!-- 鳞点 -->
+  <circle cx="96" cy="106" r="2.6" fill="#EBD3A8"/><circle cx="112" cy="100" r="2.6" fill="#EBD3A8"/><circle cx="118" cy="114" r="2.6" fill="#EBD3A8"/>
+</svg>

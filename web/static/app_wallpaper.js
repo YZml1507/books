@@ -5,46 +5,6 @@
  * 模态与落盘复用 app.js 的 showPosterModal + 海报的 a.download 流。 */
 'use strict';
 
-var _WAP_COUNT = 10;   /* /static/wallpapers/wap-00.jpg .. wap-09.jpg */
-/* R3362 主题系列：节日/节气日换限定底图（wap-t-*.jpg），对不上
- * 的平凡日子仍走日轮换。节日名对 _FEST_SOLAR/_FEST_LUNAR 产物，
- * 节气名对 j.term.name（后端真节气时刻表，含近似日）。 */
-var _WAP_THEME_FEST = {
-  '万圣夜': 'halloween', '万圣节': 'halloween',
-  '平安夜': 'xmas', '圣诞节': 'xmas',
-  '跨年夜': 'nye', '元旦': 'nye',
-  '除夕': 'cny', '春节': 'cny', '破五': 'cny', '人日': 'cny',
-  '元宵节': 'cny', '填仓节': 'cny', '小年': 'cny', '腊八节': 'cny',
-  '情人节': 'valentine', '白色情人节': 'valentine',
-  '网络情人节': 'valentine', '521': 'valentine', '七夕': 'valentine',
-};
-var _WAP_THEME_TERM = {
-  '霜降': 'frost', '立冬': 'winterstart',
-  '小雪': 'snow', '大雪': 'snow',
-  '冬至': 'solstice', '小寒': 'deepcold', '大寒': 'deepcold',
-  '立春': 'spring', '雨水': 'spring', '惊蛰': 'spring',
-};
-
-function _wapTheme(j) {
-  /* 当日限定主题文件名（无 → null）。节日列表逐名对表取首个命中。 */
-  try {
-    /* R3370-低9：万圣主题与 trQH 限定窗（10/29–11/1）对齐——
-     * 靠节日表名只活 10/31–11/1，窗口期前后两天用户抽了限定
-     * 牌却换不到同款壁纸。 */
-    var _nd = new Date(), _nm0 = _nd.getMonth() + 1, _nd0 = _nd.getDate();
-    if ((_nm0 === 10 && _nd0 >= 29) || (_nm0 === 11 && _nd0 <= 1)) {
-      return 'wap-t-halloween';
-    }
-    var _f = (j && j.festival) || [];
-    for (var i = 0; i < _f.length; i++) {
-      var t = _WAP_THEME_FEST[_f[i]];
-      if (t) return 'wap-t-' + t;
-    }
-    var _tm = j && j.term && j.term.name;
-    if (_tm && _WAP_THEME_TERM[_tm]) return 'wap-t-' + _WAP_THEME_TERM[_tm];
-  } catch (e) {}
-  return null;
-}
 /* R3328+：_LC_HEX 收敛——读 app.js 顶层全局唯一真源；懒加载顺序
  * 保证到时已定义，异常缺失走调用点 #d9c9a8 兜底。 */
 var _WAP_LC_HEX = window.LC_HEX || {};
@@ -518,7 +478,11 @@ function downloadWallpaper(j, variant) {
    * 落款/文件名带纪念标。
    * R3362：节日/节气日限定主题底图优先（当日最独特的仪式
    * 感）；非节点日才回退种子轮换。 */
-  var _nm = _wapTheme(j);
+  /* R76（#15）：横幅「换一张」挑中的底图优先——用户明确选过就听他的，
+   * 没选过才走主题图 → 日期轮换。带 tag 的变体（ beast / nebula /
+   * soulart ）要的是异图，不吃这个覆写。 */
+  var _nm = (!variant || !variant.tag)
+    ? (window._wapPickNm || _wapTheme(j)) : null;
   if (!_nm) {
     var _n = _wapSeed(j.date + ((variant && variant.tag) || ''));
     _nm = 'wap-' + ('0' + _n).slice(-2);

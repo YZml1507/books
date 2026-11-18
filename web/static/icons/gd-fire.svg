@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="朱雀">
+  <defs>
+    <radialGradient id="f" cx="50%" cy="40%" r="58%">
+      <stop offset="0%" stop-color="#FDF0E8"/><stop offset="100%" stop-color="#F6D2BE"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#f)"/>
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#E07856" stroke-opacity=".22" stroke-width="1.6"/>
+  <!-- 尾羽 -->
+  <path d="M92 112C86 134 78 154 64 172C80 160 92 140 98 120z" fill="#E07856"/>
+  <path d="M100 114C98 138 96 158 88 178C100 162 106 140 106 118z" fill="#F0A184"/>
+  <path d="M108 112C114 134 124 152 140 168C124 156 112 138 106 118z" fill="#E07856"/>
+  <!-- 翅 -->
+  <path d="M94 92C72 84 52 68 40 42C58 58 78 68 96 70z" fill="#E07856"/>
+  <path d="M106 92C128 84 148 68 160 42C142 58 122 68 104 70z" fill="#E07856"/>
+  <path d="M94 92C78 86 62 74 52 54C66 66 82 72 96 74z" fill="#F5B39A" fill-opacity=".8"/>
+  <path d="M106 92C122 86 138 74 148 54C134 66 118 72 104 74z" fill="#F5B39A" fill-opacity=".8"/>
+  <!-- 身 -->
+  <ellipse cx="100" cy="100" rx="13" ry="19" fill="#E07856"/>
+  <!-- 头 -->
+  <circle cx="100" cy="74" r="12" fill="#E07856"/>
+  <path d="M111 71l13 4l-13 5z" fill="#F5C06A"/>
+  <circle cx="96" cy="71" r="2.4" fill="#FFF8EE"/>
+  <!-- 冠羽 -->
+  <path d="M100 62q-4-16 4-24q2 12 2 20zM92 64q-10-12-8-22q8 8 12 16zM108 64q10-12 8-22q-8 8-12 16z" fill="#F5C06A"/>
+</svg>

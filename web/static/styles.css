@@ -3257,6 +3257,102 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
 .poster-ratio.is-on{
   border-color:#D9B98A; background:#FFF9F0; color:var(--primary-ink);
   font-weight:600;}
+/* ===== R76（用户裁决·#15）：开运图通栏横幅 ==========================
+ * 此前的 9:16 成品只有 ghost 行里一枚小胶囊，好图藏在按钮后面。这里
+ * 把它抬成日卡里的通栏：底图满铺 + 磨砂 pill 文字 + 右下角换图钮。
+ * 设计取向是「让画当主角」——文字不铺半透明大罩（那会洗掉 60% 画面），
+ * 改坐 80% 不透明度的 blur pill；换图钮同样磨砂，靠 blur 与底色分层。
+ * 底图未解码时 opacity 0，靠容器渐变兜底，不露破图。 */
+/* ===== R76（用户裁决·#15）：开运图通栏横幅 ==========================
+ * 此前的 9:16 成品只有 ghost 行里一枚小胶囊，好图藏在按钮后面。这里
+ * 把它抬成日卡里的通栏 hero：底图满铺 + 底部暗角承字 + 右上角换图钮。
+ * 裁切取向是「让画当主角」——第一版把文字坐 80% 白 pill，实测 348×100
+ * 的矮横幅只能露出 9:16 源图 16% 的高度，且 object-position:30% 正好
+ * 切在天空上，熊全被裁掉（底图主体在 42%–70%）。改高到 170px、焦点
+
+ * 下移到 56%，暗角只压底部 52%，上部画面完整露出来。 */
+.wap-banner{
+  position:relative; height:170px; margin:12px 0 4px; border-radius:18px;
+  overflow:hidden; isolation:isolate;
+  background:linear-gradient(105deg,#F0D8C2 0%,#E5C4D4 52%,#C9D6EA 100%);}
+.wap-banner-img{
+  position:absolute; inset:0; width:100%; height:100%; z-index:0;
+  object-fit:cover; object-position:center 56%;
+  opacity:0; transition:opacity .45s ease;}
+.wap-banner-img.is-on{opacity:1;}
+/* 底部暗角——只压字那一块，上半画面不洗 */
+.wap-banner-scrim{
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(to top,
+    rgba(44,32,23,.84) 0%, rgba(44,32,23,.60) 24%,
+    rgba(44,32,23,.18) 52%, rgba(44,32,23,0) 74%);}
+.wap-banner-tag{
+  position:absolute; z-index:2; left:12px; top:11px;
+  font-size:9.5px; font-weight:600; letter-spacing:.06em;
+  color:rgba(255,246,232,.94); padding:3px 8px; border-radius:999px;
+  background:rgba(44,32,23,.30);
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
+.wap-banner-go{
+  position:absolute; z-index:2; left:14px; right:14px; bottom:11px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+  padding:0; border:none; background:none; text-align:left; font:inherit;
+  cursor:pointer;}
+.wap-banner-lb{
+  font-size:15px; font-weight:700; color:#FFF6E8; letter-spacing:.02em;
+  text-shadow:0 1px 6px rgba(40,28,18,.5);}
+.wap-banner-sub{
+  font-size:11.5px; color:rgba(255,244,228,.93); line-height:1.45;
+  text-shadow:0 1px 5px rgba(40,28,18,.55);}
+.wap-banner-go:hover .wap-banner-lb{color:#FFFFFF;}
+.wap-banner-swap{
+  position:absolute; z-index:3; right:10px; top:10px;
+  display:flex; align-items:center; gap:4px; padding:6px 11px;
+  font-family:var(--font-sans); font-size:11px; font-weight:600;
+  color:#4E3018; background:rgba(255,251,245,.86);
+  -webkit-backdrop-filter:blur(10px) saturate(1.2);
+  backdrop-filter:blur(10px) saturate(1.2);
+  border:1px solid rgba(78,48,24,.12); border-radius:999px;
+  cursor:pointer; transition:transform .15s ease, background .15s ease;}
+.wap-banner-swap:hover{background:rgba(255,253,249,.96); transform:scale(1.05);}
+.wap-banner-swap:active{transform:scale(.95);}
+/* 窄屏：横幅收一点高度，副文案省字 */
+@media (max-width:400px){
+  .wap-banner{height:150px;}
+  .wap-banner-lb{font-size:14px;}
+  .wap-banner-sub{font-size:11px;}
+  .wap-banner-tag{font-size:9px;}
+}
+/* 桌面/平板：卡宽到 600–1000px，9:16 再满铺就只剩一条细带（实测
+ * 994px 卡 + 190px 高只能露出源图 11% 高度，熊又没了）。宽屏改
+ * 「左文右图」——图完整 contain 出来当锁屏预览，文案坐渐变底不压画。
+ * 这样用户一眼看见的就是待会儿要存的那张，比裁切更有说服力。 */
+@media (min-width:601px){
+  .wap-banner{
+    height:auto; display:grid;
+    grid-template-columns:1fr auto; grid-template-rows:auto 1fr;
+    gap:6px 16px; padding:16px 18px;
+    background:linear-gradient(105deg,#F6E4D2 0%,#EBD0DC 58%,#D3DCEC 100%);}
+  .wap-banner-scrim{display:none;}
+  .wap-banner-img{
+    position:relative; inset:auto; grid-area:1/2/3/3; justify-self:end;
+    /* 不能给百分比 max-width——auto 网格列按内在比算出 126px 后，
+     * 46% 又反回来把它砍成 58px（循环自限，实测图塌成一条）。
+     * 高度定向 + aspect-ratio 定宽，列宽自然 = 126px。 */
+    width:auto; height:224px; aspect-ratio:720 / 1280;
+    object-fit:contain; object-position:center bottom;
+    opacity:0; transition:opacity .45s ease;}
+  .wap-banner-img.is-on{opacity:1;}
+  .wap-banner-tag{
+    position:static; grid-area:1/1; justify-self:start; align-self:start;
+    color:#7A5334; background:rgba(255,255,255,.62);}
+  .wap-banner-go{position:static; grid-area:2/1; align-self:end; padding:0 0 2px;}
+  .wap-banner-lb{color:#5E3A1E; text-shadow:none;}
+  .wap-banner-sub{color:#8A6B4E; text-shadow:none;}
+  /* 换图钮压在图右下角，不占文案的地 */
+  .wap-banner-swap{
+    position:absolute; right:12px; bottom:12px; top:auto;
+    color:#4E3018; background:rgba(255,255,255,.82);}
+}
 /* 复看卡：内嵌的死分享钮隐藏，改用卡顶统一的真钮 */
 #historyDetail button.fav-btn[id^="share"]:not(.ph-share){display:none;}
 .ph-share{margin-bottom:8px;}
@@ -4761,6 +4857,16 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 .sm-card { margin: 12px 0; border: 1px solid var(--line, #e8dccf);
   border-radius: 14px; overflow: hidden; background: var(--card, #fffdfa);
   text-align: center; }
+/* R76（#14）：sm-card 大图 hero——agnes 出图抠透明后的 PNG。
+   19px 的 .gd-beast/.ic-fig 卡头保留 emoji（那个尺寸看插画是糊的），
+   真插画放这里当卡面主视觉，与海报/锁屏共用同一张源图。
+   上限 150px：卡面留白优先，再大就压过正文判词了。 */
+.sm-hero { display: block; margin: 14px auto 4px; width: auto;
+  height: 150px; max-width: 72%; object-fit: contain;
+  filter: drop-shadow(0 3px 10px rgba(140,105,70,.13)); }
+@media (max-width:400px){
+  .sm-hero { height: 124px; max-width: 66%; }
+}
 /* R75b：小惊喜卡统一「收起」钮——开出来的卡得能收回去（用户实测
    「守护图腾那些只能点开不能收起」）。安静的小字钮，贴在卡底部。 */
 .card-dismiss { display: block; margin: 10px auto 12px; padding: 4px 14px;

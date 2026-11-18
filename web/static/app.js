@@ -5119,6 +5119,128 @@ function downloadWallpaper() {
     showToast((e && e.message) || '壁纸组件没加载上：网好了再点一次', 'warn');
   });
 }
+/* ===== R76（用户裁决·#15）：锁屏壁纸别藏在按钮里 ====================
+ * 日卡加一条通栏「今日开运图」横幅，真图直接露出来——此前 9:16 成品只
+ * 有 ghost 行里一枚「🖼 开运图」小胶囊，好图藏在按钮后面，用户原话
+ * 「人本来就是视觉动物」。横幅右侧「换一张」在底图池里挑，选中的那张
+ * 同时决定点横幅后生成的成品。
+ * 底图池与主题表从 app_wallpaper.js 上移到此：app.js:324 早就警告过
+ * 「各存一份同款字面量，双轨漂移风险」，懒加载 chunk 现在读全局真源。 */
+var _WAP_COUNT = 16;   /* /static/wallpapers/wap-00.jpg .. wap-15.jpg（R76 补 6 张四季/星海） */
+/* R3362 主题系列：节日/节气日换限定底图（wap-t-*.jpg），对不上
+ * 的平凡日子仍走日轮换。节日名对 _FEST_SOLAR/_FEST_LUNAR 产物，
+ * 节气名对 j.term.name（后端真节气时刻表，含近似日）。 */
+var _WAP_THEME_FEST = {
+  '万圣夜': 'halloween', '万圣节': 'halloween',
+  '平安夜': 'xmas', '圣诞节': 'xmas',
+  '跨年夜': 'nye', '元旦': 'nye',
+  '除夕': 'cny', '春节': 'cny', '破五': 'cny', '人日': 'cny',
+  '元宵节': 'cny', '填仓节': 'cny', '小年': 'cny', '腊八节': 'cny',
+  '情人节': 'valentine', '白色情人节': 'valentine',
+  '网络情人节': 'valentine', '521': 'valentine', '七夕': 'valentine',
+};
+var _WAP_THEME_TERM = {
+  '霜降': 'frost', '立冬': 'winterstart',
+  '小雪': 'snow', '大雪': 'snow',
+  '冬至': 'solstice', '小寒': 'deepcold', '大寒': 'deepcold',
+  '立春': 'spring', '雨水': 'spring', '惊蛰': 'spring',
+};
+
+function _wapTheme(j) {
+  /* 当日限定主题文件名（无 → null）。节日列表逐名对表取首个命中。 */
+  try {
+    /* R3370-低9：万圣主题与 trQH 限定窗（10/29–11/1）对齐——
+     * 靠节日表名只活 10/31–11/1，窗口期前后两天用户抽了限定
+     * 牌却换不到同款壁纸。 */
+    var _nd = new Date(), _nm0 = _nd.getMonth() + 1, _nd0 = _nd.getDate();
+    if ((_nm0 === 10 && _nd0 >= 29) || (_nm0 === 11 && _nd0 <= 1)) {
+      return 'wap-t-halloween';
+    }
+    var _f = (j && j.festival) || [];
+    for (var i = 0; i < _f.length; i++) {
+      var t = _WAP_THEME_FEST[_f[i]];
+      if (t) return 'wap-t-' + t;
+    }
+    var _tm = j && j.term && j.term.name;
+    if (_tm && _WAP_THEME_TERM[_tm]) return 'wap-t-' + _WAP_THEME_TERM[_tm];
+  } catch (e) {}
+  return null;
+}
+/* R76：底图池——当日限定主题排最前（节日/节气那天它就该是默认），
+ * 其后 10 张日轮换。横幅预览与成品生成共用这一份。 */
+function _wapPool(j) {
+  var _a = [], i, _t = _wapTheme(j);
+  if (_t) _a.push(_t);
+  for (i = 0; i < _WAP_COUNT; i++) _a.push('wap-' + ('0' + i).slice(-2));
+  return _a;
+}
+/* R76：当日选中的底图名。用户点过「换一张」就听他的（跨会话记住），
+ * 否则回退主题图 → 日轮换。换日自动清零，免得昨天的挑选赖着不走。 */
+function _wapPickName(j) {
+  var _k = 'wap:pick', _d = 'wap:pick:day', _today2 = todayIso();
+  try {
+    if (localStorage.getItem(_d) !== _today2) {
+      localStorage.removeItem(_k); localStorage.setItem(_d, _today2);
+      return _wapPool(j)[0] || 'wap-00';
+    }
+    var _v = localStorage.getItem(_k);
+    if (_v) return _v;
+  } catch (eP) {}
+  return _wapPool(j)[0] || 'wap-00';
+}
+function _wapSetPick(nm) {
+  try { localStorage.setItem('wap:pick', nm); } catch (eS) {}
+}
+/* R76：在池里往前挪一张，返回新选中的名字（横幅预览随即换图）。 */
+function _wapCycle(j) {
+  var _p = _wapPool(j), _cur = _wapPickName(j), _i = _p.indexOf(_cur);
+  _i = (_i < 0 ? 0 : _i + 1) % _p.length;
+  var _nm = _p[_i];
+  _wapSetPick(_nm);
+  return _nm;
+}
+/* R76：横幅铺图。首帧 opacity 0 → 解码完成再淡入，避免慢网下
+ * 半张图的闪烁；加载失败保持渐变兜底底色，不露破图。 */
+function _wapBannerPaint(nm) {
+  var _im = document.getElementById('wapBannerImg');
+  if (!_im) return;
+  if (_im.getAttribute('data-nm') === nm && _im.classList.contains('is-on')) return;
+  _im.classList.remove('is-on');
+  var _probe = new Image();
+  _probe.onload = function () {
+    _im.src = '/static/wallpapers/' + nm + '.jpg';
+    _im.setAttribute('data-nm', nm);
+    requestAnimationFrame(function () { _im.classList.add('is-on'); });
+  };
+  _probe.onerror = function () { /* 兜底渐变底色已在 .wap-banner 上 */ };
+  _probe.src = '/static/wallpapers/' + nm + '.jpg';
+}
+/* R76：横幅接线。点横幅 = 生成开运图（与 ghost 行那枚同一条管线，
+ * 不带 variant，弹层里选存壁纸 9:16 / 存头像 1:1）；「换一张」只换
+ * 预览不生成，stopPropagation 免得连带触发上面那个。 */
+function _wapBannerBind(j) {
+  var _go = document.getElementById('wapBannerGo');
+  var _sw = document.getElementById('wapSwap');
+  /* R76（#15）：选中底图落全局——app_wallpaper.js 的成品合成读它，
+   * 不然用户在横幅里「换一张」挑好了，点下去生成的还是日期轮换那张。 */
+  window._wapPickNm = _wapPickName(window.__lastDaily || j);
+  if (_go && !_go._wapBound) {
+    _go._wapBound = 1;
+    _go.addEventListener('click', function () {
+      if (window.__lastDaily) return downloadWallpaper(window.__lastDaily);
+      showToast('今日运势还没出来，等它算好再做开运图～', 'warn');
+    });
+  }
+  if (_sw && !_sw._wapBound) {
+    _sw._wapBound = 1;
+    _sw.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      window._wapPickNm = _wapCycle(window.__lastDaily || j);
+      _wapBannerPaint(window._wapPickNm);
+    });
+  }
+  _wapBannerPaint(window._wapPickNm);
+}
 /* R218a-巡2（N-02）：海报浮层——背景遮罩 + 中央海报图 + 关闭按钮 +
  * 长按保存提示。点遮罩/ESC 关闭，多次调用只重建内容。 */
 /* R76：换海报预览图（开运图切比例用）。旧 blob 先回收，避免弹层
@@ -6089,6 +6211,11 @@ async function loadDaily() {
     ]);
     if (_gen !== DAILY_GEN) return;   /* 旧请求不得覆盖新结果 */
     window.__lastDaily = j;   /* R198b（US5）：shareDaily 用 */
+    /* R76（#15）：开运图横幅随日卡数据一起铺图——主题图/日轮换要
+
+     * 靠 j.festival / j.term 才知道当日限定哪张。 */
+
+    _wapBannerBind(j);
     /* R3634：今日能量分落本机 es:<date>——小规律第八维
      * 「能量分高低×心情」要回看历史分，只能从当天落键攒起。
      * 服务端可重算的派生数据，脏了重写不心疼。 */
@@ -17828,6 +17955,10 @@ function init() {
   if (typeof _authGate === 'function') _authGate();
   /* R198b（US4）：时辰感知背景——按本地小时设五档 daypart。
    * 纯属性设置零动画；不读时钟入任何计算结果（voice 硬纪律不受影响）。 */
+  /* R76（#15）：开运图横幅先铺一帧兜底（daily 还没回来时也有图看，
+   * 不至于整块只有渐变）；daily 到了再由 _wapBannerBind 覆写成当日
+   * 主题图/日轮换。幂等，重复调用只是重铺同一张。 */
+  try { _wapBannerBind(null); } catch (eWB) {}
   var _applyDaypart = function () {
     var __h = new Date().getHours();
     var __dp = (__h < 6) ? 'night' : (__h < 10) ? 'dawn' : (__h < 15) ? 'morning'
@@ -20178,23 +20309,23 @@ function _fdOpen(j, tp) {
  * 可晒海报。取兽口径与方位同源：缺行→它来补缺；无缺取最弱；
  * 五行均势取日主本行（本命灵兽）。 */
 var _GD_BEAST = {
-  '木': { glyph: '🐉', name: '青龙',
+  '木': { glyph: '🐉', img: '/static/icons/gd-wood.png', name: '青龙',
     vibe: '生发、向上、春天那股新劲儿',
     guard: '它守你的成长——该发芽的时候不让你缩着',
     tip: '养点绿植或往东边走走，青龙吃这一套' },
-  '火': { glyph: '🦅', name: '朱雀',
+  '火': { glyph: '🦅', img: '/static/icons/gd-fire.png', name: '朱雀',
     vibe: '明亮、热烈、敢出头的那股焰气',
     guard: '它守你的光——该亮出来的时候不让你憋着',
     tip: '晒晒太阳穿点亮色，朱雀喜欢热闹' },
-  '土': { glyph: '🦌', name: '麒麟',
+  '土': { glyph: '🦌', img: '/static/icons/gd-earth.png', name: '麒麟',
     vibe: '温厚、稳当、走到哪儿都踏实的那股地气',
     guard: '它守你的根——累了乱了它把你摁回踏实里',
     tip: '脚踩踩实地、按时吃饭，麒麟认这个' },
-  '金': { glyph: '🐯', name: '白虎',
+  '金': { glyph: '🐯', img: '/static/icons/gd-metal.png', name: '白虎',
     vibe: '利落、有锋芒、断舍离的那股清气',
     guard: '它守你的边界——该说不的时候替你撑腰',
     tip: '收拾一回桌面房间，白虎爱干净利索' },
-  '水': { glyph: '🐢', name: '玄武',
+  '水': { glyph: '🐢', img: '/static/icons/gd-water.png', name: '玄武',
     vibe: '深沉、能忍、看似慢其实走得远的那股水气',
     guard: '它守你的心——急的时候教你沉住气',
     tip: '坐坐水边或泡个热水澡，玄武就回来了' },
@@ -20233,6 +20364,11 @@ function _gdPick(j) {
 function _gdCard(j) {
   var _p = _gdPick(j);
   var _h = '<div class="gd-card sm-card">' +
+    /* R76（#14）：大图 hero——19px 卡头保留 emoji（这个尺寸看插画
+       是糊的），真插画放这里当卡面主视觉，海报/锁屏共用同一张。 */
+    '<img class="sm-hero" src="' + esc(_p.b.img) + '" alt="' +
+      esc(_p.b.name) + '" width="150" height="150" loading="lazy" ' +
+      'decoding="async" onerror="this.remove()">' +
     '<div class="gd-beast">' + _p.b.glyph + ' <strong>' +
       esc(_p.b.name) + '</strong></div>' +
     '<div class="sm-tip">🛡️ ' + esc(_p.why) + '</div>' +
@@ -20257,7 +20393,11 @@ function _gdOpen(j) {
   on('gdShare', function () {
     var _o = { _gdName: _c.pick.b.name, _gdGlyph: _c.pick.b.glyph,
                _gdWx: _c.pick.wx, _gdWhy: _c.pick.why,
-               _gdVibe: _c.pick.b.vibe, _gdGuard: _c.pick.b.guard };
+               _gdVibe: _c.pick.b.vibe, _gdGuard: _c.pick.b.guard,
+               /* R76（#14）：海报主视觉换成真插画（agnes 出图抠透明）。
+                  取卡面已解码的 hero 元，避免海报里再等一次网络。 */
+               _gdImg: document.querySelector('.gd-card .sm-hero'),
+               _gdImgUrl: _c.pick.b.img };
     return downloadPoster(Object.assign({}, j, _o), 'guardian');
   });
   /* R3486：图腾锁屏——wx → 烘焙底图文件名（gd-wood…water）。 */
@@ -20557,23 +20697,23 @@ function _promptCopy(j, body) {
  * （谁来补缺守你），角色看日主本命（你像谁）。全部公有领域
  * 原型，不碰瓷真人。 */
 var _IC_FIGURE = {
-  '木': { glyph: '🌸', name: '女娲',
+  '木': { glyph: '🌸', img: '/static/icons/ic-wood.png', name: '女娲',
     vibe: '炼石补天、抟土造人——「让万物长出来」的祖神',
     role: '你盘里住着她：走到哪都自带让事情发芽的气场',
     tip: '你的角色位是开创者——新东西从你手里冒出来' },
-  '火': { glyph: '🔥', name: '祝融',
+  '火': { glyph: '🔥', img: '/static/icons/ic-fire.png', name: '祝融',
     vibe: '南方火神——光明热烈，一把火烧得堂堂正正',
     role: '你盘里住着他：场子有你在才亮，天生的主场人物',
     tip: '你的角色位是点灯人——出头的场合该你上' },
-  '土': { glyph: '🏔️', name: '后土',
+  '土': { glyph: '🏔️', img: '/static/icons/ic-earth.png', name: '后土',
     vibe: '大地之母——厚德载物，托住万物的压舱石',
     role: '你盘里住着她：团队散不散，看你站不站得住',
     tip: '你的角色位是兜底人——别嫌戏少，压轴的都是你' },
-  '金': { glyph: '⚔️', name: '刑天',
+  '金': { glyph: '⚔️', img: '/static/icons/ic-metal.png', name: '刑天',
     vibe: '无头仍舞干戚——认死理儿的战神，杀伐决断',
     role: '你盘里住着他：难啃的骨头、要断的事，都归你',
     tip: '你的角色位是破局者——该砍的别拖，你下得去手' },
-  '水': { glyph: '🌊', name: '洛神',
+  '水': { glyph: '🌊', img: '/static/icons/ic-water.png', name: '洛神',
     vibe: '翩若惊鸿婉若游龙——灵动柔美的水边女神',
     role: '你盘里住着她：硬碰硬不是你的戏，柔能克刚',
     tip: '你的角色位是绕指柔——迂回渗透才是你的招' },
@@ -20590,6 +20730,9 @@ function _icPick(j) {
 function _icCard(j) {
   var _p = _icPick(j);
   var _h = '<div class="ic-card sm-card">' +
+    '<img class="sm-hero" src="' + esc(_p.f.img) + '" alt="' +
+      esc(_p.f.name) + '" width="150" height="150" loading="lazy" ' +
+      'decoding="async" onerror="this.remove()">' +
     '<div class="ic-fig">' + _p.f.glyph + ' <strong>' +
       esc(_p.f.name) + '</strong></div>' +
     '<div class="sm-tip">🧭 ' + esc(_p.why) + '</div>' +
@@ -20611,7 +20754,9 @@ function _icOpen(j) {
   on('icShare', function () {
     var _o = { _icName: _c.pick.f.name, _icGlyph: _c.pick.f.glyph,
                _icWx: _c.pick.wx, _icWhy: _c.pick.why,
-               _icVibe: _c.pick.f.vibe, _icRole: _c.pick.f.role };
+               _icVibe: _c.pick.f.vibe, _icRole: _c.pick.f.role,
+               _icImg: document.querySelector('.ic-card .sm-hero'),
+               _icImgUrl: _c.pick.f.img };
     return downloadPoster(Object.assign({}, j, _o), 'soulicon');
   });
   _icBox.scrollIntoView({ behavior: 'smooth', block: 'center' });

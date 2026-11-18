@@ -494,7 +494,10 @@ function _paintSharePoster(s, W, H) {
      * R2504（A-1）：有卡片区（塔罗前三张）时硬顶收到 860——
      * 原 1260 让 ≥5 张牌阵的补位明细行整片落进卡座（880 起）
      * 被白卡盖住，「还有·共N张」永远不可见。 */
-    var _linesTop = (s.cards || []).length ? 860 : 1260;
+    /* R76（#14）：行卡硬顶可按视图收——守护图腾/灵魂角色要把卡座
+       让给插画主视觉，行卡退到 780；其余视图恒 860 不变。 */
+    var _linesTop = (s.cards || []).length
+      ? (+(s.linesTop || 860)) : 1260;
     /* 心情周记色点阵——7 色点横排收进明细卡首行（与 liuyao 条阵同
      * 一先例：view 专属元素挤进既有卡区，不另起版式）。点阵占高
      * _MDOT_H，行块按剩余高度自适应，几何与无点阵视图同口径。 */
@@ -832,13 +835,19 @@ function _paintSharePoster(s, W, H) {
     /* R2504（A-1b）：ch 420→400——有明细行时卡座 880 起、底缘
      * 1300 会盖住品牌水印行（y≈1288）；收到 400 后底缘 1280，
      * 与水印留 8px 缝。 */
-    var cw = 250, gap = (1080 - cards.length * cw) / (cards.length + 1);
+    /* R76（#14）：卡座宽高起点与图下文字预留可按视图覆盖——
+       默认值即原行为，未声明的视图零影响。 */
+    var cw = +(s.cardsW || 250),
+        gap = (1080 - cards.length * cw) / (cards.length + 1);
     /* R2341（R57-P1-3）：无明细行时 cards 上提到 560——
      * 原来固定 880，大字(≤440)到卡片之间留 ~500px 空洞。
      * R3337（审-中）：有明细行时卡座底 1280 压进品牌水印行（基线
      * 1276、字形上沿 ~1240）——卡高收 40px，底缘退到 1240 以上。 */
-    var ch = lines.length ? 360 : 400;
-    var cy = lines.length ? 880 : 560;
+    var ch = +(s.cardsH || (lines.length ? 360 : 400));
+    var cy = (s.cardsY != null ? +s.cardsY
+      : (lines.length ? 880 : 560));
+    /* 图区高度 = 卡高 - 图下文字预留；默认 160 即原行为。 */
+    var _imgRes = +(s.cardsTextH || 160);
     cards.forEach(function (c, i) {
       var cx = gap + i * (cw + gap);
       ctx.fillStyle = '#FFFFFF';
@@ -854,7 +863,7 @@ function _paintSharePoster(s, W, H) {
            * R3316（审-P1）：图区缩到 ch-160、文字区整体上抬——
            * 原 sub 基线 1250 的 28px 字形下沿叠进页脚品牌行
            * （36px 上沿 ~1240），五张海报底区糊字。 */
-          var _tw = cw - 24, _th = ch - 160;
+          var _tw = cw - 24, _th = ch - _imgRes;
           var _iw = c.img.naturalWidth || c.img.width || 1;
           var _ih = c.img.naturalHeight || c.img.height || 1;
           var _sc = Math.min(_tw / _iw, _th / _ih);
@@ -2018,9 +2027,14 @@ function buildShareData(view, j) {
       /* R3457 守护图腾海报：灵兽上主位大字，喜用依据/气质/守护语
        * 进 lines，小注守恒——「图个念想」免责口径。 */
       var _gd = base('守护图腾', '');
+      /* R76（#14）：插画当主视觉——卡座 250→440、图区预留 160→120、
+         行卡硬顶 860→780，把 1080×1440 的中间带整个让给灵兽。 */
+      _gd.cardsW = 440; _gd.cardsH = 440; _gd.cardsY = 800;
+      _gd.cardsTextH = 120; _gd.linesTop = 780;
       var _gdBig = _pStr(j && j._gdName) || '守护兽';
-      var _gdGl = _pStr(j && j._gdGlyph);
-      _gd.big = (_gdGl ? _gdGl + ' ' : '') + _gdBig;
+      /* R76（#14）：emoji 前缀下架——主视觉换成 agnes 真插画，
+         「🐉 青龙」字里藏图的做法在 1080×1440 上又小又糊。 */
+      _gd.big = _gdBig;
       _gd.lines = [];
       if (_pStr(j && j._gdWx)) {
         _gd.lines.push({ k: '喜用', v: _pStr(j._gdWx) + ' 的灵兽' });
@@ -2037,6 +2051,11 @@ function buildShareData(view, j) {
       _gd.lines.push({ k: '口径', v: '图个念想，真养宠物看缘分' });
       if (!_gd.lines.length) _gd.lines =
         [{ k: '结论', v: '灵兽替你守着' }];
+      /* R76（#14）：插画上当——位向与「今日小天气」卡同位，
+       * name 走兽名、sub 走一句属性，图没就绪则退回纯文字大字。 */
+      var _gdIm = _pIconSync(j, 'guardian', '_gdImg');
+      if (_gdIm) _gd.cards.push({ img: _gdIm, name: _gdBig,
+        sub: _pStr(j && j._gdWx) ? _pStr(j._gdWx) + ' 行的灵兽' : '今日守护' });
       return _gd;
     }
     case 'crystal': {
@@ -2072,9 +2091,10 @@ function buildShareData(view, j) {
       /* R3490 灵魂角色海报：神话角色上主位大字，本命依据/气质/
        * 角色判词进 lines，口径守恒——「图个像不像」免责口径。 */
       var _ic = base('灵魂角色', '');
+      _ic.cardsW = 440; _ic.cardsH = 440; _ic.cardsY = 800;
+      _ic.cardsTextH = 120; _ic.linesTop = 780;
       var _icBig = _pStr(j && j._icName) || '灵魂角色';
-      var _icGl = _pStr(j && j._icGlyph);
-      _ic.big = (_icGl ? _icGl + ' ' : '') + _icBig;
+      _ic.big = _icBig;
       _ic.lines = [];
       if (_pStr(j && j._icWx)) {
         _ic.lines.push({ k: '本命', v: _pStr(j._icWx) + ' 行的角色' });
@@ -2091,6 +2111,9 @@ function buildShareData(view, j) {
       _ic.lines.push({ k: '口径', v: '图个像不像，剧本自己写' });
       if (!_ic.lines.length) _ic.lines =
         [{ k: '结论', v: '这位神祇住你盘里' }];
+      var _icIm = _pIconSync(j, 'soulicon', '_icImg');
+      if (_icIm) _ic.cards.push({ img: _icIm, name: _icBig,
+        sub: _pStr(j && j._icWx) ? _pStr(j._icWx) + ' 行的角色' : '今日角色' });
       return _ic;
     }
     case 'soulemblem': {
@@ -2785,6 +2808,51 @@ var _POSTER_INFLIGHT = false;   /* R2513（审-P1）：生成管线在途锁—�
  * on() 处理器不 return 时 guardedCall 微秒级放锁；裸 addEventListener
  * 入口在各平台 activeElement 也不一定落在按钮上。模块级旗标单点
  * 全覆盖：在途再点静默吞掉，绝不并行第二条管线/第二张同名 PNG。 */
+/* R76（#14）：海报主视觉按 URL 预载——agnes 出图抠透明后的 PNG。
+ * 卡面 hero 已在 DOM 里解码过就直接复用（零等待）；没渲染过卡面
+ * （分享入口从别处进来）才真去拉。缓存避免重复分享反复请求。 */
+var _PICON_CACHE = {};
+/* R76（#14）：预载完成后的同步解析表——buildShareData 是同步函数，
+ * 拿不到 Promise 的解果；这里把已解码的 <img> 按 URL 寄存，
+ * 海报 build 时直接取元素（取不到就退回纯文字大字兜底）。 */
+var _PICON_SYNC = {};
+/* R76（#14）：同步取已解码图元——优先同步表（预载过），
+ * 其次卡面 DOM 里那张已经 complete 的 hero。 */
+/* R76（#14）：按 view 反查插画 URL——优先 _gdImgUrl/_icImgUrl
+ * （_gdOpen/_icOpen 显式供图），丢了就用同 payload 里的 _gdWx/_icWx
+ * 查表（五行→图标），分享链路重渲时不必依赖 DOM。 */
+function _pIconUrlFor(j, view) {
+  try {
+    var u = _pStr(j && (view === 'soulicon' ? j._icImgUrl : j._gdImgUrl));
+    if (u) return u;
+    var wx = _pStr(j && (view === 'soulicon' ? j._icWx : j._gdWx));
+    var tbl = (view === 'soulicon' ? window._IC_FIGURE : window._GD_BEAST) || {};
+    return (wx && tbl[wx]) ? _pStr(tbl[wx].img) : '';
+  } catch (eU) { return ''; }
+}
+function _pIconSync(j, view, elKey) {
+  try {
+    /* 与 _pIconUrlFor 同源取值——别只认 _gdImgUrl，_gdWx 反查也要走 */
+    var u = _pIconUrlFor(j, view);
+    if (u && _PICON_SYNC[u]) return _PICON_SYNC[u];
+    var e = j && j[elKey];
+    if (e && e.complete && e.naturalWidth > 0) return e;
+  } catch (eS) {}
+  return null;
+}
+function _pIcon(url, el) {
+  if (el && el.complete && el.naturalWidth > 0) return Promise.resolve(el);
+  if (!url) return Promise.resolve(null);
+  if (_PICON_CACHE[url]) return _PICON_CACHE[url];
+  _PICON_CACHE[url] = new Promise(function (res) {
+    var im = new Image();
+    im.onload = function () { res(im); };
+    im.onerror = function () { res(null); };
+    im.src = url;
+  });
+  return _PICON_CACHE[url];
+}
+
 async function downloadPoster(j, view) {
   if (_POSTER_INFLIGHT) return null;
   _POSTER_INFLIGHT = true;
@@ -2795,6 +2863,16 @@ async function downloadPoster(j, view) {
     if (typeof _loadQrJs === 'function' &&
         typeof qrcode !== 'function') await _loadQrJs();
   } catch (eQL) {}
+  /* R76（#14）：守护图腾/灵魂角色的主视觉先解码再画，不然 buildShareData
+   * 那一刻图还没就绪，海报只能退回纯文字大字。 */
+  try {
+    var _gi = (view === 'soulicon' || view === 'guardian')
+      ? _pIconUrlFor(j, view) : '';
+    if (_gi) {
+      var _gim = await _pIcon(_gi, j._gdImg || j._icImg);
+      if (_gim) _PICON_SYNC[_gi] = _gim;
+    }
+  } catch (ePI) {}
   /* R233k（R45-§2）：按下到浮层弹出要 ~1.5-4s（底图 decode+字体
    * load），原零反馈。触发按钮立即转忙态直到流程结束。 */
   var _pbtn = document.activeElement;

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="玄武">
+  <defs>
+    <radialGradient id="t" cx="50%" cy="40%" r="58%">
+      <stop offset="0%" stop-color="#EEF4FB"/><stop offset="100%" stop-color="#CBDCEE"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="92" fill="url(#t)"/>
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#5C82B4" stroke-opacity=".24" stroke-width="1.6"/>
+  <!-- 蛇 -->
+  <path d="M124 92C150 86 158 60 146 44C136 32 118 38 120 54C122 68 140 70 146 60"
+        fill="none" stroke="#4E709F" stroke-width="9" stroke-linecap="round"/>
+  <ellipse cx="118" cy="52" rx="10" ry="8.5" fill="#4E709F" transform="rotate(-24 118 52)"/>
+  <circle cx="115" cy="50" r="2" fill="#FFF8EE"/>
+  <path d="M110 46q-8-2-12 4" fill="none" stroke="#E07856" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- 四肢 -->
+  <path d="M62 122q-10 6-10 16q10-2 14-10zM138 122q10 6 10 16q-10-2-14-10z" fill="#4E709F"/>
+  <!-- 壳 -->
+  <ellipse cx="100" cy="118" rx="46" ry="34" fill="#5C82B4"/>
+  <ellipse cx="100" cy="118" rx="34" ry="23" fill="#7FA3CD"/>
+  <path d="M100 95v46M76 100l-8 36M124 100l8 36M100 95l-24 22M100 95l24 22"
+        stroke="#4E709F" stroke-width="2.6" fill="none" stroke-opacity=".7"/>
+  <!-- 头 -->
+  <ellipse cx="52" cy="112" rx="16" ry="12" fill="#4E709F"/>
+  <circle cx="44" cy="109" r="2.4" fill="#FFF8EE"/>
+  <path d="M38 116q-8 2-9 7q8-1 11-3z" fill="#4E709F"/>
+  <!-- 水波 -->
+  <path d="M42 162q10-7 20 0t20 0t20 0t20 0M52 176q10-7 20 0t20 0t20 0t20 0"
+        fill="none" stroke="#7FA3CD" stroke-width="3" stroke-linecap="round"/>
+</svg>
