@@ -406,6 +406,28 @@ function _wapBeast(j) {
   });
 }
 
+/* R76：开运图落盘——从 showPosterModal 的比例切换里抽出来共用。
+ * square=头像 1:1，否则壁纸 9:16。触屏端弹层长按即可存，不必静默
+ * 落盘（R3326：iOS/微信 a[download] 多半落空）。 */
+function _wapSave(cv, j, square, fname) {
+  var _ymd = String((j && j.date) || '').replace(/-/g, '');
+  try {
+    cv.toBlob(function (blob) {
+      if (!blob) return;
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = square
+        ? '小满-开运头像-' + _ymd + '.png'
+        : '小满-开运壁纸-' + _ymd + (fname ? '-' + fname : '') + '.png';
+      document.body.appendChild(a);
+      try { a.click(); } finally {
+        setTimeout(function () {
+          URL.revokeObjectURL(a.href); a.remove(); }, 800);
+      }
+    }, 'image/png');
+  } catch (eWS) {}
+}
+
 function downloadWallpaper(j, variant) {
   /* R3491：灵魂纹样原图变体——方形大图独立合成器（可当头像）。 */
   if (variant && variant.emblem) {
@@ -503,8 +525,6 @@ function downloadWallpaper(j, variant) {
   }
   return _wapImg('/static/wallpapers/' + _nm + '.jpg')
     .then(function (bg) {
-      /* R3328（审-高）：showPosterModal 在此层引用 _wapComposite
-       * 局部 _sq——每次点击 ReferenceError，浮层永不开。本层自算。 */
       var _sq = !!(variant && variant.square);
       var cv = _wapComposite(j, bg, variant);
       /* 落盘（与海报同款 a.download；移动端走浮层长按）
@@ -512,29 +532,35 @@ function downloadWallpaper(j, variant) {
        * 微信里多半落空，只留浮层长按；桌面照常落盘。 */
       var _touch = (typeof navigator !== 'undefined' &&
         (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+      /* R76（用户裁决·开运图合并入口）：无 variant = 「今日开运图」。
+       * 头像与壁纸本是同一次构图，_sq 只决定裁不裁方——合成时就把
+       * 两种比例都备好，弹层里切「存壁纸 9:16 / 存头像 1:1」。
+       * 调研（BulkPicTools 中文平台尺寸速查）：微信头像必须 1:1、
+       * 锁屏要 9:16，两个比例都是平台硬需求，删哪个都是砍分享出口；
+       * 所以合并不删，删的是那枚让人以为是两张图的第二个按钮。 */
+      var _ratioOpts = null;
+      if (!variant) {
+        _ratioOpts = {
+          onRatio: function (sq) {
+            try { return _wapComposite(j, bg, { square: !!sq }); }
+            catch (eRC) { return null; }
+          },
+          onRatioSave: function (cv2, sq) {
+            if (_touch &&
+                !/MicroMessenger/i.test(navigator.userAgent || '')) return;
+            _wapSave(cv2, j, !!sq, '');
+          }
+        };
+      }
       try {
         if (_touch &&
             !/MicroMessenger/i.test(navigator.userAgent || '')) {
-          showPosterModal(cv, _sq ? 'daily-ava' : 'daily-wap', j);
+          showPosterModal(cv, _sq ? 'daily-ava' : 'daily-wap', j, _ratioOpts);
           return;
         }
-        cv.toBlob(function (blob) {
-          if (!blob) return;
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          var _ymd = String(j.date || '').replace(/-/g, '');
-          a.download = (variant && variant.square)
-            ? '小满-开运头像-' + _ymd + '.png'
-            : '小满-开运壁纸-' + _ymd +
-              ((variant && variant.fname) ? '-' + variant.fname : '') + '.png';
-          document.body.appendChild(a);
-          try { a.click(); } finally {
-            setTimeout(function () {
-              URL.revokeObjectURL(a.href); a.remove(); }, 800);
-          }
-        }, 'image/png');
+        _wapSave(cv, j, _sq, (variant && variant.fname) || '');
       } catch (eB) {}
-      showPosterModal(cv, _sq ? 'daily-ava' : 'daily-wap', j);
+      showPosterModal(cv, _sq ? 'daily-ava' : 'daily-wap', j, _ratioOpts);
     })
     .catch(function (e) {
       showToast((e && e.message) || '壁纸没做好，网好了再点一次', 'warn');

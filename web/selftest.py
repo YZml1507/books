@@ -2633,7 +2633,10 @@ def _run_inner() -> list[str]:
     # （home-main 卡片区与视图容器同分界，计数口径不变）。
     _home_seg = home.text.split('id="view-bazi"')[0]
     _cards = _re.findall(r'class="func-card[^"]*" data-view="([a-z]+)"', _home_seg)
-    assert len(_cards) == 18, ("home.ia.count", len(_cards), _cards)  # R24 我的账号卡入格（history 后）——18 卡（R3424 起 17 卡 + 账号独立入口）
+    # R76（用户裁决·删排盘记录）：入口卡随 view 一起撤——该功能服务端
+    # BOOKS_PAIPAN_HISTORY_DISABLE=1 常关，线上永远是空列表，留着只是
+    # 一枚点开什么都没有的卡。18 → 17。
+    assert len(_cards) == 17, ("home.ia.count", len(_cards), _cards)
     # R208b：read 卡移除（用户裁决不提供读书渠道）
     # R3249i：五行人格（renge）钉首位——最低门槛的 1-tap 轻测试前门。
     assert _cards[:6] == ["renge", "tarot", "bazi", "taohua", "hehun",
@@ -2641,8 +2644,9 @@ def _run_inner() -> list[str]:
         ("home.ia.order", _cards)
     # R2362（用户直报）：「和小满聊聊」伪视图卡钉在 history 后、抽屉前；
     # R3210：起名上提主格（受众高频），抽屉只留六爻（术语门槛的问事向）。
+    # R76：history 卡已删（见 home.ia.count），顺序同步去掉。
     assert _cards[6:] == ["xingzuo", "dream", "qiming", "liuyao",
-                          "history", "account", "oracle", "mochi", "qian",
+                          "account", "oracle", "mochi", "qian",
                           "ansb", "muyu", "chat"], \
         ("home.ia.drawer", _cards)
     # R4939（外部评测+用户拍板）：首屏减负——5 主入口可见，12 张副卡
@@ -2650,9 +2654,10 @@ def _run_inner() -> list[str]:
     _more = _re.findall(
         r'class="func-card[^"]*func-more[^"]*" data-view="([a-z]+)"',
         _home_seg)
+    # R76：history 卡随排盘记录一起撤（见 home.ia.count）。
     assert sorted(_more) == sorted(
         ["taohua", "hehun", "xingzuo", "dream", "qiming", "liuyao",
-         "history", "account", "oracle", "mochi", "qian", "ansb", \
+         "account", "oracle", "mochi", "qian", "ansb", \
          "muyu"]), \
         ("home.ia.more", _more)
     _prim = [c for c in _cards if c not in _more]

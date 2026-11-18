@@ -303,7 +303,7 @@ try {
              「从云端拉回」「导出数据」「导入备份」是自动通路的手动重复面，
              留着会让人以为数据不会自己回来、得手动搬——已全部撤掉。 -->
         <div class="acct-logged" id="acctLogged" hidden>
-          <div class="acct-line">已登 <b id="acctWho"></b> · <span id="acctLastSync">还没同步过</span></div>
+          <div class="acct-line"><span class="acct-dot" aria-hidden="true"></span><span class="visually-hidden">已登录，</span><b id="acctWho"></b> · <span id="acctLastSync">还没同步过</span></div>
           <!-- R74（用户直报「云端备份/数据跟着账号走那些解释不需要」）：
                原来这里挂一整段数据通路说明——能力用户用得上自然知道，
                内部机制（自动存云端/免导入导出）是工程口径，撤掉。 -->
@@ -445,34 +445,28 @@ try {
     <div class="daily-ghost-grid">
     <!-- R198b（US5）：今日运势分享图入口 -->
     <button class="ghost" type="button" id="shareDaily"
-            title="生成分享图" aria-label="把今日运势存成分享图"
-            style="margin:6px 14px 0; flex-shrink:0;">📸 分享图</button>
+            title="生成分享图" aria-label="把今日运势存成分享图">📸 分享图</button>
     <!-- R3415（用户裁决）：朗读钮拆除——浏览器 TTS 对中文长文
          只读两三个字就断，体验残废不如没有。 -->
-    <!-- R3264（R24）：日签小红书文案——一键复制晒图文案 -->
-    <button class="ghost" type="button" id="copyXhs"
-            title="复制小红书文案" aria-label="复制今日签晒图文案"
-            style="margin:6px 14px 0; flex-shrink:0;">📕 今日文案</button>
     <!-- R3264（R29）：今日护身符——晒今日开运色/幸运数/财神方位 -->
     <button class="ghost" type="button" id="shareLucky"
-            title="生成今日护身符" aria-label="生成今日护身符分享图"
-            style="margin:6px 14px 0; flex-shrink:0;">🧿 护身符</button>
-    <!-- R3317（调研-A）：每日开运壁纸——底图按日轮换+判词/开运色叠字，
+            title="生成今日护身符" aria-label="生成今日护身符分享图">🧿 护身符</button>
+    <!-- R3325-B（R76 用户裁决·合并入口）：开运头像不再是独立钮。
+         它与壁纸本就是同一张源图的两种裁剪（app_wallpaper.js 的 _sq
+         分支只决定裁不裁方），两个按钮会让人以为是两张图——用户原话
+         「他们其实是同一张图然后再以不同的裁剪方式展示出来而已」。
+         调研（BulkPicTools 中文平台尺寸速查）确认两个比例都有真实用途：
+         微信头像必须 1:1、手机壁纸 9:16，删哪个都是砍分享出口；而
+         ReelWand 又警告「生成时就该设好比例，别事后裁」。所以合并不删：
+         一个「开运图」入口，比例改到海报弹层里选（存壁纸 9:16 / 存头像 1:1）。
+         R76 同时撤掉日历提醒——.ics 要用户手动导入、手机上至少 4 步，
+         做不到真系统集成的半成品比没有更让人失望。 -->
+    <!-- R3317（调研-A）：每日开运图——底图按日轮换+判词/开运色叠字，
          可直接存成锁屏（小红书 29 元/张的需求面，我们免费每天发）。 -->
     <!-- R3322-P3：去掉静态 disabled——弱网首帧灰钮看着像坏了；
          handler 自带「运势还没出来」toast 引导，点了有回应。 -->
     <button class="ghost" type="button" id="dailyWap"
-            title="生成今日开运壁纸" aria-label="生成今日开运壁纸"
-            style="margin:6px 14px 0; flex-shrink:0;">🖼 开运壁纸</button>
-    <!-- R3325-B：开运头像——同日壁纸的 1:1 中裁版，做社交头像。 -->
-    <button class="ghost" type="button" id="dailyAva"
-            title="生成今日开运头像" aria-label="生成今日开运头像"
-            style="margin:6px 14px 0; flex-shrink:0;">🧸 开运头像</button>
-    <!-- R3325：.ics 日历提醒——下载即入系统日历每天准点喊你，
-         Render 免费档无推送通道的零基建留存替代。 -->
-    <button class="ghost" type="button" id="dailyIcs"
-            title="把提醒加进手机日历" aria-label="把提醒加进手机日历"
-            style="margin:6px 14px 0; flex-shrink:0;">🔔 日历提醒</button>
+            title="生成今日开运图，可存壁纸或头像" aria-label="生成今日开运图，可存壁纸或头像">🖼 开运图</button>
     </div>
     <!-- R228c：aria-expanded 由 loadDailyDetail 随展开/收起同步 -->
     <button class="daily-more" id="dailyMore" type="button"
@@ -583,9 +577,6 @@ try {
          进阶栏整体撤除，它和其他功能平级，不该藏深一层。 -->
     <div class="func-card func-entry func-more" data-view="liuyao" role="button" tabindex="0" aria-label="六爻占卜">
       <img class="func-icon-img" loading="lazy" decoding="async" data-view="liuyao" src="/static/cream/cream-icon-liuyao.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">六爻占卜</div><div class="func-desc">摇卦问事 · 传统问法</div>
-    </div>
-    <div class="func-card func-entry func-more" data-view="history" role="button" tabindex="0" aria-label="排盘记录">
-      <img class="func-icon-img" loading="lazy" decoding="async" data-view="history" src="/static/cream/cream-icon-history.jpg" alt="" width="56" height="56" onerror="this.classList.add('is-missing')"><div class="func-name">排盘记录</div><div class="func-desc">只看记录 · 档案在「我的」</div>
     </div>
     <!-- R24（用户要求）：账号/个人信息独立入口——不再埋在排盘历史里 -->
     <div class="func-card func-entry func-more" data-view="account" role="button" tabindex="0" aria-label="我的">
@@ -1435,33 +1426,6 @@ try {
         </div>
         <div class="mem-body" id="memBody"></div>
       </div>
-    </div>
-  </div>
-  <div class="view" id="view-history">
-    <div class="card">
-      <h2><span aria-hidden="true">🕘</span> 排盘记录 <span class="card-sub">只放记录本身 · 档案和备份在「我的」</span></h2>
-      <div class="ph-toolbar">
-        <button id="historyRefresh" type="button" class="ghost">刷新</button>
-        <button id="historyExport" type="button" class="ghost">导出表格</button>
-        <!-- R26（用户裁决「排盘历史里面的加个锁其实是不需要的」）：
-             锁钮已撤。历史改按登录账户归属（见 D-931），账号本身就是
-             边界——同一个账户名下只看自己的记录，不需要再加一道本机锁。 -->
-        <!-- R2400（R138-P1-3）：线程/手记已纳入备份+清空——提示更新为
-             全量口径。 -->
-      </div>
-      <!-- R24（用户原话「不把整个历史删除」+ 账号信息要独立）：
-           #acctSlot 已挪去 #view-account——账号/生辰/头像不再寄生在
-           排盘历史里，历史只留历史自己的东西。 -->
-      <!-- R3441「小满记得」：本地数据面可视化——她能想起的东西全
-           摆在这台设备上给你看，每类都能单独让她忘掉。
-           账号/小锁/主题偏好归各自面板管，不走这张卡。 -->
-      <!-- R3200：类型筛选——记录多了按品类过一眼。只在有条目时出现。 -->
-      <div id="historyFilter" class="ph-filter" hidden
-           role="group" aria-label="按类型筛选记录"></div>
-      <div id="historyList" class="ph-list" tabindex="-1"><div class="ph-empty">加载中…</div></div>
-      <!-- R2506（审-U2）：tabindex=-1——「查看」展开详情后程序可把焦点
-           移进来，键盘/读屏用户不用 Tab 爬完剩余列表才到详情。 -->
-      <div id="historyDetail" class="ph-detail" tabindex="-1" hidden></div>
     </div>
   </div>
 

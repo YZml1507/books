@@ -1250,7 +1250,22 @@ html[data-theme="dark"] .daily-mantra b{
  * 淡出让位，✕/遮罩/ Esc 都能关。移动端 ≤600px FAB 在右下、侧栏在左，
  本来不叠，保持可见可点（点了就是关）。 */
 @media (min-width:601px){
-  .recent-toggle.is-open{opacity:0; pointer-events:none; transform:scale(.8);}
+  /* R76（用户直报「左下角小圆圈点不开」·实测定根因）：不是层级问题——
+   * 关栏态三视口实测 pointer-events:auto、点击正常开栏。坑在开栏之后：
+   * 原规则 opacity:0 + pointer-events:none 把 FAB 整个撤出交互层，
+   * 用户点原位只会命中侧栏 .chatFlow，什么都没发生。R74 把 z-index 从
+   * 60 抬到 190 治的是「被遮罩压住」，这条治的是「主动放弃可点」——
+   * 两件事都做了才闭合。改为：开栏时 FAB 右移到抽屉外侧（侧栏宽
+   * min(320px,82vw)），保持可见可点并变 ✕，点它=关栏。 */
+  .recent-toggle.is-open{
+    left:calc(min(320px, 82vw) + 16px);
+    opacity:.94; pointer-events:auto; transform:none;}
+  .recent-toggle.is-open:hover{transform:scale(1.06);}
+  .recent-toggle.is-open .recent-toggle-txt{visibility:hidden;}
+  .recent-toggle.is-open::after{
+    content:"✕"; position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; line-height:1; color:#fff;}
 }
 .recent-toggle.is-mini .recent-toggle-txt{transform:scale(.85);}
 .recent-toggle.is-mini:hover{opacity:.9;}
@@ -1659,11 +1674,23 @@ button.ghost{
 button.ghost:hover{background:var(--primary-bg); color:#fff; transform:translateY(-2px);}
 /* R3368（审-低-11）：ghost 钮弹性格——桌面照旧横排，≤640px
  * 收成两列消按钮墙；覆盖按钮内联 margin。 */
-.daily-ghost-grid{display:flex; flex-wrap:wrap; gap:2px 6px; margin:14px 0 2px;}
-.daily-ghost-grid > .ghost{margin:4px 0 0 !important; flex:0 0 auto;}
-@media (max-width:640px){
-  .daily-ghost-grid > .ghost{flex:1 1 44%; padding-left:6px; padding-right:6px;}
-}
+/* R76（用户实测·平板半行空）：原 flex + flex:0 0 auto 只在 ≤640px 才
+ * 1 1 44%，>640px 全靠内容宽度左对齐——实测 820px 容器 614px 时第 1 行
+ * 4 个占到 574px、第 2 行只剩 2 个，右侧空 460px；1280px 一行 6 个占到
+ * 876/994，右侧空 118px。改 CSS Grid 定列数（minmax(0,1fr) 是防 fr 被
+ * 内容撑爆的黄金组合，子项补 min-width:0），任何宽度都均分填满。
+ * R76 同批撤掉日历提醒、头像并入开运图、今日文案并入海报弹层，
+ * 剩 3 个钮。列数用 auto-fit + minmax(84px,1fr) 自适应：宽了就一行铺满，
+ * 窄了自动降列，任何视口都不会出现「4 个 + 2 个、右侧空 460px」。 */
+.daily-ghost-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(84px, 1fr));
+  gap:8px; margin:14px 0 2px;}
+.daily-ghost-grid > .ghost{
+  margin:0 !important; flex:0 0 auto;
+  min-width:0; padding-left:6px; padding-right:6px;
+  text-align:center; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis;}
 /* R3368（审-P2-5）：触控小簇——粗指针下补足 44px 下限 */
 @media (pointer:coarse){
   .sign-peek, .ck-goal-opt, .daily-me-edit, .dm-chip,
@@ -2208,9 +2235,16 @@ details.warm-pro-fold > summary{
   background:var(--card); color:var(--accent-ink);}
 .chat-journal-done{margin:0; font-size:12px; color:var(--text);}
 /* R3264（R26）：记忆芯片可点击——点一下预填聊天框 */
+/* R76（用户直报「挨着文字的那下面有一条横线…看上去不美观」）：
+ * 原 text-decoration:underline——下划线是超链接的 convention，用在
+ * <button> 上就是几条乱线（截图里「运势（11月16日）」「睡眠（11月16日）」
+ * 「📊 生成本周小报」全中）。改为默认无下划线、只留主色+稍粗，
+ * hover/focus 才补虚下划线给可点性反馈——按钮靠颜色和手势表态，\ * 不靠静态横线。 */
 .chat-empty-chip{font:inherit; font-size:11px; color:var(--accent-ink);
-  background:transparent; border:none; padding:0; margin:0;
-  text-decoration:underline; cursor:pointer;}
+  font-weight:600; background:transparent; border:none; padding:0; margin:0;
+  text-decoration:none; cursor:pointer;}
+.chat-empty-chip:hover, .chat-empty-chip:focus-visible{
+  text-decoration:underline dotted; text-underline-offset:3px;}
 /* R3260：解梦空态同款店况行 */
 .ph-shop{ margin-top:8px; font-size:11.5px; color:var(--muted);
   line-height:1.5; }
@@ -3207,6 +3241,22 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
   font-family:var(--font-sans);
 }
 .poster-act:hover{border-color:#D9B98A; transform:translateY(-1px);}
+/* R76：开运图比例切换行——合并「开运壁纸 / 开运头像」两个按钮后的
+ * 单一入口。壁纸 9:16 是母图（竖向构图完整），头像 1:1 取中心裁剪，
+ * 两个比例都是平台硬需求（微信头像必须 1:1、锁屏要 9:16），所以
+ * 合并不删。默认选中母图比例。 */
+.poster-modal-ratio{
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:0 12px 10px; flex-wrap:wrap;}
+.poster-modal-ratio-lb{font-size:11px; color:var(--muted); margin-right:2px;}
+.poster-ratio{
+  padding:6px 12px; border-radius:999px; font-size:12px; cursor:pointer;
+  border:1px solid var(--border); background:var(--card); color:var(--secondary);
+  font-family:var(--font-sans); transition:all .15s ease;}
+.poster-ratio:hover{border-color:#D9B98A; color:var(--primary-ink);}
+.poster-ratio.is-on{
+  border-color:#D9B98A; background:#FFF9F0; color:var(--primary-ink);
+  font-weight:600;}
 /* 复看卡：内嵌的死分享钮隐藏，改用卡顶统一的真钮 */
 #historyDetail button.fav-btn[id^="share"]:not(.ph-share){display:none;}
 .ph-share{margin-bottom:8px;}
@@ -4674,7 +4724,14 @@ html[data-theme="dark"] .fl-write{color:var(--accent-ink);}
 /* 「我的」里备份工具和记忆卡的呼吸 */
 #myTools{ margin-top:14px; }
 #myTools .ph-hint{ margin-top:8px; }
-.acct-line { font-size: 13px; margin: 8px 0; }
+.acct-line { font-size: 13px; margin: 8px 0; display:flex; align-items:center; gap:7px; }
+/* R76（用户反馈「已登」二字多余）：不是删掉同步状态——「已登」传达的是
+ * 「这台设备和云端连着」，纯删用户就不知道数据会不会自己回来。改为一枚
+ * 6px 绿点 + 昵称 + 同步时间，语义一点没少，视觉上少两个废字。 */
+.acct-dot{
+  width:6px; height:6px; border-radius:50%; flex:none;
+  background:#4caf7d;
+  box-shadow:0 0 0 3px rgba(76,175,125,.18);}
 
 /* R3441「小满记得」本地数据卡——与 acct-card 同肤 */
 .mem-card { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line, #e8dccf); border-radius: 12px; background: var(--card, #fffdfa); }

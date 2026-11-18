@@ -5121,7 +5121,30 @@ function downloadWallpaper() {
 }
 /* R218a-巡2（N-02）：海报浮层——背景遮罩 + 中央海报图 + 关闭按钮 +
  * 长按保存提示。点遮罩/ESC 关闭，多次调用只重建内容。 */
-function showPosterModal(canvas, view, j) {
+/* R76：换海报预览图（开运图切比例用）。旧 blob 先回收，避免弹层
+ * 反复切换时泄漏 object URL。 */
+function _posterSwapImg(backdrop, cv) {
+  var _ie = backdrop.querySelector('.poster-modal-img');
+  if (!_ie) return;
+  try {
+    if (backdrop._posterBlobUrl) {
+      URL.revokeObjectURL(backdrop._posterBlobUrl);
+      backdrop._posterBlobUrl = null;
+    }
+    cv.toBlob(function (b) {
+      if (!b || !backdrop.isConnected) return;
+      var _bu = URL.createObjectURL(b);
+      _ie.src = _bu;
+      backdrop._posterBlobUrl = _bu;
+    }, 'image/png');
+  } catch (eSI) {}
+}
+function showPosterModal(canvas, view, j, opts) {
+  /* R76（用户裁决·开运图合并）：opts.onRatio —— 「今日开运图」一个入口
+   * 两种比例。头像与壁纸本是同一张源图的两种裁剪（app_wallpaper.js 的
+   * _sq 分支），原来两枚按钮让人以为是两张图。合并后母图（9:16）进弹层，
+   * 再在弹层里切「存壁纸 / 存头像」。 */
+  opts = opts || {};
   var existing = document.getElementById('posterModal');
   /* R230j（R22-P3-1）：直接 remove() 会绕过 closePosterModal()——旧
    * backdrop 的 _posterOnKey 引用被覆盖后 keydown 监听永久残留。
@@ -5211,6 +5234,15 @@ function showPosterModal(canvas, view, j) {
              ? '截图保存，或点下方「复制文案+链接」发给闺蜜～ · 保存后可设为锁屏/壁纸，小满每天陪你睁眼'
              : '长按图片可保存到相册 · 保存后可设为锁屏/壁纸，小满每天陪你睁眼 · 发给闺蜜一起测～')) +
         '</div>' +
+      /* R76：开运图比例切换行——只有传了 onRatio 的回调才出现
+       * （今日开运图）。别的海报族比例由内容决定，不给用户选。 */
+      ((opts && typeof opts.onRatio === 'function')
+        ? '<div class="poster-modal-ratio" id="posterRatio">' +
+          '<span class="poster-modal-ratio-lb">保存比例</span>' +
+          '<button type="button" class="poster-ratio is-on" data-r="0">🖼 壁纸 9:16</button>' +
+          '<button type="button" class="poster-ratio" data-r="1">🧸 头像 1:1</button>' +
+        '</div>'
+        : '') +
       /* R231d（R37-F2）：分享动作行——复制链接（任何环境可用）+ 系统
        * 分享面板（支持 Web Share 的移动浏览器才出现）。 */
       '<div class="poster-modal-actions">' +
@@ -5236,6 +5268,29 @@ function showPosterModal(canvas, view, j) {
       backdrop._posterBlobUrl = _bu;
     }, 'image/png');
   } catch (eBL) {}
+  /* R76：开运图比例切换接线。切比例时换预览 + 让调用方补一次落盘
+   * （桌面端切到头像就该直接存到头像，不能只换图不存）。 */
+  if (opts && typeof opts.onRatio === 'function') {
+    var _ratioBox = backdrop.querySelector('#posterRatio');
+    if (_ratioBox) {
+      _ratioBox.querySelectorAll('.poster-ratio').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (b.classList.contains('is-on')) return;
+          var _sq = b.dataset.r === '1';
+          var _cv2 = null;
+          try { _cv2 = opts.onRatio(_sq); } catch (eRT) {}
+          if (!_cv2) return;
+          _ratioBox.querySelectorAll('.poster-ratio').forEach(function (x) {
+            x.classList.toggle('is-on', x === b);
+          });
+          _posterSwapImg(backdrop, _cv2);
+          if (typeof opts.onRatioSave === 'function') {
+            try { opts.onRatioSave(_cv2, _sq); } catch (eRS) {}
+          }
+        });
+      });
+    }
+  }
   /* R3304（审-P3）：开奖瞬间未散的 toast 叠在模态上缘（toast-stack
    * z300 > modal z200）——开模态即清场，模态内新 toast 照常出现
    * （复制成功反馈仍要看得见，所以不能降 z）。 */
@@ -9826,7 +9881,10 @@ var _POSTER_TITLES = {
   birth: '我的本命盘', checkin: '好运签', 'checkin-week': '本周签运', 'checkin-month': '本月签运',
   xzm: '星座速配', 'bazi-yearly': '年度运势', dream: '解梦',
   bandaid: '深夜创可贴', lucky: '今日护身符', weekly: '小满周报',
-  renge: '五行人格', 'daily-wap': '开运壁纸', 'daily-ava': '开运头像',
+  renge: '五行人格',
+  /* R76：开运图合并后弹层一个入口两种比例，标题去「壁纸」改「开运图」
+   * ——叫壁纸会让切到 1:1 头像时显得文不对题。 */
+  'daily-wap': '今日开运图', 'daily-ava': '开运头像',
   /* R3433-P1-3（审）：晒合拍卡/木鱼时弹层张冠李戴「命盘海报」、
    * 文件名回落「分享图」——新视图同口径收进标题表。 */
   cpdaily: '今日合拍指数', muyu: '敲敲木鱼',
@@ -17195,45 +17253,6 @@ function initDivination() {
     var _nr2 = el('notifySoftRow');
     if (_nr2) _nr2.hidden = true;
   });
-  /* R3264（R24）：日签小红书文案——一键复制含判词/宜忌/链路的短文案。 */
-  on('copyXhs', function () {
-    if (!window.__lastDaily) {
-      showToast('今日运势还没出来，等它算好再复制～', 'warn');
-      return;
-    }
-    var _j = window.__lastDaily;
-    var _summ = String(_j.summary || '今日份小确幸').split(/[；;]/)[0] || '今日份小确幸';
-    /* R3318（审-P3-3）：剪贴板是纯文本不是 HTML——esc() 会把字段里
-     * 的 &<>"' 编成实体串晒出去。纯文本拼接用 String() 原值。 */
-    var _dcn = String(((_j.daily_card || {}).name) || '');
-    /* R3319-P3：ISO 日期「2026-10-03」机器腔——转「10月3日」。 */
-    var _dc4 = '今天';
-    try {
-      var _dm4 = String(_j.date || '').match(/\d{4}-(\d{1,2})-(\d{1,2})/);
-      if (_dm4) _dc4 = (+_dm4[1]) + '月' + (+_dm4[2]) + '日';
-    } catch (eD4) {}
-    var _txt = '🌟 ' + _dc4 + ' 今日签\n' +
-      String(_summ) + '\n' +
-      '宜：' + String(_j.do || '—') + '\n' +
-      '忌：' + String(_j.dont || '—') + '\n' +
-      /* R3317-D：咒语进晒图文案——晒图自带口号感 */
-      '✨ 今日咒语：' +
-      String(_dayPick(_MANTRA_POOL, 'mantra|' + String(_j.date || ''))) + '\n' +
-      /* R3317-G 续：今日牌也进晒图——塔罗党认这个 */
-      (_dcn
-        ? '🃏 今日牌：' + _dcn +
-          '（' + (_j.daily_card.upright ? '正位' : '逆位') + '）\n'
-        : '') + '\n' +
-      '在小满的解忧铺看的，你也来沾沾今日运气👇\n' +
-      (window.location.origin || '') + '/?view=daily&from=share';
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(_txt).then(
-          function () { showToast('今日签文案已复制', 'ok'); },
-          function () { showToast('复制失败，可手动长按复制', 'warn'); });
-      } else { throw new Error('no clipboard'); }
-    } catch (eC) { showToast('长按结果手动复制', 'info'); }
-  });
   /* R3264（R29）：今日护身符——基于日签响应生成 lucky 海报。 */
   on('shareLucky', function () {
     if (window.__lastDaily) return downloadPoster(window.__lastDaily, 'lucky');
@@ -17252,74 +17271,7 @@ function initDivination() {
     }
     _wapLast = _nw;
     if (window.__lastDaily) return downloadWallpaper(window.__lastDaily);
-    showToast('今日运势还没出来，等它算好再做壁纸～', 'warn');
-    return null;
-  });
-  /* R3325-B：开运头像——同日同图的 1:1 版（社交头像用），
-   * 与壁纸同节流（共用 _wapLast 即可，两钮互斥连点）。 */
-  on('dailyAva', function () {
-    var _nw2 = Date.now();
-    if (_nw2 - _wapLast < 2000) {
-      showToast('慢一点，图还在出～', 'info'); return null;
-    }
-    _wapLast = _nw2;
-    if (window.__lastDaily) {
-      return downloadWallpaper(window.__lastDaily, { square: true });
-    }
-    showToast('今日运势还没出来，等它算好再做头像～', 'warn');
-    return null;
-  });
-  /* R3325：提醒我明天再来——.ics 文件下载（每日准点喊你，30 天，
-   * 钟点沿用 notify:time 里存过的）。系统日历接管提醒，
-   * 不烧 Notification 权限、不靠 SW 活着。 */
-  on('dailyIcs', function () {
-    var hm = '21:00';
-    try {
-      var _nt = localStorage.getItem('notify:time');
-      /* R3329（审-P3）：99:99 形状过得去→setHours 翻滚误点——
-       * 形状+范围双闸。 */
-      if (_nt && /^\d{2}:\d{2}$/.test(_nt) && +_nt.slice(0, 2) <= 23 &&
-          +_nt.slice(3) <= 59) hm = _nt;
-    } catch (eNT) {}
-    var _st = new Date();
-    _st.setDate(_st.getDate() + 1);
-    var _h2 = hm.split(':');
-    _st.setHours(+_h2[0], +_h2[1], 0, 0);
-    var _pd = function (n) { return ('0' + n).slice(-2); };
-    var _dt = _st.getFullYear() + _pd(_st.getMonth() + 1) +
-      _pd(_st.getDate()) + 'T' + _pd(_st.getHours()) +
-      _pd(_st.getMinutes()) + '00';
-    /* R3327-P1-6：UID 固定（重复导入去重，不再一天多一份闹钟）；
-     * DTSTAMP 取此刻 UTC；VALARM 补 RFC 必需的 DESCRIPTION。 */
-    var _nw3 = new Date();
-    var _ds = _nw3.getUTCFullYear() + _pd(_nw3.getUTCMonth() + 1) +
-      _pd(_nw3.getUTCDate()) + 'T' + _pd(_nw3.getUTCHours()) +
-      _pd(_nw3.getUTCMinutes()) + _pd(_nw3.getUTCSeconds()) + 'Z';
-    var _ics = [
-      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//xiaoman//books//CN',
-      'BEGIN:VEVENT',
-      'UID:xiaoman-daily-remind@books',
-      'DTSTAMP:' + _ds,
-      'DTSTART:' + _dt,
-      'RRULE:FREQ=DAILY;COUNT=30',
-      'SUMMARY:小满喊你来领今日签',
-      'DESCRIPTION:今天的运势和开运色更新啦，来看看小满给你留了什么话～',
-      'BEGIN:VALARM', 'TRIGGER:-PT0M', 'ACTION:DISPLAY',
-      'DESCRIPTION:小满喊你来领今日签', 'END:VALARM',
-      'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-    try {
-      var _bb = new Blob([_ics], { type: 'text/calendar;charset=utf-8' });
-      var _aa = document.createElement('a');
-      _aa.href = URL.createObjectURL(_bb);
-      _aa.download = 'xiaoman-remind.ics';
-      document.body.appendChild(_aa);
-      _aa.click();
-      setTimeout(function () { URL.revokeObjectURL(_aa.href); _aa.remove(); }, 800);
-      showToast('存进日历后，接下来 30 天每天 ' + hm +
-        ' 喊你来领签', 'ok');
-    } catch (eIC) {
-      showToast('这台设备下载不了日历文件', 'warn');
-    }
+    showToast('今日运势还没出来，等它算好再做开运图～', 'warn');
     return null;
   });
 }
