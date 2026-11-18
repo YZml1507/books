@@ -2224,8 +2224,14 @@ _NAME_REVIEW_SYSTEM = (
 
 
 def review_names(names: list[str], facts: list[str] | None = None,
-                 config: dict | None = None, _transport=None) -> str | None:
-    """候选名列表 → 引经据典的推荐语文本。失败返回 None（D-244a）。"""
+                 config: dict | None = None, _transport=None,
+                 on_delta=None) -> str | None:
+    """候选名列表 → 引经据典的推荐语文本。失败返回 None（D-244a）。
+
+    on_delta：R76（#2）真流式回调——只给主节点逐字回调用。三节点
+        并发竞速里若三个都流，用户会看到三份文本交错往外冒，所以
+        兜底节点保持 buffered；主节点胜出时才有逐字上屏，兜底胜出
+        时只差在「等整条再吐」，不会更坏。"""
     cfg = config or load_config()
     if cfg is None:
         return None
@@ -2264,8 +2270,12 @@ def review_names(names: list[str], facts: list[str] | None = None,
     _ex = _cf.ThreadPoolExecutor(max_workers=len(_nodes),
                                  thread_name_prefix="nrace")
     try:
-        _futs = [_ex.submit(_chat_call, msgs, _n, _transport, True, _rdead)
-                 for _n in _nodes]
+        # 位置参对齐 _chat_call(payload_msgs, cfg, _transport,
+        # keep_citations, deadline, banned_seen, on_delta)——共 7 个，
+        # 少一个都会 TypeError 把整个竞速打空。
+        _futs = [_ex.submit(_chat_call, msgs, _n, _transport, True, _rdead,
+                            None, on_delta if _i == 0 else None)
+                 for _i, _n in enumerate(_nodes)]
         for _f in _cf.as_completed(_futs):
             try:
                 _t = _f.result()
@@ -2282,7 +2292,12 @@ def review_names(names: list[str], facts: list[str] | None = None,
 def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
                            config: dict | None = None,
                            _transport=None) -> str | None:
-    """后台起一个起名点评任务，复用 _tasks/GC/轮询端点。关闭时返回 None。"""
+    """后台起一个起名点评任务，复用 _tasks/GC/轮询端点。关闭时返回 None。
+
+    R76（#2）：与 chat 同款真流式——主节点每吐一片就追加进任务行
+    text，轮询端点 /api/ai/{tid} 原样带回，前端即读即显（零新端点、
+    零新 GC）。此前点评是「等 amd 发全，再像流逝一样一个字一个字
+    往外冒」的假打字机，78s 预算里用户干等大半程。"""
     cfg = config or load_config()
     if cfg is None:
         return None
@@ -2308,10 +2323,40 @@ def spawn_name_review_task(names: list[str], facts: list[str] | None = None,
             rec0 = _tasks.get(tid)
             if rec0 is not None:
                 rec0["started"] = time.monotonic()
+
+        # R76（#2）：流式分片发布器——与 chat 的 _pub 同构同闸
+        # （禁语露头即冻结并清空已显分片；raw 累加供跨分片拼词判定）。
+        # 封口：三节点竞速 _ex.shutdown(wait=False) 不收输家线程，
+        # 主节点流式落选后仍在吐分片——不封口的话这些迟到分片会追加到
+        # 已经写定的兜底全文后面，用户看到「正文明 + 半截乱码」。
+        _sealed: list[bool] = []
+
+        def _pub(piece: str) -> None:
+            if not piece or _sealed:
+                return
+            with _tasks_lock:
+                rec0 = _tasks.get(tid)
+                if rec0 is None or rec0.get("frozen"):
+                    return
+                _acc = (rec0.get("raw") or "") + piece
+                rec0["raw"] = _acc
+                if _BANNED_OUT_PAT.search(_scan_flat(_acc)):
+                    rec0["frozen"] = True
+                    rec0["text"] = ""
+                    _llm_log("review 流式禁语露头→冻结")
+                    return
+                rec0["text"] = (rec0.get("text") or "") + piece
+
         try:
-            text = review_names(names, facts=facts, config=cfg,
-                                _transport=_transport)
-            status = "done" if text else "failed"
+            try:
+                text = review_names(names, facts=facts, config=cfg,
+                                    _transport=_transport, on_delta=_pub)
+                status = "done" if text else "failed"
+            finally:
+                # 竞速已定（无论成/败），迟到分片一律丢弃——finally 保证
+                # review_names 抛异常时也封口，不然慢半拍的主节点分片会
+                # 补到 failed 任务行后面。
+                _sealed.append(True)
         except BaseException:            # R2511：同 polish/chat 径防 pending 泄漏
             status, text = "failed", None
         with _tasks_lock:

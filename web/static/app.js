@@ -3014,6 +3014,10 @@ function _chatFallbackLine(message) {
 function _nameReviewDone() {
   var b = el('nameReviewBtn');
   if (b) b.disabled = false;
+  /* R76（#2）：清流式游标——同一容器节点被下一批复用时（innerHTML 重建
+   * 前的竞态窗口），别让新一批误判「已经流式过」而跳过打字机兜底。 */
+  var _o = el('nrAiOut') || el('nameReviewOut');
+  if (_o && _o.dataset) delete _o.dataset.nrStream;
 }
 var _NR_GEN = 0;   /* R230v（R34-#2）：点评任务代际——旧任务落地不得
  * 写进新一批名字的点评容器（nameReviewOut 是同 id 复用的）。 */
@@ -3057,6 +3061,51 @@ function _nrRetryable(out, msg) {
     if (_b && !_b.disabled) _b.click();
   });
 }
+/* R76（#2）：起名点评真流式增量——主节点每吐一片就追加进任务行 text，
+ * 轮询原样带回，这里只把新尾巴接上去。取代原来的「等 amd 发全，再像
+ * 流逝一样一个字一个字往外冒」（typewriteInto 假打字机）。
+ * 与 _chatStreamInto 同构：非前缀（禁语冻结清空过/服务端重灌）整条重渲，
+ * 不把旧尾巴留在气泡里。 */
+function _nrStreamInto(box, full) {
+  if (!box || !full) return;
+  /* 首个分片：先把「✨ AI 故事版」壳和正文槽建出来，再把等待文案替掉。
+   * 壳与 done 路径的 out.innerHTML 结构一致——done 时 _nrRichInto 只换
+   * 正文槽内容，标题不会被抹。 */
+  var _p = box.querySelector('.nr-text');
+  if (!_p) {
+    box.innerHTML = '<div class="tarot-deep"><h4>✨ AI 故事版</h4>' +
+      '<p style="white-space:pre-wrap;" class="nr-text"></p></div>';
+    _p = box.querySelector('.nr-text');
+  }
+  if (!_p) return;
+  var _have = (typeof box.dataset.nrStream === 'string')
+    ? box.dataset.nrStream : null;
+  var _tail;
+  if (_have === null) {
+    _p.innerHTML = '';
+    _p.classList.add('tw-typing');
+    _tail = full;
+  } else if (full.length >= _have.length && full.indexOf(_have) === 0) {
+    _tail = full.slice(_have.length);      /* 正常增量 */
+  } else {
+    /* 非前缀（禁语冻结清空过/服务端重灌）——整条重渲，别留旧尾巴。 */
+    _p.innerHTML = '';
+    _tail = full;
+  }
+  if (!_tail) return;
+  box.dataset.nrStream = full;
+  _p.appendChild(document.createTextNode(_tail));
+}
+
+/* 起名点评终态：先撤打字光标，再换富文本（故事版段落已在 #nrAiOut 内）。 */
+function _nrRichInto(box, text) {
+  if (!box) return;
+  var _p = box.querySelector('.nr-text');
+  if (!_p) { box.innerHTML = renderRichText(text); return; }
+  _p.classList.remove('tw-typing');
+  _p.innerHTML = renderRichText(text);
+}
+
 function pollNameReview(taskId) {
   var _gen = _NR_GEN;
   var deadline = performance.now() + NR_POLL_CAP_S * 1000;   /* R3245：点评独立预算 78s——通用 62s 帽会在链跑完前判死 */
@@ -3086,8 +3135,17 @@ function pollNameReview(taskId) {
       /* R2512：口吻切换重画后容器可能是新节点——写入前显式翻开。 */
       var _outP = el('nameReviewOut'); if (_outP) _outP.hidden = false;
       if (st && st.status === 'done' && st.text) {
-        /* R3241：点评同样逐字蹦——先纯文本打字，终态换富文本。
+        /* R76（#2）：流式已经把字显过了（box.dataset.nrStream 有值）——
+         * done 时直接换富文本终态，不再从头打字。那正是用户嫌弃的
+         * 「等 amd 把消息发全，再像流逝一样一个字一个字往外冒」。
          * R3244：写进 nrAiOut，典故先读卡之下追加故事版。 */
+        if (out.dataset && typeof out.dataset.nrStream === 'string') {
+          _nrRichInto(out, st.text);
+          _nameReviewDone();
+          return;
+        }
+        /* 未流式过（兜底节点胜出/禁语冻结后整条重灌）——仍走原打字机，
+         * 但先建壳，与流式路径同结构。 */
         out.innerHTML = '<div class="tarot-deep"><h4>✨ AI 故事版</h4>' +
           '<p style="white-space:pre-wrap;" class="nr-text"></p></div>';
         var _nrp = out.querySelector('.nr-text');
@@ -3095,6 +3153,16 @@ function pollNameReview(taskId) {
           if (_nrp) _nrp.innerHTML = renderRichText(st.text);
         });
         _nameReviewDone();
+        return;
+      }
+      /* R76（#2）：真流式分片——pending 且已有部分正文即追加显字。
+       * 分片在流 ≠ 卡死：轮询预算从此刻重新起算、退避回快档，
+       * 字才跟得上模型往外蹦的速度。 */
+      if (st && st.status === 'pending' && st.text) {
+        _nrStreamInto(out, st.text);
+        deadline = performance.now() + NR_POLL_CAP_S * 1000;
+        _wait = AI_POLL_INTERVAL_MS;
+        _nri = 0;
         return;
       }
       if (st && st.status === 'failed') {
