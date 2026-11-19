@@ -529,3 +529,44 @@ index.html 图标钮在位；sw CACHE = `books-shell-249e03bc3f92`。
 **待办（用户侧）**：强制刷新一次让新 SW 缓存接管；未登录/登录态
 各自过一眼四条反馈；安全组 TCP 22 仍为 0.0.0.0/0（NAT 池所致），
 建议事后收紧。
+
+## R8y 淡牌缓存根因修复 + 安装按钮实话文案（2026-11-19）
+
+**用户直报（两条截图）**：① 三张塔罗牌（皇帝/星星/力量 逆位）「还是很淡」；
+②「装到桌面」按钮「点了没有反应呀」；③「真能当App用吗？」
+
+### 淡牌根因（证伪过程）
+- 线上三图 curl 字节数与本地增强版**逐一相同**（59032/58733/61337）→
+  服务器早就是新图，「重新部署」思路无效。
+- 静态图响应头 `cache-control: public, max-age=86400` + etag；
+  webview/不重新验证的浏览器可把旧字节赖到自然过期 → 用户端淡图是
+  **客户端旧缓存**，非 SW 运行时缓存（http:// 下 SW 本就不注册）。
+- 旧假设「SW RT 缓存不随文件失效」本轮未采用（SW 在非安全上下文不运行）。
+
+### 修复
+- `tarotImg()`（app.js，全部屏幕路径唯一收口：结果卡/牌堆/牌册/日卡）
+  URL 挂 `?v=_TAROT_IMG_V='r8y'`——换 URL = SW/HTTP 磁盘缓存/webview
+  任何一层都绕不开，用户零操作拿到新图。下次换塔罗图只改这个常量。
+- `installPwa` 回落文案按 `window.isSecureContext` 分叉：http 下
+  beforeinstallprompt 永不触发、安卓菜单也没有「安装应用」项——原文案
+  指着用户点不存在的菜单项，「点了没反应」的观感出在这。iPhone 照实说
+  「添加主屏幕即全屏 App」（apple-mobile-web-app-capable meta 在位，
+  不需要 https）；安卓照实说「先快捷方式，真安装+离线要 https」。
+
+### 闸门与部署
+- bump_sw → CACHE `books-shell-16c7dc5d7683`（首跑 selftest 报
+  sw.shell_hash 红：共享工作区另一会话并发写文件造成的瞬态，状态沉降后
+  重跑即绿——教训：本仓与其他会话共用，闸红先查并发再查自身）。
+- selftest **PASS (471 checks)**（含另一会话新增的 R81 聊天历史窗口 5 项）。
+- 提交 `939dbf5`（只提交 app.js + sw.js；另一会话的 selftest.py/llm_polish.py
+  未提交改动未带入）。
+- 部署：备份 `/opt/books/backups/r8y-cachefix-*/`，scp app.js + sw.js，
+  双端 md5 一致（app.js `2397828815f550bade9682d7772356cd`）。
+- 线上验证：sw CACHE 新值；minify app.js 含 `_TAROT_IMG_V`/`isSecureContext`/
+  「一键安装需要 https」；三张直报卡 `?v=r8y` 均 200 且字节=增强版。
+
+### 待办（用户侧）
+- 强刷一次 http://116.205.229.222/ 看新牌（?v= 换 URL，正常刷新即可，
+  不必清缓存）。
+- 真 App（安卓一键安装+离线+角标）需 HTTPS：要有域名才能配证书，
+  已问用户；有则 nginx+certbot+443 放行。
