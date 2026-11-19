@@ -3222,6 +3222,185 @@ def _run_inner() -> list[str]:
     _iso = _dt_for_mantra.today().isoformat()
     assert _svc_dm._day_mantra(_iso) in _svc_dm._MANTRA_POOL
     ok.append("chat.dailyfacts")
+    # ------------------------------------------------------------------
+    # R81：历史窗口 + 「前情提要」折叠
+    # ------------------------------------------------------------------
+    # 背景：_CHAT_MAX_TURNS=6 时单会话历史最坏 6×(500+803)=7818 字符，
+    # 撞不到 16000 的窗口——窗口与折叠机制在产品当前配置下是「备而
+    # 不用」。这里把轮数上限临时抬高来驱动溢出，测的是机制本身；同时
+    # 用一条断言钉住「窗口 > 当前轮数上限下的历史上界」，谁改任一侧
+    # 都会红，逼得改动的人显式想清楚这两者的关系。
+    import threading as _thr
+    import time as _tm
+    from guji import llm_polish as _lp81
+    _MAXMSG = 500          # ChatRequest.message 上限（schemas 同值）
+    _MAXHIST = 800 + len("…（后略）")   # chat() 落历史的副本上限
+    _hist_cap = _lp81._CHAT_MAX_TURNS * (_MAXMSG + _MAXHIST)
+    assert _lp81._CHAT_HIST_CHARS > _hist_cap, (
+        "chat.hist_window_capacity",
+        f"窗口 {_lp81._CHAT_HIST_CHARS} 未大于 {_lp81._CHAT_MAX_TURNS} 轮"
+        f"历史上界 {_hist_cap}——当前配置下窗口永不被触发，"
+        "若要它生效须同步上调 _CHAT_MAX_TURNS")
+    ok.append("chat.hist_window_capacity")
+    # _hist_keep_count 边界：累计一超窗就停，停住那条本身不计入。
+    assert _lp81._hist_keep_count([]) == 0
+    assert _lp81._hist_keep_count([{"content": "a" * 10}]) == 1
+    _b_msgs = [{"content": "a" * 10}, {"content": "b" * 10}]
+    assert _lp81._hist_keep_count(_b_msgs) == 2
+    _lp81._CHAT_HIST_CHARS, _saved_win = 15, _lp81._CHAT_HIST_CHARS
+    try:
+        assert _lp81._hist_keep_count(_b_msgs) == 1, "chat.hist_keep_edge"
+        assert _lp81._hist_keep_count(
+            [{"content": "a" * 10}, {"content": "b" * 10},
+             {"content": "c" * 10}]) == 1
+        # 单条巨料：自身就超窗 → 一条都不留（不能留一条撑爆的）。
+        assert _lp81._hist_keep_count([{"content": "z" * 100}]) == 0
+    finally:
+        _lp81._CHAT_HIST_CHARS = _saved_win
+    ok.append("chat.hist_keep_edge")
+    _lp81._CHAT_MAX_TURNS, _saved_turns = 40, _lp81._CHAT_MAX_TURNS
+    try:
+        _fold_seen = []
+        _chat_seen = []
+        _fold_done = _thr.Event()
+        _spawned = []
+
+        def _joinable_spawn(session_id, cfg, _transport=None):
+            """和 production 的 _spawn_summary_fold 等价：起 daemon 线程
+            跑 worker，额外把线程对象记下来供测试 join。
+
+            不能图省事直接调 _summary_fold_worker——chat() 是在自己的
+            _chat_lock 临界区里调 spawn 的，而 worker 第一件事就是抢同一
+            把锁，同步调用等于自造死锁。R81b 实测：faulthandler 抓到主线
+            程死在 worker 的 `with _chat_lock` 上，一句话都出不来（这也
+            正是重构时给 _spawn_summary_fold 加锁那次事故的同型）。"""
+            _s = _lp81._chat_sessions.get(session_id)
+            if _s is not None:
+                _s["folding"] = True
+            _t = _thr.Thread(target=_lp81._summary_fold_worker,
+                             args=(session_id, cfg, _transport),
+                             daemon=True)
+            _t.start()
+            _spawned.append(_t)
+
+        def _mk81(fail_fold=False):
+            def _tp(payload, headers, url, to):
+                _ms = payload.get("messages") or []
+                if any("前情提要" in (m.get("content") or "")
+                       for m in _ms):
+                    if fail_fold:
+                        return {"choices": [{"message": {
+                            "role": "assistant", "content": ""},
+                            "finish_reason": "stop"}]}
+                    _fold_seen.append(_ms[-1]["content"])
+                    _fold_done.set()
+                    return {"choices": [{"message": {
+                        "role": "assistant",
+                        "content": "她说过：三年前离婚，独自带女儿，"
+                                   "最放不下孩子上学。"},
+                        "finish_reason": "stop"}]}
+                _chat_seen.append({"sys": _ms[0]["content"],
+                                   "user": _ms[-1]["content"],
+                                   "n": len(_ms)})
+                return {"choices": [{"message": {
+                    "role": "assistant",
+                    "content": "嗯我在听，你慢慢说，不着急，我都在。" * 100},
+                    "finish_reason": "stop"}]}
+            return _tp
+
+        _cfg81 = {"enabled": True, "base_url": "http://x/v1",
+                  "model": "m", "timeout_s": 30, "max_tokens": 1000,
+                  "api_key": "k"}
+        # 每轮消息必须唯一——否则「最后一条不在 fold payload 里」这条断言
+        # 会被同一句话的重复出现蒙混过去（第一版就栽在这）。
+        _q81 = ("我最近真的很累，工作上的事怎么也说不清楚，妈妈又打电话"
+                "来催了，觉得自己太软弱，不知道该怎么办，说了他也不懂。"
+                ) * 3
+
+        def _drive81(sid, fail_fold=False, joinable=True):
+            """驱动 21 轮溢出，返回 (session, 最后一次 chat payload)。
+
+            joinable=True 时把 spawn 换成「起真线程但可 join」的版本。
+            折叠是后台线程，主线程轮询会话档等它收敛完全看调度脸色：实测
+            沙箱里主线程空转能把折叠线程饿住 8s（服务器上更久，
+            chat.summary_converge 就是这么红的），而任何一次 print /
+            _current_frames() 都能把它放行——那是测试的抖动，不是代码
+            缺陷，折叠晚一轮只是摘要晚到，用户侧无感。join() 是正经阻塞
+            等待（彻底让出 GIL），不会被骗到。异步路径另开一条 smoke。"""
+            _fold_seen.clear()
+            _chat_seen.clear()
+            _fold_done.clear()
+            _spawned.clear()
+            _lp81._chat_sessions.pop(sid, None)
+            _orig_spawn = _lp81._spawn_summary_fold
+            if joinable:
+                _lp81._spawn_summary_fold = _joinable_spawn
+            try:
+                for _i in range(21):
+                    _r = _lp81.chat(sid, f"第{_i + 1}轮，" + _q81,
+                                    config=_cfg81,
+                                    _transport=_mk81(fail_fold))
+                    assert _r, ("chat.summary_drive",
+                                f"第 {_i + 1} 轮聊天失败")
+                    for _t in _spawned:
+                        _t.join(30)
+                    _spawned.clear()
+            finally:
+                _lp81._spawn_summary_fold = _orig_spawn
+            return _lp81._chat_sessions[sid], _chat_seen[-1]
+
+        _s81, _pl81 = _drive81("st-sum-ok")
+        assert _s81.get("ctx_trimmed") is True, "chat.summary_trim_flag"
+        assert _s81.get("summary"), "chat.summary_produced"
+        assert _fold_seen, "chat.summary_fold_called"
+        # 收敛：summary_n 必须追到「被窗口挤出去的条数」，否则有料没折。
+        _keep81 = _lp81._hist_keep_count(_s81["messages"])
+        assert _s81["summary_n"] == len(_s81["messages"]) - _keep81, (
+            "chat.summary_converge", _s81.get("summary_n"))
+        # 折的必须是窗口外的料——fold payload 里不能出现还在 prompt 里的
+        # 那句（写过一版把保留窗口自己折了，第 3 轮起摘要全是刚说的话）。
+        _last_user = _s81["messages"][-2]["content"]
+        assert _last_user not in _fold_seen[-1], "chat.summary_folds_dropped"
+        # 落点：摘要必须在 user 位上下文块里，且绝不出现在 system 里。
+        # 摘要由模型生成、源头是对话原文，进 system 等于给用户文本开一条
+        # 特权注入信道（R230a-6 同型教训）。
+        assert "之前聊过的内容" in _pl81["user"], "chat.summary_in_user_block"
+        assert "之前聊过的内容" not in _pl81["sys"], \
+            "chat.summary_not_in_system"
+        # 有摘要时提示文案说「压缩成了摘要」，不再说「被省略了」。
+        assert "压缩成了一段摘要" in _pl81["sys"], "chat.summary_hint"
+        assert "因为太长被省略" not in _pl81["sys"], "chat.summary_hint_stale"
+        ok.append("chat.summary_fold")
+        # 折叠全失败：聊天不许挂、摘要不许半份、提示文案退回「被省略」。
+        _s81f, _pl81f = _drive81("st-sum-fail", fail_fold=True)
+        assert not _s81f.get("summary"), "chat.summary_fail_clean"
+        assert not _s81f.get("summary_n"), "chat.summary_fail_noadvance"
+        assert "因为太长被省略" in _pl81f["sys"], "chat.summary_fail_hint"
+        assert "之前聊过的内容" not in _pl81f["user"], \
+            "chat.summary_fail_nouser"
+        ok.append("chat.summary_fail")
+        # 异步 smoke：走真实 spawn。查两件事——chat() 自己不能被折叠
+        # 线程拖死（R81b 给 _spawn_summary_fold 加过一把 _chat_lock，
+        # 而调用方本来就持着它，不可重入 → 整条聊天链路卡住，全靠这条
+        # 断言兜住），以及后台折叠最终真的落地。等 Event 而不是轮询
+        # 会话档：Event.wait 会彻底让出 GIL，不会被饿死假象骗到。
+        _s81a, _pl81a = _drive81("st-sum-async", joinable=False)
+        assert _fold_done.wait(60), "chat.summary_async_nofold"
+        _t81 = _tm.time()
+        while _tm.time() - _t81 < 10:
+            _sa = _lp81._chat_sessions.get("st-sum-async") or {}
+            _ka = _lp81._hist_keep_count(_sa.get("messages") or [])
+            if (_sa.get("summary_n") or 0) >= len(
+                    _sa.get("messages") or []) - _ka:
+                break
+            _tm.sleep(0.02)
+        _sa = _lp81._chat_sessions.get("st-sum-async") or {}
+        assert _sa.get("summary"), "chat.summary_async_summary"
+        assert not _sa.get("folding"), "chat.summary_async_folding_stuck"
+        ok.append("chat.summary_async")
+    finally:
+        _lp81._CHAT_MAX_TURNS = _saved_turns
+
     _expect_400("err.dream.empty",
                 client.post("/api/dream", json={"text": "   "}))
     # R178b（D-229b）：/api/daily 的 date **查询参数**生效 + 非法日期 400。
@@ -4791,6 +4970,13 @@ def _run_inner() -> list[str]:
     assert "_chatMemoryLine" in _appsrc2 and "chat-memline" in _appsrc2, \
         "记忆连续性：_chatMemoryLine/chat-memline 缺一"
     ok.append("frontend.chat_memline")
+    # R81：截断提示分叉——ctx_summary 到位才有「只留了摘要」那句，
+    # 缺一支前端就会对所有截断都说「没带上」，等于瞒用户。
+    assert "st.ctx_summary" in _appsrc2, \
+        "frontend.chat_trim_summary：ctx_summary 分支缺失"
+    assert "只留了个摘要" in _appsrc2 and "这回没带上" in _appsrc2, \
+        "frontend.chat_trim_summary：两句文案缺一"
+    ok.append("frontend.chat_trim_summary")
     # R3447 聊斋当值签：语料/按日定值/结果条/海报数据键——缺一
     # 限定抽就没当值签或晒图丢行。
     _postsrc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),

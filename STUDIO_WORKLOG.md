@@ -623,3 +623,88 @@ index.html 图标钮在位；sw CACHE = `books-shell-249e03bc3f92`。
 - 线上：sw CACHE = f12d4a57e0d9；minify app.js 与 app_wallpaper.js 均含 `_WAP_IMG_V`；
   `wap-16..23.jpg?v=r9a` 全 200 且字节=本地（51608/45193/52388/47386/29549/25896/44300/75378）。
 - 用户侧：普通刷新即换新图（?v=r9a 绕开 HTTP 磁盘缓存 max-age=86400 与 SW 运行时缓存）。
+
+## R81b · 聊天上下文窗口 8K→16K + 「前情提要」滚动摘要（2026-11-19）
+
+### 起因与调研结论
+- 用户问「和小满聊一聊的上下文是 1M 还是 256K，要不要提到 256K」。实测：部署模型
+  `Qwen3.8-27B` @ `developer.amd.com.cn/radeon/api/v1`，`GET /models` 12 个模型里
+  4 个报 `context_length: 262144`——**窗口是 256K，不是 1M**。代码从不发任何
+  context-window 参数（`num_ctx|n_ctx|context_length` 全仓零命中），chat payload 只有
+  `model/messages/max_tokens/temperature` + `enable_thinking:false`。
+- 真正的瓶颈是字符帽 `_CHAT_HIST_CHARS`（原 4000，用户实测「聊到第四轮她就忘了第一句」）。
+  最坏单轮 prompt ≈18,000 字符 ≈12–18K token，**只用到 256K 的 5–7%**。故不提模型、
+  不换端点，只把字符帽抬到 16000。
+- 不建议一步跳 32K+：AMD 端点首 token ≈20s（10–35s 抖动，17.6 tok/s 出字），prompt 线性
+  增长会把首字延迟推过 `AI_POLL_CAP_S=230` 轮询帽——「四十秒才出第一个字」比忘事更糟。
+
+### 摘要机制（超出窗口的旧轮次不再直接丢弃）
+- 常量：`_CHAT_HIST_CHARS=16000`、`_CHAT_SUMMARY_CHARS=1200`、
+  `_CHAT_SUMMARY_FOLD_MIN=300`、`_CHAT_SUMMARY_FOLD_ROUNDS=3` + `_SUMMARY_SYSTEM`
+  （第三人称「前情提要」：留她主动说出的个人情况/反复提起或没放下的事/决定与承诺/
+  助手答应过的事/当前话题进度；丢寒暄、重复、命理术语解释、助手客套；「她」指来访者、
+  「小满」指助手）。
+- `_hist_keep_count(msgs)`：从末尾累计字符，一超窗就停，停住那条本身不计入。
+  `chat()` 与 `_summary_fold_worker` 共用同口径。
+- 折叠走**异步 daemon 线程**：端点首 token ≈20s，同步折叠会把首字延迟顶穿轮询帽。
+  代价是摘要慢一轮，可接受。
+- **摘要注入 user 位上下文块，绝不进 system**——摘要由模型生成、源头是对话原文，
+  走 system 等于给用户文本开一条特权注入信道（R230a-6 同型教训：客户端 facts 当初
+  这么做才被降级）。
+- 折叠失败**不推进 summary_n**，保留旧摘要下轮重试；绝不因摘要挂掉让聊天失败。
+- `_sess_obj` 身份守卫（`is` 比较）：会话被 GC 逐出又重建时，旧线程不得把摘要写进
+  全新会话档。
+
+### 前端与透传
+- `rec["ctx_summary"]` 落档 + 轮询 payload 透传。
+- `_chatTrimNote` 按 `st.ctx_summary` 分叉：有摘要「更早的内容小满只留了个摘要，细节
+  可能对不上」；无摘要保留原文「更早的几句小满这回没带上」。
+
+### 三次返工（都是真 bug，不是测试抖动）
+1. **折叠区间写错**：第一版 `_todo = _msgs[_folded:_keep]` 折的是保留窗口内的消息，
+   第 3 轮起摘要里全是刚说过的话。改为 `_drop = len-_keep; _todo = _msgs[_folded:_drop]`，
+   `summary_n` 设 `_drop`。
+2. **竞态（服务器自测抓到）**：`folding` 原由 worker 线程自己置位，「spawn 刚返回、线程
+   还没抢到锁」这段窗口里 folding 仍为假，外部收敛判断提前收工。改为 spawn 在起线程前
+   置位；worker 用局部 `_claimed` + `finally` 统一释放（漏一条 return 就把会话永久卡在
+   「折叠中」）。沙箱调度快没暴露，服务器慢一暴露就红。
+3. **自死锁**：重构时给 `_spawn_summary_fold` 加了 `with _chat_lock`，而调用方本来就持着
+   它（`threading.Lock` 不可重入），整条 chat 链路卡死，一句话都出不来（faulthandler 抓到
+   主线程停在该函数第一行）。改为不抢锁、直接改会话档，docstring 与调用点都注明
+   「调用方必须已持锁」。
+4. **spawn 时机（服务器二次暴露）**：spawn 原先在消息落档**之前**，worker 抢到锁时快照到的
+   是上一轮状态，摘要系统性落后一轮（`summary_n` 永远差 2）。沙箱线程起得慢反而侥幸对上，
+   服务器一快就红。已挪到 `sess["messages"].append(...)` 之后、同一 `_chat_lock` 临界区内。
+
+### 闸门（web/selftest.py，5 条新增，472 checks）
+- `chat.hist_window_capacity`：钉住「窗口 > 当前轮数上限下的历史上界」——
+  `_CHAT_MAX_TURNS * (500 + 803)`，谁改任一侧都会红，逼得改动的人显式想清楚两者关系。
+- `chat.hist_keep_edge`：`_hist_keep_count` 边界（空表 0 / 单条 1 / 两条 2；临时把窗口降到
+  15 后 1/1/0，含「单条巨料自身超窗 → 一条都不留」）。
+- `chat.summary_fold`：21 轮驱动溢出，断言收敛、折的是窗口外的料、摘要在 user 位不在
+  system、提示文案说「压缩成了摘要」。
+- `chat.summary_fail`：fold 恒返空——聊天照常、摘要干净、文案退回「被省略」。
+- `chat.summary_async`：走真实 spawn 的异步 smoke，专治「chat() 被折叠线程拖死」。
+- 测试侧：`_spawn_summary_fold` 换成「起真线程但可 join」的版本。**不能图省事直接调
+  `_summary_fold_worker`**——chat() 在自己的 `_chat_lock` 临界区里调 spawn，而 worker 第一
+  件事就是抢同一把锁，同步调用等于自造死锁（faulthandler 抓到主线程死在 worker 的
+  `with _chat_lock`）。原写法主线程轮询等收敛也纯粹看调度脸色（沙箱能把折叠线程饿住 8s，
+  任何一次 print / `_current_frames()` 都能放行），`join()` 是正经阻塞等待，不会被骗到。
+
+### 部署与验证
+- 备份 `/opt/books/backups/r81b-20261119/`（第一轮）与 `/opt/books/backups/r81b-fix-20261119-0120/`
+  （第三轮修复前）。
+- scp：`src/guji/llm_polish.py`、`web/selftest.py`、`web/static/app.js`、`web/static/sw.js`；
+  第三轮一并带上另一会话的 `app_wallpaper.js` + `wallpapers/wap-16..23.jpg`（shell hash 依赖它们）。
+  双端 md5 逐字节一致（llm_polish.py `b5ab8c8de67e6aae5969e5b3b0909578`）。
+- 沙箱全量：**PASS (472 checks)**；服务器全量：**PASS (473 checks)**（服务器有语义检索环境，
+  无 SKIP），5 条 R81 闸门双端全绿。
+- 中途两次「卡死」虚惊：根因是 `data/index/knowledge.db` 跨进程 WAL 写锁互等（另一会话并发跑
+  selftest）与 58MB `corpus.db` 冷读 I/O（线程 `wait_on_page_bit_common`）。**与本次改动无关**：
+  stash 掉改动跑 HEAD 原版代码，卡在逐字节相同的位置。解法：清场 + `setsid` 单进程跑。
+
+### 未决（产品决策，需用户拍板）
+- `_CHAT_MAX_TURNS = 6` 使 16K 窗口与摘要机制在当前配置下**完全 inert**：6 轮最坏历史
+  = 6×(500+803) = 7,818 字符 < 旧的 8,000 窗口，截断分支在改动前就从未触发。真正限制
+  「小满记不住」的是这个 6 轮上限（注释写明「防依赖设计」）。`chat.hist_window_capacity`
+  已把这件事钉住：谁单独改任一侧都会红。

@@ -737,7 +737,9 @@ def ai_task_status(tid: str) -> dict | None:
                 # 「重启失忆」并在气泡间插分隔提示。
                 "boot": _BOOT_ID,
                 # R76（#5）：本轮历史被窗口截断——前端据此插一条可见提示
-                "ctx_trimmed": bool(rec.get("ctx_trimmed"))}
+                "ctx_trimmed": bool(rec.get("ctx_trimmed")),
+                # R81：截掉的部分折成摘要了没有——决定前端那句提示怎么说。
+                "ctx_summary": bool(rec.get("ctx_summary"))}
 
 
 # ---------------------------------------------------------------------------
@@ -1429,10 +1431,52 @@ _SENSITIVE_REPLY = ("愿意说出来已经很不容易了——这个话题我�
 # 「没戏/必离/注定孤独/他克你」）。
 _CHAT_BANNED_PAT = _BANNED_OUT_PAT
 
+# ---------------------------------------------------------------------------
+# R81：历史窗口之外的轮次 → 「前情提要」
+# ---------------------------------------------------------------------------
+# 旧行为是直接丢弃：她第三轮说过的事，第五轮起小满再也看不到，而前端
+# 只有一条「更早的几句没带上」的分隔——她只知道「她怎么又忘了」，不
+# 知道是哪句。改成把溢出的轮次折叠成一段摘要，下一轮起随 prompt 进上
+# 下文。
+#
+# 三个关键决策：
+#   1) 折叠走异步线程。这端点首 token ~20s（10–35s 抖动），同步折叠会
+#      把首字延迟顶穿 AI_POLL_CAP_S=230 的轮询帽。代价是摘要慢一轮——
+#      本轮被截掉的轮次要下一轮才进得了上下文，可接受（本来也进不去）。
+#   2) 摘要进 user 位上下文块，不进 system。摘要由模型生成、源头是对话
+#      原文，走 system 位等于给用户文本开一条特权注入信道（R230a-6 同型
+#      教训：客户端 facts 当初就是这么做才被降级的）。
+#   3) 折叠失败/没跑完 → 保留旧摘要、不推进 summary_n，下一轮重试。
+#      绝不因为摘要挂了就让聊天失败。
+# 摘要本身上限（字符）：超长时旧摘要与新料一起交回模型重压，防摘要自身
+# 膨胀把省下的额度又吃回去。
+_CHAT_SUMMARY_CHARS = 1200
+# 待折叠料少于此值不烧一次调用——十几字寒暄折叠不出信息，白搭 20s 前摇。
+_CHAT_SUMMARY_FOLD_MIN = 300
+# 单个折叠线程内追平溢出的最多轮数（上次折叠在跑时又涌进新轮次的情况）。
+_CHAT_SUMMARY_FOLD_ROUNDS = 3
+
+_SUMMARY_SYSTEM = (
+    "把下面这段陪伴对话压成一段简短的中文「前情提要」，是给聊天助手自己回看的。\n"
+    "必须保留：她主动说出来的个人情况（人际关系、工作学业、身体与情绪、"
+    "她在意的日子）、她反复提起或明显没放下的事、她做过的决定或承诺、"
+    "助手答应过她的事、当前话题进行到哪。\n"
+    "可以丢掉：寒暄、重复的内容、命理术语的解释、助手的客套与总结陈词。\n"
+    "用第三人称客观记述。不要给建议、不要下命理断言、不要评判她。\n"
+    "不要出现「用户」这个词，用「她」指代来访的人，用「小满」指代助手。\n"
+    "只输出提要本身，不要解释你在做什么，不要加标题。"
+)
+
 # R76（#5）：聊天历史窗口（字符）。4K 时 assistant 单条常态 1K+，
 # 第三轮起就截断，用户体感「聊三句就失忆」；8K 约 5–8 轮。
 # 仍然有界——6 轮全量重发最坏 ~51K token 的老坑不能回去。
-_CHAT_HIST_CHARS = 8000
+# R81：8000 → 16000。窗口外的轮次不再直接丢弃，改折叠成「前情提要」
+# （见 _spawn_summary_fold）——省下来的不是 token，是「她说过的话被
+# 静默扔掉」这件事，所以窗口可以放心开大。
+# 注：_CHAT_MAX_TURNS=6 时单会话历史最坏 6×(500+803)=7818 字符，
+# 实际撞不到这个窗口；开它是为了让轮数上限一旦上调就有余地
+# （selftest chat.hist_window_capacity 钉住这个关系）。
+_CHAT_HIST_CHARS = 16000
 _chat_sessions: dict[str, dict] = {}
 _chat_lock = threading.Lock()
 # 每会话一把调用锁：历史快照→LLM 往返→落历史整段串行化。
@@ -1504,6 +1548,162 @@ def _gc_chat_sessions() -> None:
         for sid in [s for s, lk in _chat_call_locks.items()
                     if not lk.locked()][:_lk_over]:
             _chat_call_locks.pop(sid, None)
+
+
+def _hist_keep_count(msgs: list[dict]) -> int:
+    """从末尾往前累计，返回应保留进 prompt 的前缀条数。
+
+    与 R230t 原内联循环同口径：累计字符一超过 _CHAT_HIST_CHARS 就停，
+    停住那条本身不计入（避免单条巨料撑爆窗口后仍被保留）。"""
+    _hb, _n = 0, 0
+    for _m in reversed(msgs):
+        _c = len(_m.get("content") or "")
+        if _hb + _c > _CHAT_HIST_CHARS:
+            break
+        _hb += _c
+        _n += 1
+    return _n
+
+
+def _summary_fold_call(old: str, turns: list[dict], cfg: dict,
+                       _transport=None) -> str | None:
+    """旧摘要 + 新轮次 → 新摘要。失败返回 None（调用方保留旧摘要）。
+
+    max_tokens 压到 400：提要是 1200 字符级的东西，给 2000 是白烧这
+    端点 17.6 tok/s 的出字时间。"""
+    _lines = []
+    for _m in turns:
+        _who = "她" if _m.get("role") == "user" else "小满"
+        _c = (_m.get("content") or "").strip()
+        if _c:
+            _lines.append(_who + "：" + _c)
+    if not _lines:
+        return None
+    _body = "\n".join(_lines)
+    # 单次喂料封顶：极端长轮次只取尾部（越近越相关），头部截标记。
+    _cap = _CHAT_SUMMARY_CHARS * 4
+    if len(_body) > _cap:
+        _body = "……（更早的几句）\n" + _body[-_cap:]
+    _u = "下面是要合并的对话：\n" + _body + "\n\n"
+    if old.strip():
+        _u += ("已有的提要（在此基础上增补，不要丢里面她还在意的事）：\n"
+               + old.strip()[:_CHAT_SUMMARY_CHARS] + "\n\n")
+    _u += "输出合并后的完整提要。"
+    _scfg = dict(cfg)
+    _scfg["max_tokens"] = 400
+    try:
+        _txt = _chat_call(
+            [{"role": "system", "content": _SUMMARY_SYSTEM},
+             {"role": "user", "content": _u}],
+            _scfg, _transport, deadline=time.monotonic() + _POLL_BUDGET_S)
+    except Exception:
+        return None
+    if not _txt:
+        return None
+    _txt = _txt.strip()
+    if len(_txt) > _CHAT_SUMMARY_CHARS:
+        _txt = _txt[:_CHAT_SUMMARY_CHARS].rstrip() + "……"
+    return _txt or None
+
+
+def _summary_fold_worker(session_id: str, cfg: dict, _transport=None) -> None:
+    """把历史窗口外的轮次折进会话摘要。异步跑，任何异常都吞掉。
+
+    锁纪律：只在 _chat_lock 里做快照/落档，调 LLM 前一定放锁——否则
+    持锁等 20s 首 token，同会话下一条消息全被堵死。
+
+    R81b：folding 由 _spawn_summary_fold 在起线程**之前**置位，本函数
+    只管干活和收尾。此前是线程内自己置位，于是「spawn 刚返回、线程
+    还没抢到锁」这段窗口里 folding 还是假的——收敛判断（not folding
+    and summary_n >= drop）会在这一刻提前收工，把没折完的会话当成
+    折完了。沙箱调度快没暴露，服务器慢一暴露就红（chat.summary_
+    converge 断言抓到 summary_n=8 而 drop 已经更大）。
+
+    会话身份用 `is` 校验：会话被 GC 逐出又重建时，旧线程不能把摘要
+    写进一个全新的会话档里。"""
+    _claimed = False
+    _sess_obj = None
+    try:
+        for _ in range(_CHAT_SUMMARY_FOLD_ROUNDS):
+            with _chat_lock:
+                _cur = _chat_sessions.get(session_id)
+                if _cur is None:
+                    return
+                # 认准这一个会话档：GC 把它逐出、同 sid 又建了新的，旧线程
+                # 不能把摘要写进一个全新的会话里（那等于把上一个用户的
+                # 前情提要安到这个人头上）。
+                if _sess_obj is None:
+                    _sess_obj = _cur
+                elif _cur is not _sess_obj:
+                    return
+                _sess = _sess_obj
+                # 抢占：第一个 round 由 spawn 置位；后续 round 自己续上，
+                # 免得别的线程（同 sid 并发 chat 已不可能，防御性）插进来。
+                if not _claimed and not _sess.get("folding"):
+                    _sess["folding"] = True
+                _claimed = True
+                _msgs = list(_sess.get("messages") or [])
+                _folded = int(_sess.get("summary_n") or 0)
+                _keep = _hist_keep_count(_msgs)
+                # _keep 是从末尾算的保留条数，被窗口挤出去的是前面
+                # len-_keep 条。要折的正是 [_folded, len-_keep) 这一段
+                # ——窗口内那部分还在 prompt 里，折了就是重复。
+                # （写错过一版：拿 msgs[_folded:_keep] 当下标，结果把
+                # 保留窗口自己折了，第 3 轮起摘要里全是刚说过的话。）
+                _drop = len(_msgs) - _keep
+                _todo = _msgs[_folded:_drop]
+                _old = str(_sess.get("summary") or "")
+                if not _todo or sum(len(m.get("content") or "")
+                                    for m in _todo) < _CHAT_SUMMARY_FOLD_MIN:
+                    return
+            _new = _summary_fold_call(_old, _todo, cfg, _transport)
+            with _chat_lock:
+                _sess = _chat_sessions.get(session_id)
+                if _sess is not _sess_obj:
+                    return
+                # 失败不推进 summary_n：这段料下一轮还会被重试，
+                # 不会因为一次折叠挂掉就永久丢失。
+                if _new:
+                    _sess["summary"] = _new
+                    _sess["summary_n"] = _drop
+    except Exception:
+        pass
+    finally:
+        # 只收自己抢过的摊子。finally 而不是在各 return 前手写一遍：
+        # 漏一条就把会话永久卡在「折叠中」，此后再也折不了。
+        if _claimed:
+            try:
+                with _chat_lock:
+                    _s = _chat_sessions.get(session_id)
+                    if _s is not None:
+                        _s["folding"] = False
+            except Exception:
+                pass
+
+
+def _spawn_summary_fold(session_id: str, cfg: dict, _transport=None) -> None:
+    """起一个折叠线程。线程起不来就放弃——摘要是增益，不是必需品。
+
+    **调用方必须已持有 _chat_lock**：唯一调用点在 chat() 末尾落档那段
+    的 _chat_lock 临界区里。所以这里直接改会话档、不再抢锁——
+    threading.Lock 不可重入，自己抢自己就是死锁。
+    R81b 实测：重构时给这个函数加了 `with _chat_lock`，chat 链路整条
+    卡死在这里（faulthandler 抓到主线程停在本函数第一行），聊一句话
+    都出不来了。
+
+    folding 在这里就置位（不等线程真的跑起来），理由见 _summary_fold_
+    worker 的 docstring：晚一步置位，外部收敛判断就会提前收工。"""
+    _s = _chat_sessions.get(session_id)
+    if _s is not None:
+        _s["folding"] = True
+    try:
+        threading.Thread(target=_summary_fold_worker,
+                         args=(session_id, cfg, _transport),
+                         daemon=True).start()
+    except Exception:
+        # 线程没起来——把刚才的置位收回去，别把会话卡死在折叠中。
+        if _s is not None:
+            _s["folding"] = False
 
 
 def chat(session_id: str, user_msg: str,
@@ -1601,18 +1801,16 @@ def chat(session_id: str, user_msg: str,
             # 第一句」——4K 只够 2–3 轮，而 assistant 单条常态就 1K+，
             # 第三轮起必截断。8K 约 5–8 轮，够把一段话题聊完；仍然有界，
             # 不会退回 6 轮全量重发那个 5 万 token 的老坑。
-            history = list(sess["messages"])
-            _hb, _hkeep = 0, []
-            for _m in reversed(history):
-                _hb += len(_m.get("content") or "")
-                if _hb > _CHAT_HIST_CHARS:
-                    break
-                _hkeep.append(_m)
-            history = _hkeep[::-1]
+            # R81：窗口 8000 → 16000，且窗口外的轮次不再丢弃——折成摘要
+            # （_spawn_summary_fold），下一轮起进 prompt。计数抽成
+            # _hist_keep_count 供折叠线程复用（两边必须同口径，否则
+            # 摘要覆盖的区间和 prompt 保留的区间会错位）。
+            _keep_n = _hist_keep_count(sess["messages"])
+            history = list(sess["messages"])[:_keep_n]
             # R2349r（R82-P2-7）：截断静默→模型不知道「更早的轮被省略
             # 了」，会对「我刚才说过…」类引用臆造。截断发生时写进人设
             # 尾巴一句实话。
-            _truncated = len(_hkeep) < len(sess["messages"])
+            _truncated = _keep_n < len(sess["messages"])
             # R76（#5）：截断事实落会话档——spawn_chat_task 据此在任务行
             # 上打 ctx_trimmed，前端才能在气泡间给用户一条「更早的几句
             # 被省略了」的可见提示。此前只有 system 里一句软提示，用户
@@ -1733,15 +1931,23 @@ def chat(session_id: str, user_msg: str,
                              "别像第一次那样泛泛起头；可以点名「你还是惦记"
                              "着这事」。")
         if _truncated:
-            # R76（#5）：原句只在她真拿「我之前说过」对质时才兜得住，
-            # 而她多数时候只会闷着觉得「她怎么又忘了」。改成主动交底：
-            # ①承认省略这件事；②给一句可执行的补救（重说/换个说法），
-            #   别让她自己琢磨哪里断了；③仍然禁止拿省略的内容编造。
-            _sys += ("\n注意：更早的聊天内容因为太长被省略了，你现在只看"
-                     "得到最近几轮。如果她的问题明显接不上前文、或者你判"
-                     "不准她指的是哪件事，就主动说「前面聊的那些我记不全"
-                     "了」，并请她把想聊的那件事重说一遍；不要猜、不要拿"
-                     "你没看到的内容编细节。")
+            # R81：有摘要就说「压缩成了摘要、细节不全」，没有（折叠还没
+            # 跑完或失败了）才说「被省略了」——别让她以为你在隐瞒一段
+            # 其实压根没送进上下文的对话。
+            if str(sess.get("summary") or "").strip():
+                _sys += ("\n注意：更早的聊天内容压缩成了一段摘要，细节不全。"
+                         "她提起往事时先对照摘要，对不上就问她指的是哪件事，"
+                         "不要拿摘要里没有的细节编。")
+            else:
+                # R76（#5）：原句只在她真拿「我之前说过」对质时才兜得住，
+                # 而她多数时候只会闷着觉得「她怎么又忘了」。改成主动交底：
+                # ①承认省略这件事；②给一句可执行的补救（重说/换个说法），
+                #   别让她自己琢磨哪里断了；③仍然禁止拿省略的内容编造。
+                _sys += ("\n注意：更早的聊天内容因为太长被省略了，你现在只看"
+                         "得到最近几轮。如果她的问题明显接不上前文、或者你判"
+                         "不准她指的是哪件事，就主动说「前面聊的那些我记不全"
+                         "了」，并请她把想聊的那件事重说一遍；不要猜、不要拿"
+                         "你没看到的内容编细节。")
         payload_msgs = [{"role": "system", "content": _sys}]
         _coords = _coords_snap
         _user_msg = msg
@@ -1751,6 +1957,15 @@ def chat(session_id: str, user_msg: str,
         # 并剥掉仿冒权威判定口径的行——权威判定只走 _verdicts 一条道。
         _safe = [f for f in _coords if _fact_is_safe(f)]
         _parts: list[str] = []
+        # R81：前情提要进 user 位上下文块——与客户端 facts 同角色（话题
+        # 参考非权威），不进 system。摘要由模型生成、源头是对话原文，走
+        # system 位等于给用户文本开一条特权注入信道（R230a-6 同型教训：
+        # 客户端 facts 当初就是这么做才被降级的）。
+        _sum = str(sess.get("summary") or "").strip()
+        if _sum:
+            _parts.append("（之前聊过的内容，太长只留了摘要，细节不全——"
+                          "她提起往事时先对照这个，对不上就问她，别编）：\n"
+                          + _sum)
         if _safe:
             # R2400（R135-P2-5）：prompt 总长无帽——facts 段按 3K
             # 截（单条坐标 ≤500、20 条上限本就该 ~10K 内，帽是给
@@ -1852,6 +2067,15 @@ def chat(session_id: str, user_msg: str,
                 sess["messages"].append({"role": "assistant",
                                          "content": _hist})
                 sess["updated"] = time.monotonic()
+                # R81：本轮历史已落档，这时才起异步折叠。**必须在 append
+                # 之后**——折叠线程抢到锁后按 len(messages)-_keep 算该折
+                # 哪些条，起得比落档早，它看到的就是上一轮的状态，摘要会
+                # 系统性落后一轮（summary_n 永远差 2）。沙箱里线程起得慢
+                # 反而侥幸对上，服务器一快就红（chat.summary_converge）。
+                # 无条件起——线程自己判「有没有料可折、够不够 300 字」；
+                # 上一轮折叠失败时 summary_n 仍落后，也需要有人接着补。
+                # 锁纪律见 _spawn_summary_fold：调用方已持锁，它不自己抢。
+                _spawn_summary_fold(session_id, cfg, _transport)
         return text
 
 
@@ -2511,12 +2735,18 @@ def spawn_chat_task(session_id: str, user_msg: str,
                 # 让用户在气泡间看到「更早的几句被省略了」而不是莫名觉得
                 # 她失忆。读会话档（chat() 里已写），会话已被 GC 逐出时
                 # 按 False 处理，不阻断主链路。
+                # R81：同时透传 ctx_summary——溢出的轮次折成摘要了没有。
+                # 前端文案要照这个说：有摘要说「只留了摘要、细节对不上」，
+                # 没有才说「没带上」。两件事混一句就是瞒她。
                 try:
                     with _chat_lock:
                         _sx = _chat_sessions.get(session_id) or {}
                     rec["ctx_trimmed"] = bool(_sx.get("ctx_trimmed"))
+                    rec["ctx_summary"] = bool(
+                        str(_sx.get("summary") or "").strip())
                 except Exception:
                     rec["ctx_trimmed"] = False
+                    rec["ctx_summary"] = False
 
     threading.Thread(target=_run, name="ai-chat-" + tid[:8],
                      daemon=True).start()
