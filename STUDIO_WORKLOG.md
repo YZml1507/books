@@ -464,3 +464,68 @@ on-the-fly minify（1.74MB → 927KB），`_CR_IMG`/`_NC_IMG`/`sm-hero`
 
 **GitHub**：`YZml1507/books` main 已推 `7e14bef..ec4c3b0`（PAT 直传，
 未写入任何被跟踪文件）。**该 PAT 由用户以明文贴出，已提醒吊销/轮换。**
+
+---
+
+## R8x 占卜体验四条修正（2026-11-19，用户截图 3 张直报）
+
+**用户反馈（4 条，均含截图）**：① 开运图标题该往右挪一点、「换一张」
+太抢戏压画、底图该多来几张；② 三张塔罗牌「颜色很淡，像置于底层」；
+③ 点「抽一张」出来三张；④ 自己抽一把的牌扇一字长蛇排「太丑」。
+**用户 standing 指令**：不得照字面执行，方向必须来自调研（联网 + 代码）。
+
+**调研结论**：
+- 联网：选牌交互以网格+统一卡尺寸+明确选中态+充足触控区为业界共识
+  （卡片 UI 8 细节/塔罗 App 横评）；图标钮必须带 aria-label（Chakra
+  审查清单列为 critical）。→ 3 列网格 + 选中倾斜上浮 + 徽章；换图钮
+  改图标钮但保留 aria-label/title。
+- 代码深挖：「颜色淡」的层级假设**被排除**——`.tart img` 无 opacity/
+  z-index，PIL 实测 78 张源图本身 mean≈205、std≈30（淡彩源图），
+  sword-07/knight 前后对比确认根因在源图。合成「整张卡」对比后定
+  v2 参数（Color 1.75 / Contrast 1.38 / Brightness 0.95，零高光
+  裁剪，78 张 3.1MB→4.1MB，380×677 不变）。
+- 「抽一张出三张」根因：`trSubmit` 静态文案 vs 表单 `tr_n` 默认 3
+  （app.js `doTarot` 读表单）。修法为标签同步（`_trSubmitSync` 挂
+  `_trSpreadSync` + tr_n input），不动表单默认（保时间流/抽三张）。
+
+**改动**（commit `ddc19dc`）：
+- `styles.css`：`.wap-banner-go` left 14→22px；`.wap-banner-swap`
+  白 pill → 34px 暗色磨纤圆钮（`rgba(44,32,23,.32)`+blur，仅图标）；
+  `.tr-fan` 改 `grid-template-columns:repeat(3,1fr)`、`.tr-back`
+  40×54 → 100%×aspect 2:3（约 105px 宽）；选中=上浮+倾斜+缩放 +
+  `@keyframes trPickPop` + `::after` 顺序徽章（`attr(data-order)`）。
+- `app.js`：`_WAP_COUNT` 16→24；新增 `_trSubmitSync`/`_trPickBadges`/
+  `_trPickPoolSize`（池子=ceil((n+6)/3)*3，默认 3×3 无孤儿行）；
+  牌扇 22 张 → 按需 9-18 张；`_trPickTap` 点选后重排序号徽章。
+- `index.html`：换图钮文案「🔄 换一张」→「🔄」（aria-label 保留）；
+  注释同步（26 张 → 24 张+限定；22 张小牌 → 3 列网格）。
+- 新资产：`wallpapers/wap-16..23.jpg`（agnes-image-2.5-flash 生成，
+  项目自有 key，与 StepFun 计费无关；720×1280，奶油熊 8 景：
+  花海风筝/夏夜萤火/银杏/雪夜灯笼/热气球/月亮船星海/雨后彩虹/樱花）。
+- `tarot/` 78 张源图批量增色（原图备份 `/tmp/tarot-orig`）。
+
+**闸门**：`PYTHONPATH=.pylibs BOOKS_LLM_DISABLE=1 python3 web/selftest.py`
+→ **PASS 466 项**（sw.shell_hash/completeness、static.*、frontend.*、
+tarot.*、account.* 全绿；bazi.semantic 按设计 SKIP(env)）。
+CACHE → `books-shell-249e03bc3f92`。
+
+**服务器同步（已完成）**：`116.205.229.222`，静态根
+`/opt/books/app/web/static/`。传前备份 `/opt/books/backups/r8x-fortune-20261119-0014/`
+（含旧 index/styles/sw 三件套 + tarot 全量旧图）。传 89 文件
+（index/styles/sw + wap-16..23 + 78 张塔罗图）+ app.js。
+双端 md5 逐一致（app.js 线上为 `web/app.py` on-the-fly minify，
+1.74MB→927KB，md5 不同属预期——与 R81 台账互证）。
+线上实测：8 张新壁纸 200（104360/94258/166016/61109/87352/94366/
+63182/97338B）；sword-07 增强版 200（58030B）；压缩版 app.js 含
+`_WAP_COUNT=24`/`_trSubmitSync`/`_trPickPoolSize`/`_trPickBadges`；
+styles.css 含 trPickPop/attr(data-order)/3 列网格/新换图钮；
+index.html 图标钮在位；sw CACHE = `books-shell-249e03bc3f92`。
+静态改动免重启。
+
+**预览产物**：`downloads/preview-r8x-banner.png`（横幅：文字右移+
+暗色磨砂小圆钮+不压画）、`preview-r8x-fan.png`（3×3 牌扇+选中
+倾斜上浮+「1」徽章）。
+
+**待办（用户侧）**：强制刷新一次让新 SW 缓存接管；未登录/登录态
+各自过一眼四条反馈；安全组 TCP 22 仍为 0.0.0.0/0（NAT 池所致），
+建议事后收紧。
