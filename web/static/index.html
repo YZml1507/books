@@ -447,8 +447,10 @@ try {
     <!-- R76（用户裁决·#15）：锁屏壁纸不再是 ghost 行里一枚要猜的小胶囊。
          9:16 成品此前只有「🖼 开运图」一个入口，好图全藏在按钮后面——
          用户原话「人本来就是视觉动物」。改成通栏横幅：真图满铺、文字坐
-         磨砂pill不压画、右下角「换一张」在底图池里挑（26 张：10 张日轮换
-         +16 张节日/节气限定），选中的那张同时决定点横幅后生成的成品。
+         磨砂pill不压画、右上角「换一张」在底图池里挑（R8x：24 张日轮换
+         +限定主题图，选中的那张同时决定点横幅后生成的成品。
+         R8x（用户反馈）：白 pill 换图钮在淡彩画面上太抢戏、把画衬糊了——
+         改暗色磨砂小圆钮只留图标（aria-label 保留，无障碍不掉）。
          点横幅=生成（与 ghost 行同一条管线，弹层里选存壁纸 9:16 /
          存头像 1:1），换图只换预览不生成，两个都是 button、不嵌套。 -->
     <div class="wap-banner" id="wapBanner">
@@ -457,7 +459,7 @@ try {
       <span class="wap-banner-scrim" aria-hidden="true"></span>
       <span class="wap-banner-tag" aria-hidden="true">9:16 锁屏尺寸</span>
       <button class="wap-banner-swap" id="wapSwap" type="button"
-              title="换一张底图" aria-label="换一张底图">🔄 换一张</button>
+              title="换一张底图" aria-label="换一张底图">🔄</button>
       <button class="wap-banner-go" id="wapBannerGo" type="button"
               aria-label="打开今日开运图，可存成锁屏或头像">
         <span class="wap-banner-lb">🖼 今日开运图</span>
@@ -1242,7 +1244,9 @@ try {
       </details>
       <button id="trSubmit" type="button">抽一张</button>
       <!-- R2350k：自己抽——背面牌扇点选，点满张数成局，仪式感比
-           「按一下就出结果」强一档。 -->
+           「按一下就出结果」强一档。R8x（用户反馈）：一字长蛇排的 22 张
+           40px 小牌又小又丑——改 3 列网格，池子按张数取（默认 3×3），
+           选中上浮倾斜+顺序徽章（点选顺序=牌局顺序）。 -->
       <button id="trPickBtn" type="button" class="ghost" style="margin-top:8px;">🃏 自己抽一把</button>
       <div id="trPickPanel" style="display:none;margin-top:10px;">
         <div class="tr-pick-hint" id="trPickHint"></div>

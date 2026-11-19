@@ -5287,7 +5287,7 @@ function downloadWallpaper() {
  * 同时决定点横幅后生成的成品。
  * 底图池与主题表从 app_wallpaper.js 上移到此：app.js:324 早就警告过
  * 「各存一份同款字面量，双轨漂移风险」，懒加载 chunk 现在读全局真源。 */
-var _WAP_COUNT = 16;   /* /static/wallpapers/wap-00.jpg .. wap-15.jpg（R76 补 6 张四季/星海） */
+var _WAP_COUNT = 24;   /* /static/wallpapers/wap-00.jpg .. wap-23.jpg（R76 补 6 张四季/星海；R8x 用户反馈「换一张没得换」再补 8 张：花海/萤火/银杏/雪夜/热气球/星海/彩虹/樱花） */
 /* R3362 主题系列：节日/节气日换限定底图（wap-t-*.jpg），对不上
  * 的平凡日子仍走日轮换。节日名对 _FEST_SOLAR/_FEST_LUNAR 产物，
  * 节气名对 j.term.name（后端真节气时刻表，含近似日）。 */
@@ -11342,6 +11342,19 @@ function _trSpread() { return val('tr_spread') || ''; }
 function _trSpreadSync() {
   var f = el('tr_n_field');
   if (f) f.style.display = _trSpread() ? 'none' : '';
+  _trSubmitSync();
+}
+/* R8x（用户反馈）：主提交钮静态写着「抽一张」，实际按表单张数出牌
+ * （默认 3 张）——用户原话「点抽一张，抽出三张」。标签改成跟实时
+ * 配置走：几张数就叫几张开，快捷钮（抽一张/抽三张）点了也同步改嘴。 */
+function _trSubmitSync() {
+  var b = el('trSubmit');
+  if (!b) return;
+  var sp = _trSpread();
+  var n = sp ? (_TR_SPREAD_N[sp] || num('tr_n') || 3)
+             : (num('tr_n') == null ? 3 : num('tr_n'));
+  n = Math.min(Math.max(n, 1), 10);
+  b.textContent = n === 1 ? '抽一张' : ('抽 ' + n + ' 张');
 }
 var _TR_GEN = 0;   /* R2502：塔罗在途代际（同 _LY_GEN）——trSubmit 的
                     * guardedCall 锁护不住 data-retry 与 trPickGo 第二入口 */
@@ -11488,8 +11501,14 @@ async function doTarot(cards, _opt) {
   }
 }
 
-/* R2350k：自己抽——22 张牌背里点 n 张。牌背是 fresh shuffle 的
- * 0-77 下标子集，点选顺序即成局顺序（位置名按序给）。 */
+/* R2350k：自己抽——牌背里点 n 张。牌背是 fresh shuffle 的
+ * 0-77 下标子集，点选顺序即成局顺序（位置名按序给）。
+ * R8x（用户反馈）：池子按需取——点 n 张摆 n+6 张、向上取整到 3
+ * 的倍数，3 列网格正好铺满没有孤儿行（默认 3 张=3×3；凯尔特 10 张
+ * =3×6）。牌大了好戳，神秘感也没丢。 */
+function _trPickPoolSize(need) {
+  return Math.max(9, Math.ceil((need + 6) / 3) * 3);
+}
 var _trPickState = { idxs: [], picks: [], n: 3 };
 function _trPickNeed() {
   var sp = _trSpread();
@@ -11509,7 +11528,7 @@ function _trPickOpen() {
   if (btn) btn.textContent = '🃏 收起牌扇';
   _trPickState.n = _trPickNeed();
   _trPickState.picks = [];
-  /* fresh shuffle：取 78 里 22 个下标摆出——点的是位置不是牌名，
+  /* fresh shuffle：取 78 里 poolSize 个下标摆出——点的是位置不是牌名，
    * 熵不减（子集本身随机）。 */
   var pool = [];
   for (var i = 0; i < 78; i++) pool.push(i);
@@ -11517,7 +11536,7 @@ function _trPickOpen() {
     var k = Math.floor(Math.random() * (j + 1));
     var t = pool[j]; pool[j] = pool[k]; pool[k] = t;
   }
-  _trPickState.idxs = pool.slice(0, 22);
+  _trPickState.idxs = pool.slice(0, _trPickPoolSize(_trPickState.n));
   fan.innerHTML = _trPickState.idxs.map(function (idx, i) {
     return '<button type="button" class="tr-back" data-i="' + i +
       '" aria-label="第 ' + (i + 1) + ' 张牌背" aria-pressed="false"></button>';
@@ -11533,6 +11552,20 @@ function _trPickHint() {
       : ('背面朝上的牌里点 ' + need + ' 张（已点 ' + got + '）');
   }
   if (go) go.disabled = got < need;
+}
+/* R8x：顺序徽章重排——点选顺序即成局顺序，取消中间一张时
+ * 后面的序号要跟着往前缩。徽章就是 CSS 里 .tr-back.on::after 的
+ * content:attr(data-order)。 */
+function _trPickBadges() {
+  var st = _trPickState;
+  var btns = document.querySelectorAll('#trPickFan .tr-back');
+  for (var b = 0; b < btns.length; b++) btns[b].removeAttribute('data-order');
+  st.picks.forEach(function (ix, k) {
+    var pos = st.idxs.indexOf(ix);
+    if (pos < 0) return;
+    var btn = document.querySelector('#trPickFan .tr-back[data-i="' + pos + '"]');
+    if (btn) btn.dataset.order = String(k + 1);
+  });
 }
 function _trPickTap(i) {
   var st = _trPickState;
@@ -11551,6 +11584,7 @@ function _trPickTap(i) {
     btn.classList.toggle('on', on);
     btn.setAttribute('aria-pressed', String(on));
   }
+  _trPickBadges();
   _trPickHint();
 }
 function _trPickGo() {
@@ -17193,6 +17227,7 @@ function initDivination() {
     }); })();
   (function(){ var n2 = el('tr_n');
     if (n2) n2.addEventListener('input', function () {
+      _trSubmitSync();
       _trPickInvalidate('换了张数，手里的牌得重抽');
     }); })();
   _trSpreadSync();

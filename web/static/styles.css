@@ -2018,16 +2018,40 @@ table.works td.num{text-align:right; font-family:var(--font-mono);}
 .tarot-card-back .tbimg{width:100%; height:100%; object-fit:cover;
   border-radius:12px;}
 
-/* R2350k：自己抽——牌背扇。真牌背图 + 点中上浮描边。 */
-.tr-fan{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
-.tr-back{width:40px;height:54px;padding:0;border:none;border-radius:12px;   /* R2514：34→40px 触控 */
+/* R2350k：自己抽——牌背扇。真牌背图 + 点中上浮描边。
+ * R8x（用户反馈）：22 张 40px 小卡一字长蛇排又小又丑，触控目标
+ * 还不合格。改 3 列网格（375px 屏每张约 105px 宽，真牌尺寸 2:3），
+ * 池子按需取（点 n 张摆 n+6 张、向上取整到 3 的倍数——默认抽 3 张
+ * 时正好 3×3 铺满，没有孤儿行）；选中=上浮+倾斜旋转+顺序徽章
+ * （点选顺序即成局顺序，徽章把「第几张」亮出来）。 */
+.tr-fan{display:grid; grid-template-columns:repeat(3,1fr); gap:12px 10px; margin-top:10px;}
+.tr-back{position:relative; width:100%; aspect-ratio:2/3; height:auto; min-height:0;
+  padding:0; border:none; border-radius:10px;
   background:url('/static/tarot/card-back.jpg') center/cover no-repeat #B8860B;
-  cursor:pointer;transition:transform .16s ease,box-shadow .16s ease;
-  box-shadow:0 1px 3px rgba(0,0,0,.18);min-height:44px;}
-.tr-back:hover{transform:translateY(-3px);}
-.tr-back.on{transform:translateY(-8px);box-shadow:0 0 0 2px var(--rose-soft),
-  0 6px 12px rgba(232,102,138,.35);}
-.tr-back:focus-visible{outline:2px solid var(--rose-soft);outline-offset:2px;}
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;}
+.tr-back:hover{transform:translateY(-4px) rotate(-1.5deg);}
+.tr-back.on{
+  transform:translateY(-8px) rotate(-4deg) scale(1.04);
+  box-shadow:0 0 0 2px var(--rose-soft),
+    0 10px 18px rgba(232,102,138,.42);
+  animation:trPickPop .4s cubic-bezier(.34,1.56,.64,1);}
+@keyframes trPickPop{
+  0%{transform:translateY(0) rotate(0) scale(1);}
+  45%{transform:translateY(-14px) rotate(-7deg) scale(1.09);}
+  100%{transform:translateY(-8px) rotate(-4deg) scale(1.04);}}
+/* 顺序徽章——第几张点的，就是牌局里第几个位置 */
+.tr-back.on::after{
+  content:attr(data-order);
+  position:absolute; top:-8px; right:-8px; z-index:2;
+  min-width:21px; height:21px; padding:0 5px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-sans); font-size:11px; font-weight:700;
+  color:#fff; background:var(--primary-bg);
+  border:1.5px solid rgba(255,255,255,.85); border-radius:999px;
+  box-shadow:0 2px 6px rgba(0,0,0,.28);}
+.tr-back:focus-visible{outline:2px solid var(--rose-soft); outline-offset:2px;}
 .tr-pick-hint{font-size:12px;color:var(--secondary);margin-bottom:6px;}
 html[data-theme="dark"] .tr-pick-hint{color:var(--muted);}
 
@@ -3385,7 +3409,7 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
   background:rgba(44,32,23,.30);
   -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);}
 .wap-banner-go{
-  position:absolute; z-index:2; left:14px; right:14px; bottom:11px;
+  position:absolute; z-index:2; left:22px; right:14px; bottom:11px;
   display:flex; flex-direction:column; align-items:flex-start; gap:3px;
   padding:0; border:none; background:none; text-align:left; font:inherit;
   cursor:pointer;}
@@ -3396,17 +3420,23 @@ body[data-view]:not([data-view="home"])[data-relay] .welcome-bar{display:flex;}
   font-size:11.5px; color:rgba(255,244,228,.93); line-height:1.45;
   text-shadow:0 1px 5px rgba(40,28,18,.55);}
 .wap-banner-go:hover .wap-banner-lb{color:#FFFFFF;}
+/* R8x（用户反馈）：白 pill 太抢戏，磨砂白在淡彩画面上像一块补丁，
+ * 把右侧小熊都衬糊了。改成暗色磨砂小圆钮——只留图标，存在感降到
+ * 「看得见但不抢画」（Chakra 审查清单：图标钮必须带 aria-label，
+ * index.html 的 aria-label/title 已保留，无障碍不掉）。 */
 .wap-banner-swap{
   position:absolute; z-index:3; right:10px; top:10px;
-  display:flex; align-items:center; gap:4px; padding:6px 11px;
-  font-family:var(--font-sans); font-size:11px; font-weight:600;
-  color:#4E3018; background:rgba(255,251,245,.86);
-  -webkit-backdrop-filter:blur(10px) saturate(1.2);
-  backdrop-filter:blur(10px) saturate(1.2);
-  border:1px solid rgba(78,48,24,.12); border-radius:999px;
+  width:34px; height:34px; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; line-height:1;
+  color:#FFF6E8; background:rgba(44,32,23,.32);
+  -webkit-backdrop-filter:blur(8px) saturate(1.1);
+  backdrop-filter:blur(8px) saturate(1.1);
+  border:1px solid rgba(255,246,232,.22); border-radius:999px;
   cursor:pointer; transition:transform .15s ease, background .15s ease;}
-.wap-banner-swap:hover{background:rgba(255,253,249,.96); transform:scale(1.05);}
-.wap-banner-swap:active{transform:scale(.95);}
+.wap-banner-swap:hover{background:rgba(44,32,23,.5); transform:scale(1.08);}
+.wap-banner-swap:active{transform:scale(.94);}
+.wap-banner-swap:focus-visible{outline:2px solid rgba(255,246,232,.8); outline-offset:2px;}
 /* 窄屏：横幅收一点高度，副文案省字 */
 @media (max-width:400px){
   .wap-banner{height:150px;}
