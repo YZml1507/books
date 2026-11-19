@@ -1596,11 +1596,15 @@ function _chatFreshNote(st, ty) {
   ty.parentNode.insertBefore(d, ty);
 }
 
-/* R76（#5）：历史窗口到顶——本轮 prompt 只带了最近 8K 字符，更早的
- * 轮次被省略。此前这件事只有 system 里一句软提示，用户根本不知道
+/* R76（#5）：历史窗口到顶——本轮 prompt 只带了最近 16K 字符，更早的
+ * 轮次被挤出窗口。此前这件事只有 system 里一句软提示，用户根本不知道
  * 自己的话被丢了，只会觉得「她怎么又忘了」。这里照 boot/fresh 同款
  * 插一条轻分隔：说清省略了什么、给一条出路（想聊的事重说一遍），
- * 并挂「记不全？开个新话题」。 */
+ * 并挂「记不全？开个新话题」。」
+ * R81：溢出的轮次现在会折成「前情提要」进下一轮上下文（见 llm_polish
+ * 的 _spawn_summary_fold），所以文案分两种：后端带了 ctx_summary 就说
+ * 「只留了摘要、细节对不上」，没带（折叠没跑完或失败了）才说「没带上」。
+ * 混成一句就是瞒她。 */
 function _chatTrimNote(st, ty) {
   if (!st || !st.ctx_trimmed || !ty || !ty.parentNode) return;
   /* 同一次失忆两条注脚叠着太吵——刚插过分隔就跳过。 */
@@ -1610,8 +1614,11 @@ function _chatTrimNote(st, ty) {
   d.className = 'chat-bubble chat-ai chat-divider';
   d.style.opacity = '.72';
   d.style.fontSize = '.9em';
-  d.textContent = '（聊得有点长了，更早的几句小满这回没带上。' +
-    '想接着聊哪件事，直接重说一遍就好）';
+  d.textContent = st.ctx_summary
+    ? '（聊得有点长了，更早的内容小满只留了个摘要，细节可能对不上。' +
+      '想接着聊哪件事，直接重说一遍就好）'
+    : '（聊得有点长了，更早的几句小满这回没带上。' +
+      '想接着聊哪件事，直接重说一遍就好）';
   _CHAT_NEED_RECAP = true;
   d.appendChild(_chatResetBtn('🌱 记不全？开个新话题'));
   ty.parentNode.insertBefore(d, ty);
@@ -10692,10 +10699,17 @@ var TAROT_ART = {
   "审判": "📯", "世界": "🌍"
 };
 
+/* R8y（用户直报续）：78 张塔罗图就地增色后用户端仍是淡的——
+ * 静态图 max-age=86400，webview/不重新验证的浏览器能把旧字节赖到
+ * 自然过期（服务器早就是新图，双端 md5 已验）。tarotImg 是全部屏幕
+ * 路径（结果卡/牌堆/牌册/日卡）的唯一收口，URL 挂版本号=换 URL，
+ * SW/HTTP 磁盘缓存/webview 任何一层都绕不开。下次再换塔罗图，
+ * 只改 _TAROT_IMG_V。 */
+var _TAROT_IMG_V = 'r8y';
 function tarotImg(name) {
   if (TAROT_MANIFEST) {
     var f = TAROT_MANIFEST[name];
-    return f ? '/static/tarot/' + f : null;
+    return f ? '/static/tarot/' + f + '?v=' + _TAROT_IMG_V : null;
   }
   return null;
 }
@@ -17528,8 +17542,16 @@ function initDivination() {
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var _wx = /MicroMessenger/i.test(navigator.userAgent);
     var _xhs = /xhsdiscover|XHSAPP|discover\//i.test(navigator.userAgent);
-    var _how =
-      _wx ? '点右上「···」→「在 Safari 打开」，再点分享→「添加到主屏幕」'
+    /* R8y（用户直报）：http 下 beforeinstallprompt 永不触发（安全上下文），
+     * 安卓浏览器菜单里也根本没有「安装应用」项——原文案指着用户去点一个
+     * 不存在的菜单项，「点了没反应」的观感就出在这。照实分叉：
+     * iPhone 添加主屏幕现在就是全屏 App（apple meta 在位，不需要 https）；
+     * 安卓先给快捷方式，并说清真安装+离线要等 https。 */
+    var _how = !window.isSecureContext
+      ? (_ios
+        ? '点底部分享→「添加到主屏幕」，现在打开就是全屏 App（离线要等 https）'
+        : '一键安装需要 https（当前是 http 打开）。先浏览器菜单→「添加到主屏幕」用着；开 https 后才能真安装+离线')
+      : _wx ? '点右上「···」→「在 Safari 打开」，再点分享→「添加到主屏幕」'
         : (_xhs ? '点右上「···」→「在浏览器打开」，再点分享→「添加到主屏幕」'
         : (_ios ? '点底部分享按钮→「添加到主屏幕」'
         : '点浏览器菜单（右上 ⋮ 或 ⋯）→「添加到主屏幕 / 安装应用」'));
