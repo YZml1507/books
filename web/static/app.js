@@ -5337,7 +5337,7 @@ function _wapTheme(j) {
 /* R8y（用户直报续）：wap-16..23 图生图重绘后就地换文件——壁纸 URL 此前
  * 无版本号，静态图 max-age=86400 下老客会无限期看旧图（与塔罗图同病）。
  * 全部壁纸 URL 收口到 _wapUrl：换图只改 _WAP_IMG_V。 */
-var _WAP_IMG_V = 'r9a';
+var _WAP_IMG_V = 'r9c';
 function _wapUrl(nm) {
   return '/static/wallpapers/' + nm + '.jpg?v=' + _WAP_IMG_V;
 }
@@ -10713,7 +10713,7 @@ var TAROT_ART = {
  * 路径（结果卡/牌堆/牌册/日卡）的唯一收口，URL 挂版本号=换 URL，
  * SW/HTTP 磁盘缓存/webview 任何一层都绕不开。下次再换塔罗图，
  * 只改 _TAROT_IMG_V。 */
-var _TAROT_IMG_V = 'r8y';
+var _TAROT_IMG_V = 'r9b';
 function tarotImg(name) {
   if (TAROT_MANIFEST) {
     var f = TAROT_MANIFEST[name];
