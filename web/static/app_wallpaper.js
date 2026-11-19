@@ -622,7 +622,10 @@ function downloadWallpaper(j, variant) {
     var _n = _wapSeed(j.date + ((variant && variant.tag) || ''));
     _nm = 'wap-' + ('0' + _n).slice(-2);
   }
-  return _wapImg('/static/wallpapers/' + _nm + '.jpg')
+  /* R8y（用户直报续）：与 app.js _WAP_IMG_V 同源——壁纸就地换文件后，
+   * 海报合成拉底图也必须换 URL，否则 max-age=86400 下海报用旧图。 */
+  return _wapImg('/static/wallpapers/' + _nm + '.jpg?v=' +
+    (window._WAP_IMG_V || 'r9a'))
     .then(function (bg) {
       var _sq = !!(variant && variant.square);
       var cv = _wapComposite(j, bg, variant);

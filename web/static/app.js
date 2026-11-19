@@ -5334,6 +5334,14 @@ function _wapTheme(j) {
   } catch (e) {}
   return null;
 }
+/* R8y（用户直报续）：wap-16..23 图生图重绘后就地换文件——壁纸 URL 此前
+ * 无版本号，静态图 max-age=86400 下老客会无限期看旧图（与塔罗图同病）。
+ * 全部壁纸 URL 收口到 _wapUrl：换图只改 _WAP_IMG_V。 */
+var _WAP_IMG_V = 'r9a';
+function _wapUrl(nm) {
+  return '/static/wallpapers/' + nm + '.jpg?v=' + _WAP_IMG_V;
+}
+
 /* R76：底图池——当日限定主题排最前（节日/节气那天它就该是默认），
  * 其后 10 张日轮换。横幅预览与成品生成共用这一份。 */
 function _wapPool(j) {
@@ -5376,12 +5384,12 @@ function _wapBannerPaint(nm) {
   _im.classList.remove('is-on');
   var _probe = new Image();
   _probe.onload = function () {
-    _im.src = '/static/wallpapers/' + nm + '.jpg';
+    _im.src = _wapUrl(nm);
     _im.setAttribute('data-nm', nm);
     requestAnimationFrame(function () { _im.classList.add('is-on'); });
   };
   _probe.onerror = function () { /* 兜底渐变底色已在 .wap-banner 上 */ };
-  _probe.src = '/static/wallpapers/' + nm + '.jpg';
+  _probe.src = _wapUrl(nm);
 }
 /* R76：横幅接线。点横幅 = 生成开运图（与 ghost 行那枚同一条管线，
  * 不带 variant，弹层里选存壁纸 9:16 / 存头像 1:1）；「换一张」只换
