@@ -3225,11 +3225,13 @@ def _run_inner() -> list[str]:
     # ------------------------------------------------------------------
     # R81：历史窗口 + 「前情提要」折叠
     # ------------------------------------------------------------------
-    # 背景：_CHAT_MAX_TURNS=6 时单会话历史最坏 6×(500+803)=7818 字符，
-    # 撞不到 16000 的窗口——窗口与折叠机制在产品当前配置下是「备而
-    # 不用」。这里把轮数上限临时抬高来驱动溢出，测的是机制本身；同时
-    # 用一条断言钉住「窗口 > 当前轮数上限下的历史上界」，谁改任一侧
-    # 都会红，逼得改动的人显式想清楚这两者的关系。
+    # 背景：_CHAT_MAX_TURNS=12 时单会话历史最坏 12×1305=15660 字符，
+    # 20000 的窗口装得下还有约 22% 余量——正常对话永远走整段历史，
+    # 折叠机制在产品当前配置下是「备而不用」的保险。这里把轮数上限
+    # 临时抬高来驱动溢出，测的是机制本身；同时用一条断言钉住「窗口
+    # > 当前轮数上限下的历史上界」：谁单改任一侧都会红，逼得改动的
+    # 人显式想清楚——窗口小于历史上界意味着正常对话就会被折叠，
+    # 那不是默认行为，是有意的产品决定。
     import threading as _thr
     import time as _tm
     from guji import llm_polish as _lp81
@@ -3239,8 +3241,9 @@ def _run_inner() -> list[str]:
     assert _lp81._CHAT_HIST_CHARS > _hist_cap, (
         "chat.hist_window_capacity",
         f"窗口 {_lp81._CHAT_HIST_CHARS} 未大于 {_lp81._CHAT_MAX_TURNS} 轮"
-        f"历史上界 {_hist_cap}——当前配置下窗口永不被触发，"
-        "若要它生效须同步上调 _CHAT_MAX_TURNS")
+        f"历史上界 {_hist_cap}——正常对话就会被折叠/截断。若这是有意的"
+        "产品决定请同步更新本断言与 _CHAT_HIST_CHARS 处注释，"
+        "而不是悄悄让默认行为变样")
     ok.append("chat.hist_window_capacity")
     # _hist_keep_count 边界：累计一超窗就停，停住那条本身不计入。
     assert _lp81._hist_keep_count([]) == 0
@@ -3318,7 +3321,7 @@ def _run_inner() -> list[str]:
                 ) * 3
 
         def _drive81(sid, fail_fold=False, joinable=True):
-            """驱动 21 轮溢出，返回 (session, 最后一次 chat payload)。
+            """驱动足够多轮把历史撑出窗口，返回 (session, 末次 chat payload)。
 
             joinable=True 时把 spawn 换成「起真线程但可 join」的版本。
             折叠是后台线程，主线程轮询会话档等它收敛完全看调度脸色：实测
@@ -3327,6 +3330,15 @@ def _run_inner() -> list[str]:
             _current_frames() 都能把它放行——那是测试的抖动，不是代码
             缺陷，折叠晚一轮只是摘要晚到，用户侧无感。join() 是正经阻塞
             等待（彻底让出 GIL），不会被骗到。异步路径另开一条 smoke。"""
+            # 轮数按当前窗口算，不写死。每轮历史约 972 字符（_q81 162 +
+            # 轮次前缀，加 mock 回复裁到 805）；写死 21 轮曾在窗口
+            # 16000→20000 后恰好差一轮贴在边界上——末轮 append 前的快照
+            # 还没溢出，ctx_trimmed 判 False（chat.summary_trim_flag 红）。
+            # 溢出后每轮 drop +2、每轮折 2 条，速率相同追得平，故多跑 6 轮
+            # 给收敛留余量即可。
+            _N81 = int(_lp81._CHAT_HIST_CHARS // 900) + 8
+            assert _N81 < _lp81._CHAT_MAX_TURNS, (
+                "chat.summary_drive_turns", _N81, _lp81._CHAT_MAX_TURNS)
             _fold_seen.clear()
             _chat_seen.clear()
             _fold_done.clear()
@@ -3336,7 +3348,7 @@ def _run_inner() -> list[str]:
             if joinable:
                 _lp81._spawn_summary_fold = _joinable_spawn
             try:
-                for _i in range(21):
+                for _i in range(_N81):
                     _r = _lp81.chat(sid, f"第{_i + 1}轮，" + _q81,
                                     config=_cfg81,
                                     _transport=_mk81(fail_fold))
