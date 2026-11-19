@@ -45,7 +45,9 @@
 <!-- R3371（审-低-4）：lxgw.css 不再静态挂 link——media=print 的
      link 浏览器仍在首屏窗口低优下载 64KB。改由下方 flip 到点再
      注入，字节真正推迟到 load+800ms；SW SHELL 已收，离线照样有。 -->
-<link rel="stylesheet" href="/static/styles.css">
+<!-- 2026-11-19：加版本号——styles.css 此前无缓存戳，塔罗 opacity 修复
+     对老客永不生效（max-age 缓存挡在前面）。改样式记得一起 bump。 -->
+<link rel="stylesheet" href="/static/styles.css?v=r119b">
 <link rel="icon" type="image/png" href="/static/cream/favicon-cream-64.png">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="apple-touch-icon" href="/static/cream/icon-180.png">
@@ -1583,6 +1585,6 @@ try {
 
 <!-- R8 P3：defer 让 269KB 的 app.js 与 HTML 解析并行，不再阻塞
      DOMContentLoaded（defer 仍在 DOMContentLoaded 前执行，初始化语义不变）。 -->
-<script src="/static/app.js" defer></script>
+<script src="/static/app.js?v=r119b" defer></script>
 </body>
 </html>

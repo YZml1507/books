@@ -5294,6 +5294,8 @@ function downloadWallpaper() {
  * 同时决定点横幅后生成的成品。
  * 底图池与主题表从 app_wallpaper.js 上移到此：app.js:324 早就警告过
  * 「各存一份同款字面量，双轨漂移风险」，懒加载 chunk 现在读全局真源。 */
+/* R-waprefill（2026-11-19）：用户筛选下架编号 → true 剔除。 */
+var _WAP_DROP = {10:1,11:1,12:1,13:1,14:1,15:1,19:1,20:1,21:1};
 var _WAP_COUNT = 24;   /* /static/wallpapers/wap-00.jpg .. wap-23.jpg（R76 补 6 张四季/星海；R8x 用户反馈「换一张没得换」再补 8 张：花海/萤火/银杏/雪夜/热气球/星海/彩虹/樱花） */
 /* R3362 主题系列：节日/节气日换限定底图（wap-t-*.jpg），对不上
  * 的平凡日子仍走日轮换。节日名对 _FEST_SOLAR/_FEST_LUNAR 产物，
@@ -5337,7 +5339,7 @@ function _wapTheme(j) {
 /* R8y（用户直报续）：wap-16..23 图生图重绘后就地换文件——壁纸 URL 此前
  * 无版本号，静态图 max-age=86400 下老客会无限期看旧图（与塔罗图同病）。
  * 全部壁纸 URL 收口到 _wapUrl：换图只改 _WAP_IMG_V。 */
-var _WAP_IMG_V = 'r9c';
+var _WAP_IMG_V = 'r9g';
 function _wapUrl(nm) {
   return '/static/wallpapers/' + nm + '.jpg?v=' + _WAP_IMG_V;
 }
@@ -5347,7 +5349,18 @@ function _wapUrl(nm) {
 function _wapPool(j) {
   var _a = [], i, _t = _wapTheme(j);
   if (_t) _a.push(_t);
-  for (i = 0; i < _WAP_COUNT; i++) _a.push('wap-' + ('0' + i).slice(-2));
+  /* R-waprefill：2026-11-19 用户筛选下架 9 张（风格跑偏的写实棕熊），
+   * 直接从日轮换池剔除，由 wap-30..38 补位——不再按 _WAP_COUNT 盲扫。 */
+  for (i = 0; i < _WAP_COUNT; i++) {
+    if (_WAP_DROP[i]) continue;
+    _a.push('wap-' + ('0' + i).slice(-2));
+  }
+
+  /* R-waprefill（2026-11-19 用户筛选）: 补拍 9 张 wap-30..38（替换下架的 wap-10..21） */
+  /* 2026-11-19 用户筛选：wap-37（热气球没画出来）下架，改由 wap-39 补位。 */
+  [30, 31, 32, 33, 34, 35, 36, 38, 39].forEach(function (n) {
+    _a.push('wap-' + n);
+  });
   return _a;
 }
 /* R76：当日选中的底图名。用户点过「换一张」就听他的（跨会话记住），
@@ -10713,7 +10726,7 @@ var TAROT_ART = {
  * 路径（结果卡/牌堆/牌册/日卡）的唯一收口，URL 挂版本号=换 URL，
  * SW/HTTP 磁盘缓存/webview 任何一层都绕不开。下次再换塔罗图，
  * 只改 _TAROT_IMG_V。 */
-var _TAROT_IMG_V = 'r9b';
+var _TAROT_IMG_V = 'r9c';
 function tarotImg(name) {
   if (TAROT_MANIFEST) {
     var f = TAROT_MANIFEST[name];
@@ -16164,6 +16177,23 @@ function initChatSidebar() {
     });
     if (sb && sb.classList.contains('open')) { _setRecent(false); }
   });
+  /* 2026-11-19 续修兜底：捕获段直开——冒泡链任何一环被上层
+   * stopPropagation 或 inert 吞掉时，FAB 仍保底开栏（幂等：
+   * chatOpen 对已开的栏只是刷新态）。120ms 后仍未开则强制开。 */
+  if (tgl) tgl.addEventListener('click', function () {
+    try {
+      var _sbFB = el('recentSidebar');
+      if (_sbFB && !_sbFB.classList.contains('open')) {
+        setTimeout(function () {
+          var _sb2 = el('recentSidebar');
+          if (_sb2 && !_sb2.classList.contains('open')) {
+            console.warn('[chat] FAB click did not open sidebar - forcing');
+            chatOpen();
+          }
+        }, 120);
+      }
+    } catch (eFB) {}
+  }, true);
   if (tgl) tgl.addEventListener('click', function () {
     /* R210b（US5 用户裁决）：侧栏全宽度抽屉化——桌面端恢复与移动端
      * 一致的 open/closed 抽屉语义（R209b 的 collapsed 常驻方案废除；
@@ -16223,6 +16253,11 @@ function initChatSidebar() {
     var _t0 = e.target;
     if (_t0 && _t0.nodeType === 1 && tgl &&
         (tgl === _t0 || tgl.contains(_t0))) return;
+    /* 2026-11-19 用户直报「和小满聊聊有时候点了打不开」续修：
+     * 收栏吞点击的豁免此前只保 FAB 本体——吞窗（700ms/40px）内点
+     * 任意聊天入口（功能卡/结果区入口/tip 气泡命中）仍被整发吞掉，
+     * 侧栏不开且无任何反馈 = 死键。豁免扩到全部聊天入口。 */
+    if (_t0 && _t0.closest && _t0.closest('[data-chat-entry]')) return;
     if (Date.now() - p.ts > 700 ||
         Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > 40) return;
     e.stopImmediatePropagation();

@@ -5588,3 +5588,11 @@ html[data-theme="dark"] .tr-liao-strip{
 @media (max-width:420px){
   .btn-group .acct-btns{ grid-template-columns:1fr; }
 }
+
+
+/* ── 2026-11-19 用户直报：塔罗翻牌颜色淡/发白 ─────────────────
+ * 根因：.tarot-cell 被「图鉴未收集格」复用（opacity:.42，文件后段），
+ * CSS 层叠把结果页翻出的牌一起压到 42% 不透明度 → 牌面图与牌名文字
+ * 全被白底冲淡。只给结果网格下的 .tarot-cell 复位，不动图鉴灰态。 */
+.tarot-grid > .tarot-cell{opacity:1;color:inherit;font-size:inherit;padding:0;border:0;background:transparent;}
+.tarot-grid > .tarot-cell .tarot-pos{color:var(--secondary);}
